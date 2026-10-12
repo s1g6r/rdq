@@ -292,3 +292,21 @@ def test_bottom_line_says_what_to_do():
     assert p.bottom_level == "stop"
     p = analyse_card("no front matter")
     assert p.bottom_level == "stop" and "permission" in p.bottom_line
+
+
+def test_a_source_the_card_says_it_did_not_use_is_not_matched():
+    card = ("---\nlicense: apache-2.0\n---\nAn independent SO-ARM dataset inspired by their collection strategy; "
+            "it is not the WidowX data from the paper, and we do not use BridgeData V2 here.")
+    assert not match_sources("someone/cube-cup-100", card)
+
+
+def test_a_mention_alone_does_not_say_go():
+    card = "---\nlicense: apache-2.0\n---\nTeleoperated pick-and-place. See also BridgeData V2."
+    p = analyse_card(card, repo_id="someone/pick_place")
+    assert p.upstream["status"] == "relabelled" and not p.upstream["concluded"]
+    assert p.bottom_level == "check" and "None" not in p.bottom_line and "CC-BY-4.0" in p.bottom_line
+
+
+def test_odd_source_datasets_values_do_not_crash():
+    for value in ("7", "true", "{a: 1}", "[]", "null"):
+        analyse_card(f"---\nlicense: mit\nsource_datasets: {value}\n---\nbody", repo_id="x/y").to_dict()

@@ -4,8 +4,8 @@
   "upstream_licences": {
    "publisher_uploads": "862/3000 (28.7%)",
    "publisher_uploads_download_share": "18.8%",
-   "known_upstream_datasets": "305/3000 (10.2%)",
-   "known_upstream_download_share": "51.9%",
+   "known_upstream_datasets": "304/3000 (10.1%)",
+   "known_upstream_download_share": "51.8%",
    "known_by_strongest_evidence": [
     [
      "repo-id",
@@ -21,10 +21,10 @@
     ],
     [
      "card-mention",
-     5
+     4
     ]
    ],
-   "declared_differs_from_upstream": "201/305 (65.9%)",
+   "declared_differs_from_upstream": "200/304 (65.8%)",
    "declared_differs_download_share": "32.0%",
    "declared_differs_by_strongest_evidence": [
     [
@@ -37,22 +37,22 @@
     ],
     [
      "card-mention",
-     2
+     1
     ]
    ],
-   "declared_differs_high_confidence": "144/305 (47.2%)",
+   "declared_differs_high_confidence": "143/304 (47.0%)",
    "declared_differs_high_confidence_download_share": "21.5%",
    "declared_differs_status_counts": [
     [
      "relabelled",
-     191
+     190
     ],
     [
      "upstream-conflict",
      10
     ]
    ],
-   "no_upstream_grant": "45/305 (14.8%)",
+   "no_upstream_grant": "45/304 (14.8%)",
    "no_upstream_grant_download_share": "8.4%",
    "critical_conflicts": 0,
    "critical_conflicts_download_share": "0.0%",
@@ -62,7 +62,7 @@
    "status_counts": [
     [
      "relabelled",
-     191
+     190
     ],
     [
      "no-upstream-grant",
@@ -108,7 +108,7 @@
     ],
     [
      "BridgeData V2",
-     12
+     11
     ],
     [
      "RH20T",
@@ -414,11 +414,11 @@
    ],
    [
     "documented",
-    1105
+    1106
    ],
    [
     "relabelled (attribution owed)",
-    178
+    177
    ],
    [
     "no licence",

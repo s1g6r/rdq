@@ -130,7 +130,7 @@ _DERIVATION = re.compile(
 _CITATION_CONTEXT = re.compile(
     r"pre-?train|encoder|backbone|representation|embedding|features from|\br3m\b|vc-1|\bvip\b|"
     r"\bcompar|in the style of|similar to|inspired by|evaluated on|\bbenchmark|\bbaseline|follows the|"
-    r"\bformat\b|like the|unlike"
+    r"\bformat\b|like the|unlike|\bnot\b|n't\b|\bwithout\b|\bnever\b"
 )
 
 
@@ -152,9 +152,11 @@ def _front_matter(text: str) -> dict:
 def _front_matter_sources(text: str) -> list[str]:
     """source_datasets listed in the card's YAML front matter (lower-cased)."""
     src = _front_matter(text).get("source_datasets")
-    if isinstance(src, str):
+    if src is None:
+        return []
+    if not isinstance(src, (list, tuple)):
         src = [src]
-    return [str(x).lower() for x in src or []]
+    return [str(x).lower() for x in src]
 
 
 def _link_is_derivation(pattern: str, text: str) -> bool:

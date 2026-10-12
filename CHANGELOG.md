@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Licence check: a card that names a source only to say it was *not* used ("we do not use BridgeData V2") no longer counts as evidence. One Hub dataset was wrongly matched this way; the scan figures are now 304 matched and 200 differing (were 305 and 201).
+- When the only evidence is a mention on the card, the bottom line says "check first" and gives the original's licence, instead of "usable" with an empty licence.
+- Odd `source_datasets` values on a card (a number, a mapping) no longer crash the check.
+- Grammar: "restrict" for several restricted sources.
+
 ## 0.2.1 (2026-10-12)
 
 Fixes from a pre-release review against real Hub dataset schemas.

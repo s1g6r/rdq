@@ -192,7 +192,7 @@ _DERIVATION = re.compile(
 _CITATION_CONTEXT = re.compile(
     r"pre-?train|encoder|backbone|representation|embedding|features from|\br3m\b|vc-1|\bvip\b|"
     r"\bcompar|in the style of|similar to|inspired by|evaluated on|\bbenchmark|\bbaseline|follows the|"
-    r"\bformat\b|like the|unlike"
+    r"\bformat\b|like the|unlike|\bnot\b|n't\b|\bwithout\b|\bnever\b"
 )
 
 
@@ -214,9 +214,11 @@ def _front_matter(text: str) -> dict:
 def _front_matter_sources(text: str) -> list[str]:
     """source_datasets listed in the card's YAML front matter (lower-cased)."""
     src = _front_matter(text).get("source_datasets")
-    if isinstance(src, str):
+    if src is None:
+        return []
+    if not isinstance(src, (list, tuple)):
         src = [src]
-    return [str(x).lower() for x in src or []]
+    return [str(x).lower() for x in src]
 
 
 def _link_is_derivation(pattern: str, text: str) -> bool:
@@ -617,16 +619,21 @@ def bottom_line(verdict: str, lic, lic_class: str, up: dict, default_unconfirmed
         return "stop", "No licence: nobody has given you permission to reuse this data. Ask the uploader before using it."
     if lic_class == "noncommercial":
         return "stop", f"Research and other non-commercial use only ({lic})."
+    up_terms = ", ".join(sorted({str(u.get("license")) for u in up.get("upstream") or [] if u.get("license")})) or "see notes"
     if status == "relabelled":
+        if not up.get("concluded"):  # only weak evidence that the data comes from the upstream
+            return "check", (f"The card mentions {names} ({up_terms}). If the data comes from it, credit {names} and "
+                             f"say you changed it; the {lic} tag on this copy does not remove that duty.")
         return "go", (f"Usable, including commercially, as long as you credit {names} and say you changed it "
                       f"({up.get('concluded')}). The {lic} tag on this copy does not remove that duty.")
     if status == "no-upstream-grant":
         return "check", (f"Unclear: {names} never put a licence on the data itself. Ask its authors before commercial use; "
                          f"the {lic or 'missing'} tag on this copy is not their permission.")
     if status in ("restricted-redistribution",) or verdict == "restricted source":
-        return "check", f"Read the original terms first: {names} restricts how the data and copies of it may be shared."
+        verb = "restrict" if len(up.get("upstream") or []) > 1 else "restricts"
+        return "check", f"Read the original terms first: {names} {verb} how the data and copies of it may be shared."
     if status == "upstream-conflict":
-        return "check", f"The tag here ({lic}) differs from the original's terms ({up.get('concluded') or 'see notes'}); follow the original's terms."
+        return "check", f"The tag here ({lic}) differs from the original's terms ({up.get('concluded') or up_terms}); follow the original's terms."
     if status in ("consistent", "publisher-upload", "stricter-than-upstream"):
         return "go", f"Follow the {lic} licence{' and credit ' + names if str(lic).lower().startswith('cc-by') else ''}."
     if default_unconfirmed:
@@ -676,7 +683,7 @@ def analyse_card(readme: str | None, card_license=None, repo_id: str | None = No
     upstream = assess_card(repo_id, readme, lic)
     notes.extend(upstream.notes)
     src = meta.get("source_datasets") or []
-    if isinstance(src, str):
+    if not isinstance(src, (list, tuple)):
         src = [src]
 
     if upstream.status == "upstream-conflict" and upstream.severity == "critical":
