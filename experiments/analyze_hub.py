@@ -73,17 +73,17 @@ def summarise_scan(rows: list[dict]) -> dict:
         return (r.get("provenance") or {}).get("upstream") or {}
 
     known = [r for r in rows if up(r).get("upstream")]
-    mismatch = [r for r in known if up(r).get("status") in ("relabelled", "upstream-conflict")]
+    lic_mismatch = [r for r in known if up(r).get("status") in ("relabelled", "upstream-conflict")]
     no_grant = [r for r in known if up(r).get("status") == "no-upstream-grant"]
-    mismatch_hc = [r for r in mismatch if all(u.get("confidence") == "high" for u in up(r)["upstream"])]
+    mismatch_hc = [r for r in lic_mismatch if all(u.get("confidence") == "high" for u in up(r)["upstream"])]
     from rdq.licenses import UPSTREAM_SOURCES
     nc_conflict = [r for r in known if up(r).get("status") == "upstream-conflict" and up(r).get("severity") == "critical"]
     by_source = collections.Counter(u["name"] for r in known for u in up(r)["upstream"])
     upstream_summary = {
         "known_upstream_datasets": pct(len(known), n),
         "known_upstream_download_share": f"{100 * dl(known) / downloads_total:.1f}%" if downloads_total else "n/a",
-        "declared_differs_from_upstream": pct(len(mismatch), len(known)),
-        "declared_differs_download_share": f"{100 * dl(mismatch) / downloads_total:.1f}%" if downloads_total else "n/a",
+        "declared_differs_from_upstream": pct(len(lic_mismatch), len(known)),
+        "declared_differs_download_share": f"{100 * dl(lic_mismatch) / downloads_total:.1f}%" if downloads_total else "n/a",
         "declared_differs_high_confidence": pct(len(mismatch_hc), len(known)),
         "declared_differs_high_confidence_download_share": f"{100 * dl(mismatch_hc) / downloads_total:.1f}%" if downloads_total else "n/a",
         "no_upstream_grant": pct(len(no_grant), len(known)),
@@ -99,7 +99,7 @@ def summarise_scan(rows: list[dict]) -> dict:
         ],
         "top_relabelled": [
             {"id": r["id"], "downloads": r.get("downloads"), "declared": up(r)["declared"], "upstream": up(r)["concluded"]}
-            for r in sorted(mismatch, key=lambda r: -(r.get("downloads") or 0))[:15]
+            for r in sorted(lic_mismatch, key=lambda r: -(r.get("downloads") or 0))[:15]
         ],
     }
     return {
