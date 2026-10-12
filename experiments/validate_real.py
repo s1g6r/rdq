@@ -30,8 +30,8 @@ def main(out: Path) -> str:
         rep = json.loads((out / r["report"]).read_text())
         n = rep["dataset"]["episodes"]
         found = []
+        totals.update({f["check"] for f in rep["findings"]})
         for f in rep["findings"]:
-            totals[f["check"]] += 1
             found.append(f"{f['check']} ({len(f['episodes'])})" if f["episodes"] else f["check"])
         lines.append(
             f"| {rid} | {n} | {len(rep['score']['usable_episodes'])} | {rep['score']['dataset_score']} | "
