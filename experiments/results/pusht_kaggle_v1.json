@@ -1,0 +1,11 @@
+{
+ "description": "Diffusion policy (LeRobot 0.6.1) on lerobot/pusht_keypoints with 30% injected faults (desync, glitch, idle; 62 of 206 episodes). One seed, 30k steps, batch as in experiments/kaggle, Kaggle T4, Oct 11-12 2026. Run used rdq 0.1-era checks (position-based lag).",
+ "detection": {"faults_caught": {"desync": "21/21", "glitch": "20/20", "idle": "21/21"}, "clean_wrongly_dropped": "0/144"},
+ "policies": {
+  "raw": {"episodes": 206, "pc_success": 0.5, "avg_max_reward": 0.337, "avg_sum_reward": 20.09, "eval_episodes": 200},
+  "filtered": {"episodes": 144, "pc_success": 2.0, "avg_max_reward": 0.439, "avg_sum_reward": 31.50, "eval_episodes": 200},
+  "random": {"episodes": 144, "pc_success": 0.0, "avg_max_reward": 0.257, "avg_sum_reward": 12.26, "eval_episodes": 200}
+ },
+ "tests": {"filtered_vs_random_success_p": 0.0444, "filtered_vs_raw_success_p": 0.177},
+ "reading": "Success rates are at the floor (0-2%): 30k steps is far short of what Push-T diffusion policies are usually trained for, so success cannot separate the methods. Mean maximum coverage (avg_max_reward) orders them filtered 0.44 > raw 0.34 > random 0.26, but per-episode values (needed for an interval) were not saved in the notebook output and this is one seed."
+}
