@@ -794,33 +794,41 @@ def check_spikes(ds: Dataset, th: Thresholds) -> list[Finding]:
 
 
 def _lag_errors(action: np.ndarray, state: np.ndarray, max_lag: int) -> tuple[np.ndarray, float]:
-    """Mean squared error between action[t] and state[t + k] for k = -max_lag..max_lag.
+    """Mean squared error between action and state *velocities* at lags k = -max_lag..max_lag.
 
     Index i of the returned array corresponds to lag k = i - max_lag. Negative
     lags mean the recorded action trails the observation, the signature of an
     action stream written late.
 
-    Each channel is standardised and its own constant offset removed, so
-    calibration differences between commanded and measured positions do not
-    matter. Also returns the zero-lag correlation, used to decide whether the
+    Velocities (two-frame differences), each channel scaled by its own RMS, are
+    compared rather than positions: they ignore constant calibration offsets and
+    gain differences between commanded and measured positions, and unlike
+    mean-removed positions they still pin down the lag when the arm moves at a
+    steady speed (a time shift of a straight-line motion is only an offset).
+    Also returns the zero-lag position correlation, used to decide whether the
     action stream tracks the state at all.
     """
     active = (action.std(0) > 1e-6) & (state.std(0) > 1e-6)
-    if not np.any(active):
+    if not np.any(active) or len(action) < 8:
         return np.array([]), float("nan")
     a = action[:, active]
     s = state[:, active]
-    a = (a - a.mean(0)) / a.std(0)
-    s = (s - s.mean(0)) / s.std(0)
-    n = len(a)
+    w = 2
+    va = a[w:] - a[:-w]
+    vs = s[w:] - s[:-w]
+    va = va / (np.sqrt((va**2).mean(0)) + 1e-12)
+    vs = vs / (np.sqrt((vs**2).mean(0)) + 1e-12)
+    n = len(va)
     errors = []
     for k in range(-max_lag, max_lag + 1):
         if abs(k) > n - 5:
             errors.append(np.inf)
             continue
-        diff = s[k:] - a[: n - k] if k >= 0 else s[: n + k] - a[-k:]
-        diff = diff - diff.mean(0)
+        diff = vs[k:] - va[: n - k] if k >= 0 else vs[: n + k] - va[-k:]
         errors.append(float(np.mean(diff**2)))
+    a = (a - a.mean(0)) / a.std(0)
+    s = (s - s.mean(0)) / s.std(0)
+    n = len(a)
     corr = float(np.mean(np.sum(a * s, axis=0) / n))
     return np.array(errors), corr
 
