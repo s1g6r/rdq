@@ -1,0 +1,572 @@
+{
+  "tool": {
+    "name": "rdq",
+    "version": "0.2.0"
+  },
+  "audited_at": "2026-10-12T07:24:16+00:00",
+  "dataset": {
+    "path": "acme-robotics/so101_pick_place_delivery_03",
+    "codebase_version": "3.0",
+    "robot_type": "so101_follower",
+    "fps": 30.0,
+    "episodes": 150,
+    "frames": 35599,
+    "median_episode_frames": 236,
+    "numeric_features": [
+      "action",
+      "observation.state"
+    ],
+    "cameras": [
+      "observation.images.front"
+    ],
+    "tasks": 1
+  },
+  "score": {
+    "dataset_score": 93,
+    "episode_scores": {
+      "0": 100,
+      "1": 100,
+      "2": 100,
+      "3": 100,
+      "4": 100,
+      "5": 100,
+      "6": 100,
+      "7": 100,
+      "8": 100,
+      "9": 100,
+      "10": 100,
+      "11": 100,
+      "12": 100,
+      "13": 100,
+      "14": 100,
+      "15": 100,
+      "16": 100,
+      "17": 100,
+      "18": 100,
+      "19": 100,
+      "20": 100,
+      "21": 100,
+      "22": 100,
+      "23": 100,
+      "24": 100,
+      "25": 100,
+      "26": 100,
+      "27": 100,
+      "28": 100,
+      "29": 100,
+      "30": 100,
+      "31": 100,
+      "32": 100,
+      "33": 100,
+      "34": 100,
+      "35": 100,
+      "36": 100,
+      "37": 100,
+      "38": 100,
+      "39": 100,
+      "40": 100,
+      "41": 100,
+      "42": 100,
+      "43": 100,
+      "44": 100,
+      "45": 100,
+      "46": 100,
+      "47": 100,
+      "48": 100,
+      "49": 100,
+      "50": 100,
+      "51": 100,
+      "52": 100,
+      "53": 100,
+      "54": 100,
+      "55": 100,
+      "56": 100,
+      "57": 100,
+      "58": 100,
+      "59": 100,
+      "60": 100,
+      "61": 100,
+      "62": 100,
+      "63": 100,
+      "64": 100,
+      "65": 100,
+      "66": 100,
+      "67": 100,
+      "68": 100,
+      "69": 100,
+      "70": 100,
+      "71": 100,
+      "72": 100,
+      "73": 100,
+      "74": 100,
+      "75": 100,
+      "76": 100,
+      "77": 100,
+      "78": 100,
+      "79": 100,
+      "80": 100,
+      "81": 100,
+      "82": 100,
+      "83": 100,
+      "84": 100,
+      "85": 100,
+      "86": 100,
+      "87": 100,
+      "88": 100,
+      "89": 100,
+      "90": 100,
+      "91": 100,
+      "92": 100,
+      "93": 100,
+      "94": 100,
+      "95": 100,
+      "96": 100,
+      "97": 100,
+      "98": 100,
+      "99": 100,
+      "100": 80,
+      "101": 35,
+      "102": 80,
+      "103": 100,
+      "104": 100,
+      "105": 80,
+      "106": 35,
+      "107": 80,
+      "108": 100,
+      "109": 100,
+      "110": 80,
+      "111": 35,
+      "112": 80,
+      "113": 100,
+      "114": 100,
+      "115": 80,
+      "116": 35,
+      "117": 80,
+      "118": 100,
+      "119": 100,
+      "120": 80,
+      "121": 35,
+      "122": 80,
+      "123": 100,
+      "124": 100,
+      "125": 80,
+      "126": 35,
+      "127": 80,
+      "128": 100,
+      "129": 100,
+      "130": 80,
+      "131": 35,
+      "132": 80,
+      "133": 100,
+      "134": 100,
+      "135": 80,
+      "136": 35,
+      "137": 80,
+      "138": 100,
+      "139": 100,
+      "140": 80,
+      "141": 35,
+      "142": 80,
+      "143": 100,
+      "144": 100,
+      "145": 80,
+      "146": 35,
+      "147": 80,
+      "148": 100,
+      "149": 80
+    },
+    "usable_episodes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      103,
+      104,
+      108,
+      109,
+      113,
+      114,
+      118,
+      119,
+      123,
+      124,
+      128,
+      129,
+      133,
+      134,
+      138,
+      139,
+      143,
+      144,
+      148
+    ],
+    "flagged_episodes": {
+      "101": [
+        "episodes.idle",
+        "episodes.trajectory_outlier"
+      ],
+      "106": [
+        "episodes.idle",
+        "episodes.trajectory_outlier"
+      ],
+      "111": [
+        "episodes.idle",
+        "episodes.trajectory_outlier"
+      ],
+      "116": [
+        "episodes.idle",
+        "episodes.trajectory_outlier"
+      ],
+      "121": [
+        "episodes.idle",
+        "episodes.trajectory_outlier"
+      ],
+      "126": [
+        "episodes.idle",
+        "episodes.trajectory_outlier"
+      ],
+      "131": [
+        "episodes.idle",
+        "episodes.trajectory_outlier"
+      ],
+      "136": [
+        "episodes.idle",
+        "episodes.trajectory_outlier"
+      ],
+      "141": [
+        "episodes.idle",
+        "episodes.trajectory_outlier"
+      ],
+      "146": [
+        "episodes.idle",
+        "episodes.trajectory_outlier"
+      ],
+      "149": [
+        "episodes.duplicate"
+      ],
+      "102": [
+        "episodes.spikes"
+      ],
+      "107": [
+        "episodes.spikes"
+      ],
+      "112": [
+        "episodes.spikes"
+      ],
+      "117": [
+        "episodes.spikes"
+      ],
+      "122": [
+        "episodes.spikes"
+      ],
+      "127": [
+        "episodes.spikes"
+      ],
+      "132": [
+        "episodes.spikes"
+      ],
+      "137": [
+        "episodes.spikes"
+      ],
+      "142": [
+        "episodes.spikes"
+      ],
+      "147": [
+        "episodes.spikes"
+      ],
+      "100": [
+        "sync.action_state_lag"
+      ],
+      "105": [
+        "sync.action_state_lag"
+      ],
+      "110": [
+        "sync.action_state_lag"
+      ],
+      "115": [
+        "sync.action_state_lag"
+      ],
+      "120": [
+        "sync.action_state_lag"
+      ],
+      "125": [
+        "sync.action_state_lag"
+      ],
+      "130": [
+        "sync.action_state_lag"
+      ],
+      "135": [
+        "sync.action_state_lag"
+      ],
+      "140": [
+        "sync.action_state_lag"
+      ],
+      "145": [
+        "sync.action_state_lag"
+      ]
+    },
+    "severity_counts": {
+      "critical": 1,
+      "warning": 3,
+      "info": 1
+    },
+    "usable_fraction": 0.7933
+  },
+  "findings": [
+    {
+      "check": "episodes.idle",
+      "severity": "critical",
+      "message": "10 episodes barely move (less than 5% of a typical episode); the robot was probably not doing the task",
+      "episodes": [
+        101,
+        106,
+        111,
+        116,
+        121,
+        126,
+        131,
+        136,
+        141,
+        146
+      ],
+      "details": {}
+    },
+    {
+      "check": "episodes.duplicate",
+      "severity": "warning",
+      "message": "1 episode(s) are exact copies of an earlier episode",
+      "episodes": [
+        149
+      ],
+      "details": {
+        "pairs": [
+          [
+            10,
+            149
+          ]
+        ]
+      }
+    },
+    {
+      "check": "episodes.spikes",
+      "severity": "warning",
+      "message": "'observation.state' has short glitches in 10 episodes: a channel jumps far outside its normal motion for a few frames and comes back; usually a sensor glitch or a teleop dropout",
+      "episodes": [
+        102,
+        107,
+        112,
+        117,
+        122,
+        127,
+        132,
+        137,
+        142,
+        147
+      ],
+      "details": {
+        "feature": "observation.state",
+        "glitch_frames_per_episode": {
+          "102": 3,
+          "107": 3,
+          "112": 3,
+          "117": 3,
+          "122": 3,
+          "127": 3,
+          "132": 3,
+          "137": 3,
+          "142": 3,
+          "147": 3
+        }
+      }
+    },
+    {
+      "check": "sync.action_state_lag",
+      "severity": "warning",
+      "message": "in 10 episodes the action stream is shifted against the state stream (typical lag is 2 frames); suggests a recording sync problem",
+      "episodes": [
+        100,
+        105,
+        110,
+        115,
+        120,
+        125,
+        130,
+        135,
+        140,
+        145
+      ],
+      "details": {
+        "typical_lag": 2,
+        "lags": {
+          "100": -8,
+          "105": -8,
+          "110": -8,
+          "115": -8,
+          "120": -8,
+          "125": -8,
+          "130": -8,
+          "135": -7,
+          "140": -8,
+          "145": -8
+        }
+      }
+    },
+    {
+      "check": "episodes.trajectory_outlier",
+      "severity": "info",
+      "message": "10 episodes move far faster, slower, wider or narrower than the rest; could be a different task, a different setup, or a failed attempt",
+      "episodes": [
+        101,
+        106,
+        111,
+        116,
+        121,
+        126,
+        131,
+        136,
+        141,
+        146
+      ],
+      "details": {}
+    }
+  ],
+  "provenance": {
+    "license": "apache-2.0",
+    "license_class": "permissive",
+    "template_card": true,
+    "unfilled_fields": [
+      "homepage",
+      "paper"
+    ],
+    "default_license_unconfirmed": true,
+    "restricted_sources": [],
+    "verdict": "default licence, unconfirmed",
+    "notes": [
+      "licence is apache-2.0 but the card is LeRobot's unedited template, so the licence is most likely the upload tool's default rather than a choice by the data owner"
+    ],
+    "license_link": null,
+    "source_datasets": [],
+    "upstream": {
+      "declared": "apache-2.0",
+      "status": "no-known-upstream",
+      "severity": "ok",
+      "concluded": null,
+      "commercial_training": null,
+      "redistribution": null,
+      "restrictions": [],
+      "upstream": [],
+      "notes": []
+    }
+  },
+  "thresholds": {
+    "fps_tolerance": 0.05,
+    "gap_factor": 1.5,
+    "short_episode_frames": 10,
+    "short_episode_ratio": 0.2,
+    "robust_z": 4.0,
+    "idle_motion_ratio": 0.05,
+    "idle_edge_ratio": 0.4,
+    "spike_fraction": 0.3,
+    "spike_window": 7,
+    "stats_rel_tolerance": 0.05,
+    "lag_max": 15,
+    "lag_deviation": 4,
+    "min_episodes_for_outliers": 8
+  }
+}

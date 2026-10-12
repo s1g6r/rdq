@@ -1,0 +1,88 @@
+{
+  "@context": "https://spdx.org/rdf/3.0.1/spdx-context.jsonld",
+  "@graph": [
+    {
+      "type": "CreationInfo",
+      "@id": "_:creationinfo",
+      "specVersion": "3.0.1",
+      "created": "2026-10-12T07:24:44+00:00",
+      "createdBy": [
+        "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#agent-rdq"
+      ],
+      "createdUsing": [
+        "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#tool-rdq"
+      ]
+    },
+    {
+      "type": "SoftwareAgent",
+      "spdxId": "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#agent-rdq",
+      "creationInfo": "_:creationinfo",
+      "name": "rdq"
+    },
+    {
+      "type": "Tool",
+      "spdxId": "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#tool-rdq",
+      "creationInfo": "_:creationinfo",
+      "name": "rdq 0.2.0"
+    },
+    {
+      "type": "dataset_DatasetPackage",
+      "spdxId": "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#dataset",
+      "creationInfo": "_:creationinfo",
+      "name": "acme-robotics/so101_pick_place_delivery_03",
+      "software_downloadLocation": "https://huggingface.co/datasets/acme-robotics/so101_pick_place_delivery_03",
+      "software_primaryPurpose": "data",
+      "dataset_datasetType": [
+        "sensor",
+        "timeseries",
+        "video"
+      ],
+      "dataset_datasetSize": 3349228,
+      "dataset_dataCollectionProcess": "Leader-arm teleoperation (SO-101 leader to follower), 30 Hz",
+      "dataset_dataPreprocessing": [
+        "rdq 0.2.0 audit: score 93/100, 119/150 episodes pass all critical and warning checks."
+      ],
+      "dataset_intendedUse": "Fine-tuning pick-and-place policies",
+      "dataset_datasetNoise": "rdq found 1 critical and 3 warning findings; see rdq:quality.",
+      "verifiedUsing": [
+        {
+          "type": "Hash",
+          "algorithm": "sha256",
+          "hashValue": "64e5129490c63f8881a416b6e07f8f53a08f87d083c4b5e74e49043453239a97"
+        }
+      ]
+    },
+    {
+      "type": "simplelicensing_LicenseExpression",
+      "spdxId": "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#license-declared",
+      "creationInfo": "_:creationinfo",
+      "simplelicensing_licenseExpression": "Apache-2.0"
+    },
+    {
+      "type": "Relationship",
+      "spdxId": "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#rel-declared",
+      "creationInfo": "_:creationinfo",
+      "from": "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#dataset",
+      "relationshipType": "hasDeclaredLicense",
+      "to": [
+        "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#license-declared"
+      ]
+    },
+    {
+      "type": "simplelicensing_LicenseExpression",
+      "spdxId": "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#license-concluded",
+      "creationInfo": "_:creationinfo",
+      "simplelicensing_licenseExpression": "NOASSERTION"
+    },
+    {
+      "type": "Relationship",
+      "spdxId": "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#rel-concluded",
+      "creationInfo": "_:creationinfo",
+      "from": "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#dataset",
+      "relationshipType": "hasConcludedLicense",
+      "to": [
+        "https://spdx.org/spdxdocs/rdq/33412abbce7cfeb6#license-concluded"
+      ]
+    }
+  ]
+}

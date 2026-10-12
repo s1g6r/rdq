@@ -1,0 +1,7 @@
+group                        episodes   usable composite  jitter   idle  top issues
+contractor_C                       50      38%      0.51    0.54    21%  sync.action_state_lag (10), episodes.idle (10), episodes.trajectory_outlier (10)
+contractor_B                       50     100%      0.47    0.96     0%  none
+contractor_A                       50     100%      0.55    0.38     0%  none
+  contractor_C: 31 of 50 episodes have broken recordings
+  contractor_B: much jerkier motion than the other groups (shaky teleop or a noisy leader arm)
+composite: median quality rank (0-1, higher is better); jitter: median share of high-frequency motion

@@ -1,0 +1,259 @@
+{
+  "@context": {
+    "@language": "en",
+    "@vocab": "https://schema.org/",
+    "sc": "https://schema.org/",
+    "cr": "http://mlcommons.org/croissant/",
+    "rai": "http://mlcommons.org/croissant/RAI/",
+    "dct": "http://purl.org/dc/terms/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "odrl": "http://www.w3.org/ns/odrl/2/",
+    "rdq": "https://github.com/s1g6r/rdq/blob/main/docs/passport.md#",
+    "conformsTo": "dct:conformsTo",
+    "citeAs": "cr:citeAs",
+    "column": "cr:column",
+    "data": {
+      "@id": "cr:data",
+      "@type": "@json"
+    },
+    "equivalentProperty": "cr:equivalentProperty",
+    "dataType": {
+      "@id": "cr:dataType",
+      "@type": "@vocab"
+    },
+    "examples": {
+      "@id": "cr:examples",
+      "@type": "@json"
+    },
+    "extract": "cr:extract",
+    "field": "cr:field",
+    "fileObject": "cr:fileObject",
+    "fileProperty": "cr:fileProperty",
+    "fileSet": "cr:fileSet",
+    "format": "cr:format",
+    "includes": "cr:includes",
+    "isLiveDataset": "cr:isLiveDataset",
+    "jsonPath": "cr:jsonPath",
+    "key": "cr:key",
+    "md5": "cr:md5",
+    "parentField": "cr:parentField",
+    "path": "cr:path",
+    "recordSet": "cr:recordSet",
+    "references": "cr:references",
+    "regex": "cr:regex",
+    "repeated": "cr:repeated",
+    "replace": "cr:replace",
+    "samplingRate": "cr:samplingRate",
+    "separator": "cr:separator",
+    "source": "cr:source",
+    "subField": "cr:subField",
+    "transform": "cr:transform"
+  },
+  "@type": "sc:Dataset",
+  "conformsTo": [
+    "http://mlcommons.org/croissant/1.1",
+    "http://mlcommons.org/croissant/RAI/1.0"
+  ],
+  "name": "acme-robotics/so101_pick_place_delivery_03",
+  "description": "LeRobot dataset acme-robotics/so101_pick_place_delivery_03",
+  "url": "https://huggingface.co/datasets/acme-robotics/so101_pick_place_delivery_03",
+  "creator": {
+    "@type": "sc:Organization",
+    "name": "acme-robotics"
+  },
+  "datePublished": "2026-10-12",
+  "version": "1.0.0",
+  "rdq:pinnedRevision": "1.0.0",
+  "keywords": [
+    "robotics",
+    "LeRobot",
+    "imitation learning",
+    "so101_follower"
+  ],
+  "sdVersion": "rdq-passport-0.1",
+  "sdLicense": "https://spdx.org/licenses/CC0-1.0.html",
+  "distribution": [
+    {
+      "@type": "cr:FileObject",
+      "@id": "info",
+      "name": "info",
+      "contentUrl": "meta/info.json",
+      "encodingFormat": "application/json",
+      "sha256": "c87735b0db130d4b60929d30980c123ee9f6d9dd857c0583d3259ab523100f08"
+    },
+    {
+      "@type": "cr:FileSet",
+      "@id": "frames",
+      "name": "frames",
+      "includes": "data/**/*.parquet",
+      "encodingFormat": "application/x-parquet"
+    },
+    {
+      "@type": "cr:FileSet",
+      "@id": "videos",
+      "name": "videos",
+      "includes": "videos/**/*.mp4",
+      "encodingFormat": "video/mp4"
+    }
+  ],
+  "rai:dataCollection": "Leader-arm teleoperation (SO-101 leader to follower), 30 Hz",
+  "rai:dataPreprocessingProtocol": [
+    "rdq 0.2.0 audit: score 93/100, 119/150 episodes pass all critical and warning checks."
+  ],
+  "rai:annotatorDemographics": "3 contractors (A, B, C), operator id recorded per episode in collectors.csv",
+  "rai:dataUseCases": "Fine-tuning pick-and-place policies",
+  "rai:dataLimitations": "rdq found 1 critical and 3 warning findings; see rdq:quality.",
+  "prov:wasGeneratedBy": {
+    "@type": "prov:Activity",
+    "prov:label": "LeRobot 3.0 dataset, robot so101_follower"
+  },
+  "rdq:structure": {
+    "codebaseVersion": "3.0",
+    "robotType": "so101_follower",
+    "fps": 30.0,
+    "episodes": 150,
+    "frames": 35599,
+    "hours": 0.33,
+    "tasks": 1,
+    "numericFeatures": [
+      "action",
+      "observation.state"
+    ],
+    "cameras": [
+      "observation.images.front"
+    ]
+  },
+  "rdq:contentHash": {
+    "algorithm": "sha256",
+    "value": "64e5129490c63f8881a416b6e07f8f53a08f87d083c4b5e74e49043453239a97",
+    "files": 5,
+    "bytes": 3349228,
+    "covers": [
+      "meta",
+      "data"
+    ]
+  },
+  "rdq:license": {
+    "declared": "apache-2.0",
+    "declaredSpdx": "Apache-2.0",
+    "declaredSource": "dataset card front matter",
+    "licenseLink": null,
+    "status": "default-unconfirmed",
+    "verdict": "default licence, unconfirmed",
+    "concluded": "NOASSERTION",
+    "commercialTraining": null,
+    "redistribution": null,
+    "restrictions": [],
+    "templateCard": true,
+    "confirmedBy": null,
+    "evidence": [],
+    "notes": [
+      "licence is apache-2.0 but the card is LeRobot's unedited template, so the licence is most likely the upload tool's default rather than a choice by the data owner"
+    ]
+  },
+  "rdq:quality": {
+    "score": 93,
+    "severityCounts": {
+      "critical": 1,
+      "warning": 3,
+      "info": 1
+    },
+    "episodesTotal": 150,
+    "episodesUsable": 119,
+    "usableFraction": 0.7933,
+    "findings": [
+      {
+        "check": "episodes.duplicate",
+        "severity": "warning",
+        "episodes": 1,
+        "findings": 1
+      },
+      {
+        "check": "episodes.idle",
+        "severity": "critical",
+        "episodes": 10,
+        "findings": 1
+      },
+      {
+        "check": "episodes.spikes",
+        "severity": "warning",
+        "episodes": 10,
+        "findings": 1
+      },
+      {
+        "check": "episodes.trajectory_outlier",
+        "severity": "info",
+        "episodes": 10,
+        "findings": 1
+      },
+      {
+        "check": "sync.action_state_lag",
+        "severity": "warning",
+        "episodes": 10,
+        "findings": 1
+      }
+    ],
+    "thresholds": {
+      "fps_tolerance": 0.05,
+      "gap_factor": 1.5,
+      "short_episode_frames": 10,
+      "short_episode_ratio": 0.2,
+      "robust_z": 4.0,
+      "idle_motion_ratio": 0.05,
+      "idle_edge_ratio": 0.4,
+      "spike_fraction": 0.3,
+      "spike_window": 7,
+      "stats_rel_tolerance": 0.05,
+      "lag_max": 15,
+      "lag_deviation": 4,
+      "min_episodes_for_outliers": 8
+    }
+  },
+  "rdq:fieldSources": {
+    "data": [
+      "distribution",
+      "rdq:structure",
+      "rdq:contentHash",
+      "rdq:quality",
+      "rai:dataCollectionMissingData"
+    ],
+    "card": [
+      "rdq:license.declared",
+      "rdq:license.licenseLink",
+      "prov:wasDerivedFrom (source_datasets)"
+    ],
+    "rdq": [
+      "rdq:license.status",
+      "rdq:license.concluded",
+      "rdq:license.restrictions",
+      "prov:wasDerivedFrom (upstream matches)"
+    ],
+    "owner": [
+      "collection_method",
+      "intended_use",
+      "operators"
+    ]
+  },
+  "rdq:unanswered": [
+    "creator",
+    "description",
+    "collection_type",
+    "collection_timeframe",
+    "collection_geography",
+    "upstream_sources",
+    "modifications",
+    "task_annotation",
+    "personal_data",
+    "limitations",
+    "known_biases",
+    "maintenance",
+    "license_confirmed_by"
+  ],
+  "rdq:attestation": {
+    "generatedBy": "rdq 0.2.0",
+    "generatedAt": "2026-10-12T07:24:44+00:00",
+    "signedBy": null,
+    "note": "Machine-generated. Owner answers are recorded as given and not verified by rdq. Not legal advice."
+  },
+  "license": "NOASSERTION"
+}

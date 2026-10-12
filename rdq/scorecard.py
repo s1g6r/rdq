@@ -66,15 +66,28 @@ def scorecard(result: dict, scores: dict | None, groups: dict[int, str]) -> list
                 "mean_idle_fraction": round(float(np.mean(idle)), 3) if idle else None,
             }
         )
+    all_hfr = [eps[i]["hfr"] for i in eps if eps[i].get("hfr") is not None and np.isfinite(eps[i]["hfr"])]
+    overall = float(np.median(all_hfr)) if all_hfr else None
+    for r in rows:
+        r["notes"] = []
+        if overall and r["median_hfr"] is not None and len(rows) > 1 and r["median_hfr"] > 1.5 * overall:
+            r["notes"].append("much jerkier motion than the other groups (shaky teleop or a noisy leader arm)")
+        if r["usable_fraction"] < 0.8:
+            r["notes"].append(f"{r['episodes'] - r['usable']} of {r['episodes']} episodes have broken recordings")
     rows.sort(key=lambda r: (r["usable_fraction"], r["median_composite"] if r["median_composite"] is not None else 1))
     return rows
 
 
 def format_scorecard(rows: list[dict]) -> str:
-    lines = [f"{'group':<28} {'episodes':>8} {'usable':>8} {'composite':>9} {'idle':>6}  top issues"]
+    lines = [f"{'group':<28} {'episodes':>8} {'usable':>8} {'composite':>9} {'jitter':>7} {'idle':>6}  top issues"]
     for r in rows:
         comp = f"{r['median_composite']:.2f}" if r["median_composite"] is not None else "-"
         idle = f"{r['mean_idle_fraction']:.0%}" if r["mean_idle_fraction"] is not None else "-"
+        hfr = f"{r['median_hfr']:.2f}" if r["median_hfr"] is not None else "-"
         issues = ", ".join(f"{c} ({n})" for c, n in r["top_issues"]) or "none"
-        lines.append(f"{r['group'][:28]:<28} {r['episodes']:>8} {r['usable_fraction']:>8.0%} {comp:>9} {idle:>6}  {issues}")
+        lines.append(f"{r['group'][:28]:<28} {r['episodes']:>8} {r['usable_fraction']:>8.0%} {comp:>9} {hfr:>7} {idle:>6}  {issues}")
+    for r in rows:
+        for n in r.get("notes", []):
+            lines.append(f"  {r['group']}: {n}")
+    lines.append("composite: median quality rank (0-1, higher is better); jitter: median share of high-frequency motion")
     return "\n".join(lines)
