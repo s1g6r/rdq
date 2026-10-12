@@ -32,4 +32,4 @@ caffeinate -i bash -c "
 " 2>&1 | tee -a results/run.log
 
 echo ""
-echo "Done. Results are in ~/robodata/results — tell Claude it finished."
+echo "Done. Results are in ~/robodata/results."
