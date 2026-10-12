@@ -163,3 +163,11 @@ def test_knowledge_base_patterns_do_not_overlap_on_known_ids():
     for rid in ids:
         hits = [s.key for s in UPSTREAM_SOURCES if re.search(s.id_pattern, rid.lower())]
         assert len(hits) == 1, (rid, hits)
+
+
+def test_passport_for_mirror_of_unlicensed_original(tmp_path):
+    root, readme = _ds(tmp_path, license_tag="mit")
+    p = build_passport(audit(root, readme=readme, repo_id="lerobot/aloha_sim_insertion_human"), readme, root,
+                       repo_id="lerobot/aloha_sim_insertion_human")
+    assert p["rdq:license"]["status"] == "no-upstream-grant"
+    assert p["license"] == "NOASSERTION"

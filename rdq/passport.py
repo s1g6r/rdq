@@ -192,7 +192,9 @@ def build_passport(
 
     declared_spdx = spdx_id(prov.get("license"))
     concluded = up.get("concluded")
-    if concluded:
+    if up.get("status") == "no-upstream-grant":
+        concluded_for_croissant = None  # the original states no data licence, so nothing can be concluded
+    elif concluded:
         concluded_for_croissant = concluded  # upstream terms govern whatever the mirror's tag says
     elif prov.get("default_license_unconfirmed") and not answers.get("license_confirmed_by"):
         concluded_for_croissant = None  # NOASSERTION: nobody has confirmed the tag
