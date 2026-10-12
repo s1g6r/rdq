@@ -145,6 +145,9 @@ def format_terminal(result: dict, color: bool = True) -> str:
         if prov.get("bottom_line"):
             lines.append(f"  {c(tag, col)}  {_clean(prov['bottom_line'])}")
         lines.append(f"  licence: {prov['license'] or 'none'} → {prov['verdict']}")
+        if prov.get("card_fix"):
+            lines.append("  fix for the uploader (card YAML header):")
+            lines += [f"    {_clean(l)}" for l in prov["card_fix"].splitlines()]
         up = prov.get("upstream") or {}
         if up.get("upstream"):
             terms = f" ({up.get('concluded')})" if up.get("concluded") else ""
@@ -217,7 +220,7 @@ def render_html(result: dict) -> str:
   <p class="bottom"><b>{_esc({"go": "OK", "check": "Check first", "stop": "Stop"}.get(prov.get("bottom_level"), "Check first"))}:</b> {_esc(prov.get("bottom_line", ""))}</p>
   <div class="prov"><span class="pill {('ok' if prov['verdict'] == 'documented' and (prov.get('upstream') or {}).get('severity', 'ok') in ('ok', 'info') else 'flag')}">{_esc(prov['verdict'])}</span>
   <span>licence: <b>{_esc(prov['license'] or 'none')}</b></span></div>
-  <ul class="notes">{notes}</ul>
+  <ul class="notes">{notes}</ul>{('<p><b>Fix for the uploader</b> (paste into the card&#39;s YAML header):</p><pre>' + _esc(prov['card_fix']) + '</pre>') if prov.get('card_fix') else ''}
 </section>"""
 
     return f"""<!doctype html>

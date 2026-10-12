@@ -30,6 +30,8 @@
   .bottom { font-size:17px; padding:12px 14px; border-radius:10px; margin:0 0 14px; border:1px solid var(--line); }
   .bottom.go { border-color:var(--ok); } .bottom.check { border-color:var(--warn); } .bottom.stop { border-color:var(--crit); }
   .bottom b { margin-right:6px; }
+  .fix pre { background:var(--line); padding:10px 12px; border-radius:8px; overflow-x:auto; font-size:13px; }
+  .fix { margin:0 0 14px; }
   .critical { color:var(--crit); } .warning { color:var(--warn); } .info { color:var(--info); } .ok { color:var(--ok); }
   ul { padding-left:20px; margin:8px 0 0; } li { margin:4px 0; }
   a { color:var(--accent); }
@@ -118,6 +120,7 @@ function render(id, p) {
   const word = {go: "✅ OK to use", check: "⚠️ Check first", stop: "⛔ Stop"}[lvl] || "⚠️ Check first";
   let h = `<div class="card"><h2>${esc(id)}</h2>`;
   h += `<p class="bottom ${esc(lvl)}"><b class="${{go:"ok",check:"warning",stop:"critical"}[lvl] || "warning"}">${word}</b>${esc(p.bottom_line)}</p>`;
+  if (p.card_fix) h += `<details class="fix"><summary>Fix for the uploader: paste into the card's YAML header</summary><pre>${esc(p.card_fix)}</pre><p class="k">Then say on the card that the data was converted from the original and what changed. rdq reads this back as the declared source.</p></details>`;
   h += `<details><summary>Details</summary>`;
   h += `<div class="row"><span class="k">Declared licence</span><span>${esc(p.license || "none")}</span></div>`;
   h += `<div class="row"><span class="k">Verdict</span><span class="pill ${esc(sev)}">${esc(p.verdict)}</span></div>`;

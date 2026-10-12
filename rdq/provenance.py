@@ -65,6 +65,8 @@ class ProvenanceResult:
     upstream: dict | None = None  # licenses.LicenseAssessment as a dict
     bottom_line: str = ""  # one plain-English sentence: can I use this, and on what condition?
     bottom_level: str = "check"  # go | check | stop
+    card_fix: str | None = None  # front-matter lines the uploader can paste to state the original's terms
+
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -150,6 +152,40 @@ def bottom_line(verdict: str, lic, lic_class: str, up: dict, default_unconfirmed
     return "check", f"Custom licence ({lic}): read its terms before use."
 
 
+def _hf_tag(spdx: str | None) -> str:
+    """Hub licence tag for an SPDX id (custom terms become 'other')."""
+    if not spdx or spdx.startswith("LicenseRef-"):
+        return "other"
+    return spdx.lower()
+
+
+def card_fix(up: dict) -> str | None:
+    """YAML front matter that states the original's licence and source, for a copy whose tag differs.
+
+    Only for one clearly concluded upstream: the suggestion must be safe to paste as is. The
+    source_datasets value is chosen so rdq itself reads it back as the declared source.
+    """
+    from .licenses import UPSTREAM_SOURCES
+
+    if up.get("status") not in ("relabelled", "upstream-conflict") or not up.get("concluded"):
+        return None
+    ups = up.get("upstream") or []
+    if len(ups) != 1:
+        return None
+    src = next((s for s in UPSTREAM_SOURCES if s.key == ups[0]["key"]), None)
+    if src is None:
+        return None
+    candidates = [src.key, src.key.replace("_", "-"), re.sub(r"[^a-z0-9]+", "_", src.name.lower()).strip("_")]
+    value = next((c for c in candidates if re.search(src.id_pattern, c)), None)
+    if value is None:
+        return None
+    lines = [f"license: {_hf_tag(up['concluded'])}"]
+    if src.statement_url and _hf_tag(up["concluded"]) == "other":
+        lines.append(f"license_link: {src.statement_url}")
+    lines += ["source_datasets:", f"- {value}"]
+    return "\n".join(lines)
+
+
 def analyse_card(readme: str | None, card_license=None, repo_id: str | None = None) -> ProvenanceResult:
     meta, body = split_card(readme or "")
     lic = card_license if card_license is not None else meta.get("license")
@@ -216,6 +252,7 @@ def analyse_card(readme: str | None, card_license=None, repo_id: str | None = No
         verdict = "custom licence"
     level, line = bottom_line(verdict, lic, lic_class, upstream.to_dict(), default_unconfirmed)
     return ProvenanceResult(
+        card_fix=card_fix(upstream.to_dict()),
         bottom_line=line,
         bottom_level=level,
         license=str(lic) if lic else None,

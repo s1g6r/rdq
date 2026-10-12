@@ -310,3 +310,20 @@ def test_a_mention_alone_does_not_say_go():
 def test_odd_source_datasets_values_do_not_crash():
     for value in ("7", "true", "{a: 1}", "[]", "null"):
         analyse_card(f"---\nlicense: mit\nsource_datasets: {value}\n---\nbody", repo_id="x/y").to_dict()
+
+
+def test_card_fix_states_the_original_and_reads_back_as_consistent():
+    import yaml
+
+    p = analyse_card(TEMPLATE_CARD, card_license="apache-2.0", repo_id="someone/droid_lerobot")
+    assert p.upstream["status"] == "relabelled" and p.card_fix
+    fix = yaml.safe_load(p.card_fix)
+    assert fix["license"] == "cc-by-4.0" and fix["source_datasets"]
+    fixed = "---\n" + yaml.safe_dump(fix) + "---\nConverted from DROID to LeRobot format.\n"
+    q = analyse_card(fixed, repo_id="someone/droid_lerobot")
+    assert q.upstream["status"] == "consistent" and q.bottom_level == "go" and q.card_fix is None
+
+
+def test_no_card_fix_on_weak_evidence():
+    p = analyse_card("---\nlicense: apache-2.0\n---\nTeleoperated pick-and-place. See also BridgeData V2.", repo_id="a/b")
+    assert p.card_fix is None
