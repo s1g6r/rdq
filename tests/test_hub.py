@@ -138,3 +138,25 @@ def test_check_accepts_a_hub_id(tmp_path, monkeypatch, capsys):
     rep = json.loads(out.read_text())
     assert rep["dataset"]["path"] == "someone/droid_subset"
     assert rep["provenance"]["upstream"]["status"] == "relabelled"
+
+
+def test_summary_keeps_names_and_licence_stats_separate():
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "experiments"))
+    from analyze_hub import summarise_scan
+
+    rows = []
+    for i in range(10):
+        rows.append({
+            "id": f"o{i}/droid_{i}" if i < 6 else f"o{i}/mine_{i}",
+            "downloads": 10,
+            "provenance": hub.analyse_card("---\nlicense: apache-2.0\n---\n" + TEMPLATE_CARD,
+                                           repo_id=f"o{i}/droid_{i}" if i < 6 else f"o{i}/mine_{i}").to_dict(),
+            "info": {"codebase_version": "v3.0", "robot_type": "so101", "has_action": True,
+                     "names_shape_mismatch": ["action"] if i == 0 else [], "names_placeholder": [], "names_missing": []},
+        })
+    s = summarise_scan(rows)
+    assert s["names_true_mismatch"].startswith("1/10")
+    assert s["upstream_licences"]["declared_differs_from_upstream"].startswith("6/6")
