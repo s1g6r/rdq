@@ -14,6 +14,7 @@ rdq check owner/name --html report.html --filter keep.json      # a Hub dataset 
 rdq check path/to/dataset --repo-id owner/name --video          # or a local folder, with camera checks
 rdq rank path/to/dataset --keep-top 0.9 --filter keep_ranked.json
 rdq passport path/to/dataset --repo-id owner/name --spdx passport.spdx.json --datasheet DATASHEET.md
+rdq scorecard path/to/dataset --groups collectors.csv     # quality per collector, operator or task
 ```
 
 `keep.json` lists the episodes that passed, in the form LeRobot's `--dataset.episodes` accepts.

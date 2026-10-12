@@ -77,3 +77,20 @@ def test_rank_cli(tmp_path, capsys):
     kept = json.loads(out.read_text())["episodes"]
     assert len(kept) == 54
     assert "ranked by composite" in capsys.readouterr().out
+
+
+def test_scorecard_by_collector(tmp_path, capsys):
+    import json
+
+    from rdq import synthetic as syn2
+
+    eps = syn2.make_episodes(16)
+    for i in (1, 3, 5, 7):  # collector "b" records frozen episodes
+        syn2.make_idle(eps[i])
+    syn2.write_dataset(tmp_path / "ds", eps)
+    (tmp_path / "groups.csv").write_text("episode_index,group\n" + "".join(f"{i},{'b' if i % 2 else 'a'}\n" for i in range(16)))
+    assert main(["scorecard", str(tmp_path / "ds"), "--groups", str(tmp_path / "groups.csv"), "--json", str(tmp_path / "s.json")]) == 0
+    rows = {r["group"]: r for r in json.loads((tmp_path / "s.json").read_text())}
+    assert rows["a"]["usable_fraction"] == 1.0
+    assert rows["b"]["usable"] <= 4
+    assert "group" in capsys.readouterr().out

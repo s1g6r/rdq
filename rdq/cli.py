@@ -183,6 +183,31 @@ def _cmd_rank(args) -> int:
     return 0
 
 
+def _cmd_scorecard(args) -> int:
+    from .dataset import load_dataset
+    from .report import audit
+    from .scorecard import episode_groups, format_scorecard, scorecard
+    from .scores import score_episodes
+
+    try:
+        path, repo_id = _resolve_path(args.path, None, False)
+        ds = load_dataset(path)
+        result = audit(path, repo_id=repo_id)
+    except DatasetLoadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    groups = episode_groups(ds, args.group_by, args.groups)
+    if not groups:
+        print("error: no groups found (check --group-by or --groups)", file=sys.stderr)
+        return 2
+    scores = None if args.no_scores else score_episodes(ds)
+    rows = scorecard(result, scores, groups)
+    print(format_scorecard(rows))
+    if args.json:
+        Path(args.json).write_text(json.dumps(rows, indent=1))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="rdq", description="Quality and provenance checks for robot-learning datasets")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -211,6 +236,14 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--keep-ranges", help="write idle-trimmed frame ranges per episode (openpi DROID recipe)")
     r.add_argument("--all", action="store_true", help="print every episode")
     r.set_defaults(fn=_cmd_rank)
+
+    sc = sub.add_parser("scorecard", help="quality per collector, operator, session or task")
+    sc.add_argument("path", help="local dataset folder, or owner/name on the Hugging Face Hub")
+    sc.add_argument("--group-by", default="task", help="episodes-metadata column to group by (default: task)")
+    sc.add_argument("--groups", help="CSV with episode_index,group columns (overrides --group-by)")
+    sc.add_argument("--no-scores", action="store_true", help="skip the literature-based scores (faster)")
+    sc.add_argument("--json", help="write the scorecard as JSON")
+    sc.set_defaults(fn=_cmd_scorecard)
 
     pp = sub.add_parser("passport", help="write a data passport (Croissant + RAI JSON-LD, optional SPDX and datasheet)")
     pp.add_argument("path", nargs="?")
