@@ -11,6 +11,10 @@ on:
       seeds:
         description: "Seeds for the synthetic curation benchmark"
         default: "5"
+      run_curation:
+        description: "Also re-run the synthetic curation benchmark (about 2 hours)"
+        type: boolean
+        default: false
 
 jobs:
   robomimic-mh:
@@ -29,6 +33,7 @@ jobs:
           path: bench-results/
 
   curation:
+    if: ${{ inputs.run_curation }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
