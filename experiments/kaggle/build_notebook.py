@@ -23,7 +23,10 @@ def bundle() -> str:
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
         for path in sorted((ROOT / "rdq").glob("*.py")):
             tar.add(path, arcname=f"rdq/{path.name}")
-        tar.add(ROOT / "experiments" / "corrupt.py", arcname="experiments/corrupt.py")
+        for path in sorted((ROOT / "rdq" / "data").glob("*.json")):  # licence knowledge base, needed at import
+            tar.add(path, arcname=f"rdq/data/{path.name}")
+        for name in ("corrupt.py", "robomimic_mh.py"):
+            tar.add(ROOT / "experiments" / name, arcname=f"experiments/{name}")
     return base64.b64encode(buf.getvalue()).decode()
 
 
@@ -179,6 +182,20 @@ SUBSETS = {
 print({k: len(v) for k, v in SUBSETS.items()}, "episodes per policy")
 """
 
+ROBOMIMIC = """
+# Natural-noise benchmark on RoboMimic multi-human data (CPU, a few minutes). No faults are injected:
+# six operators are labelled better / okay / worse, and each method keeps 50% of the demos.
+# Wrapped so that a failure here never stops the Push-T experiment below.
+try:
+    run([sys.executable, "-m", "uv", "pip", "install", "--python", PY, "-q", "h5py", "scipy"])
+    env = dict(os.environ, PYTHONPATH=str(SRC))
+    run([PY, SRC / "experiments" / "robomimic_mh.py", "--tasks", "can", "square", "--out", WORK / "robomimic",
+         "--cache", SCRATCH / "robomimic_cache"], env=env)
+    print(open(WORK / "robomimic" / "robomimic_mh.md").read())
+except Exception as exc:
+    print("RoboMimic benchmark skipped:", exc)
+"""
+
 TRAIN = """
 RUNS = SCRATCH / "runs"
 
@@ -282,6 +299,8 @@ def build(out: Path) -> None:
         code(DATA),
         md("## 5 · Corrupt 30% of episodes, then let rdq find them"),
         code(CORRUPT),
+        md("## 5b · Natural-noise check on RoboMimic multi-human data (CPU, a few minutes)"),
+        code(ROBOMIMIC),
         md("## 6 · Train three policies (the long part)"),
         code(TRAIN),
         md("## 7 · Evaluate each policy in the Push-T simulator"),

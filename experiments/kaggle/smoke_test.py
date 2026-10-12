@@ -54,10 +54,10 @@ def pusht_like(root: Path, n_episodes: int = 24) -> None:
     (root / "meta" / "stats.json").write_text(json.dumps(stats))
 
 
-def main(nb_path: str) -> None:
+def main(nb_path: str, no_train: bool = False) -> None:
     nb = json.loads(Path(nb_path).read_text())
     cells = [c["source"] for c in nb["cells"] if c["cell_type"] == "code"]
-    config, unpack, _env, data, corrupt, train, evaluate, results = cells
+    config, unpack, _env, data, corrupt, robomimic, train, evaluate, results = cells
 
     tmp = Path(tempfile.mkdtemp(prefix="rdq_smoke_"))
     os.environ["RDQ_SCRATCH"] = str(tmp / "scratch")
@@ -77,11 +77,18 @@ def main(nb_path: str) -> None:
     g["VENV"], g["PY"] = venv.parent, venv / "python"
 
     pusht_like(g["SCRATCH"] / "pusht_clean")
-    for name, src in (("data", data), ("corrupt", corrupt), ("train", train), ("evaluate", evaluate), ("results", results)):
+    steps = [("data", data), ("corrupt", corrupt), ("robomimic", robomimic), ("train", train),
+             ("evaluate", evaluate), ("results", results)]
+    if no_train:  # small machines: check everything up to training
+        steps = steps[:3]
+    for name, src in steps:
         print(f"\n===== cell: {name} =====", flush=True)
         exec(src, g)
+    if no_train:
+        print("\nSMOKE TEST PASSED (up to training)")
+        return
     print("\nSMOKE TEST PASSED:", json.load(open(g["WORK"] / "results.json"))["policies"])
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], no_train="--no-train" in sys.argv)
