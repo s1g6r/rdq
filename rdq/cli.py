@@ -113,6 +113,59 @@ def _cmd_passport(args) -> int:
     return 0
 
 
+def _cmd_rank(args) -> int:
+    import numpy as np
+
+    from .dataset import load_dataset
+    from .scores import ScoreConfig, score_episodes
+
+    try:
+        ds = load_dataset(args.path)
+    except DatasetLoadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    res = score_episodes(ds, ScoreConfig(chunk=args.chunk, seed=args.seed))
+    eps = res["episodes"]
+    if not eps:
+        print(f"error: {res['summary'].get('error', 'nothing to score')}", file=sys.stderr)
+        return 2
+    key = args.by
+    higher_better = key in ("composite", "deminf", "ldlj")
+
+    def val(e):
+        v = e.get(key)
+        return v if v is not None and np.isfinite(v) else (-np.inf if higher_better else np.inf)
+
+    order = sorted(eps, key=lambda i: val(eps[i]), reverse=higher_better)
+    print(f"{len(eps)} episodes scored ({res['summary'].get('frames_scored', 0)} frames, "
+          f"{'relative' if res['summary'].get('relative_actions') else 'absolute'} actions); ranked by {key}")
+    if res["summary"].get("length_confound_warning"):
+        print("warning: " + res["summary"]["length_confound_warning"])
+    print(f"{'episode':>8} {'len':>6} {'composite':>9} {'deminf':>8} {'consist':>8} {'hfr':>6} {'dither':>6}  notes")
+
+    def f(v, w=8, p=2):
+        return f"{v:>{w}.{p}f}" if v is not None and np.isfinite(v) else " " * (w - 1) + "-"
+
+    show = order if args.all else order[:10] + (["..."] if len(order) > 20 else []) + order[-10:] if len(order) > 20 else order
+    for i in show:
+        if i == "...":
+            print(f"{'...':>8}")
+            continue
+        e = eps[i]
+        print(f"{i:>8} {e['length']:>6} {f(e['composite'], 9)} {f(e['deminf'])} {f(e['consistency'])} {f(e['hfr'], 6)} "
+              f"{f(e['dither'], 6)}  {'; '.join(e['notes'])}")
+    if args.json:
+        Path(args.json).write_text(json.dumps(res, indent=1, default=float))
+    if args.keep_top is not None:
+        n = max(1, int(round(args.keep_top * len(order))))
+        Path(args.filter or "keep.json").write_text(json.dumps({"episodes": sorted(order[:n])}))
+        print(f"kept the top {n}/{len(order)} by {key} -> {args.filter or 'keep.json'}")
+    if args.keep_ranges:
+        Path(args.keep_ranges).write_text(json.dumps({str(i): e["keep_ranges"] for i, e in eps.items()}))
+        print(f"idle-trimmed frame ranges -> {args.keep_ranges}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="rdq", description="Quality and provenance checks for robot-learning datasets")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -127,6 +180,19 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--no-color", action="store_true")
     c.add_argument("--repo-id", help="hub id of the dataset (enables upstream-licence matching by name)")
     c.set_defaults(fn=_cmd_check)
+
+    r = sub.add_parser("rank", help="score and rank episodes with literature-based quality signals (no training)")
+    r.add_argument("path")
+    r.add_argument("--by", default="composite",
+                   choices=["composite", "deminf", "consistency", "hfr", "ldlj", "dither", "psd_power", "final_outlier", "length"])
+    r.add_argument("--chunk", type=int, default=4, help="action chunk length for DemInf-lite")
+    r.add_argument("--seed", type=int, default=0)
+    r.add_argument("--json", help="write all per-episode scores as JSON")
+    r.add_argument("--keep-top", type=float, help="keep this fraction of episodes, best first (writes --filter)")
+    r.add_argument("--filter", help="where --keep-top writes the episode list (default keep.json)")
+    r.add_argument("--keep-ranges", help="write idle-trimmed frame ranges per episode (openpi DROID recipe)")
+    r.add_argument("--all", action="store_true", help="print every episode")
+    r.set_defaults(fn=_cmd_rank)
 
     pp = sub.add_parser("passport", help="write a data passport (Croissant + RAI JSON-LD, optional SPDX and datasheet)")
     pp.add_argument("path", nargs="?")

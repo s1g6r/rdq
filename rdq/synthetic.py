@@ -93,6 +93,7 @@ def write_dataset(
                     "episode_index": i,
                     "index": global_idx,
                     "task_index": int(task_idx),
+                    **{k: np.asarray(v[t], np.float32).tolist() for k, v in (ep.get("extra") or {}).items()},
                 }
             )
             global_idx += 1
@@ -129,6 +130,8 @@ def write_dataset(
         "index": {"dtype": "int64", "shape": [1], "names": None},
         "task_index": {"dtype": "int64", "shape": [1], "names": None},
     }
+    for k, v in (episodes[0].get("extra") or {}).items():
+        features[k] = {"dtype": "float32", "shape": [int(np.asarray(v).shape[1])], "names": None}
     if with_video:
         features["observation.images.front"] = {
             "dtype": "video",
@@ -153,7 +156,8 @@ def write_dataset(
     all_action = np.concatenate([e["action"] for e in episodes])
     all_state = np.concatenate([e["state"] for e in episodes])
     stats = {}
-    for key, arr in (("action", all_action), ("observation.state", all_state)):
+    extra_arrays = [(k, np.concatenate([e["extra"][k] for e in episodes])) for k in (episodes[0].get("extra") or {})]
+    for key, arr in [("action", all_action), ("observation.state", all_state)] + extra_arrays:
         finite = arr[np.all(np.isfinite(arr), axis=1)]
         stats[key] = {
             "min": finite.min(0).tolist(),

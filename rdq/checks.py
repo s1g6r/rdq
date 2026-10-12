@@ -769,7 +769,10 @@ def check_spikes(ds: Dataset, th: Thresholds) -> list[Finding]:
         span = np.percentile(values, 99, axis=0) - np.percentile(values, 1, axis=0)
         span = np.where(span < 1e-9, np.inf, span)
         residuals = {ep.index: np.abs(ep.features[key] - _medfilt(ep.features[key], th.spike_window)) for ep in eps}
-        typical = np.percentile(np.concatenate(list(residuals.values())), 99, axis=0)
+        # Normal jitter: the median over episodes of each episode's 99th-percentile residual.
+        # Pooling all frames would let the glitches themselves set the bar once they make up
+        # more than 1% of frames (a few bad episodes with 3-frame dropouts is enough).
+        typical = np.median(np.stack([np.percentile(r, 99, axis=0) for r in residuals.values()]), axis=0)
         limit = np.maximum(th.spike_fraction * span, 6.0 * typical)
         flagged = {}
         for idx, resid in residuals.items():
