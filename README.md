@@ -73,7 +73,7 @@ These scores need no training, are cheap to compute, and come from published met
 - **The spectral metric of [Sojib et al. 2026](https://arxiv.org/abs/2605.01544)**, reproduced as a baseline. By Parseval's theorem it scales with episode length, so rdq always reports length alongside it.
 - **Idle trimming** following the openpi DROID recipe (`--keep-ranges`).
 
-The composite score is the mean rank of DemInf-lite and consistency. If it correlates strongly with episode length, rdq warns you. These two components were chosen after seeing the benchmark below (a first version that also averaged smoothness and hesitation scored 0.82 on the mixed scenario), so the benchmark is not an independent test of the composite; the RoboMimic run is. Without an `observation.state`, DemInf-lite and consistency are only computed when other observations exist to condition on.
+The composite score is the mean rank of DemInf-lite and consistency. If it correlates strongly with episode length, rdq warns you. These two components were chosen after seeing the benchmark below (a first version that also averaged smoothness and hesitation scored 0.82 on the mixed scenario), so the benchmark is not an independent test of the composite. The independent test is RoboMimic (below), where the composite did better than random but worse than simply keeping the shortest demonstrations. Without an `observation.state`, DemInf-lite and consistency are only computed when other observations exist to condition on.
 
 `rdq rank --keep-top` writes the best-scoring fraction of episodes. Treat it as experimental: in the benchmark, dropping episodes on soft scores never reliably beat training on all clean data.
 
@@ -93,7 +93,26 @@ What this shows:
 
 - **Recording faults are the expensive problem, and rules fix them.** Thirty percent faulty episodes cut success from 1.00 to 0.16. rdq's rules recovered the oracle (0.997, interval 0.992–1.000) and dropped no clean episodes. Length and smoothness metrics did no better than random.
 - **Operator skill is a different problem.** Behaviour cloning was fairly robust to imperfect operators (0.88 with everything), and no training-free score reliably beat training on all the data. Keep-the-shortest (0.89) and all data (0.88) were statistically tied, and every soft score did worse. rdq therefore reports skill scores for review and does not drop episodes based on them.
-- **The honest limit:** this is a toy task. The real tests are `experiments/kaggle/` (diffusion policy on Push-T with injected faults) and `experiments/robomimic_mh.py`. The latter runs on RoboMimic's multi-operator data, which has natural quality labels, and is directly comparable with published DemInf, CUPID and spectral numbers.
+- **The honest limit:** this is a toy task, so we ran two real tests.
+
+### Real data
+
+**RoboMimic multi-operator demos** (`experiments/robomimic_mh.py`, results in [`experiments/results/robomimic/`](experiments/results/robomimic/robomimic_mh.md)). Each method keeps 50% of 300 demonstrations, scored by the operators' published skill tier (3 = better, 1 = worse). Published numbers on Can are from Sojib et al. 2026.
+
+| Method | Can | Square |
+|---|---|---|
+| Random | 2.00 | 2.00 |
+| rdq composite | 2.16 | 2.15 |
+| rdq DemInf-lite | 2.19 | 2.13 |
+| Published DemInf (Hejna et al., with a trained VAE) | 2.37 | – |
+| Published CUPID (needs policy rollouts) | 2.32 | – |
+| Keep the shortest demos | 2.53 | 2.47 |
+| Spectral metric (our replication; published 2.53) | 2.53 | 2.47 |
+| Oracle | 2.67 | 2.67 |
+
+Our replication of the spectral metric matches its published number exactly, so the setup is sound. On this data, demonstration length is the strongest training-free skill signal, and the spectral metric is length in disguise (Spearman 1.00 with length). rdq's lightweight DemInf and composite beat random but not the published methods or length. So `rdq rank` reports length next to every score, and rdq does not claim its skill scores beat the state of the art. The rules dropped 1 of 600 demos, as they should on clean data.
+
+**Push-T with a diffusion policy** (`experiments/kaggle/`, results in [`experiments/results/pusht_kaggle_v1.json`](experiments/results/pusht_kaggle_v1.json)). rdq caught all 62 faults injected into real Push-T demos (21 desync, 20 glitch, 21 idle) and dropped none of the 144 clean ones. The policies were undertrained (30k steps on a free GPU), so success rates are at the floor (2.0% filtered, 0.5% all data, 0.0% random) and do not separate the methods. Average best coverage orders them filtered 0.44, all data 0.34, random 0.26, from one seed.
 
 ## Hub audit
 

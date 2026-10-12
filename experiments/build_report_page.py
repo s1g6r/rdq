@@ -218,7 +218,7 @@ def build(summary: dict, toy: dict, bench: dict | None = None) -> str:
   </div>
   {"".join(figs)}
   <div class="callout"><p>With 30% of episodes broken by recording faults, training on everything succeeded {100 * st['success']['all data']['success']:.0f}% of the time. Training on what rdq's rules kept succeeded <mark>{100 * st['success']['rules (rdq check)']['success']:.0f}%</mark>, the same as the oracle. Length and smoothness metrics did no better than random.</p></div>
-  <div class="col"><p class="note">Imperfect operators hurt much less: {100 * sk['success']['all data']['success']:.0f}% success with all the data. No training-free score reliably beat using everything; keeping the shortest episodes did as well as any. So rdq drops broken recordings but only <em>ranks</em> episodes by skill signals for a human to review. This is a controlled 2D task; the same comparison on real multi-operator data (RoboMimic) and on a diffusion policy (Push-T) is under way.</p></div>
+  <div class="col"><p class="note">Imperfect operators hurt much less: {100 * sk['success']['all data']['success']:.0f}% success with all the data. No training-free score reliably beat using everything; keeping the shortest episodes did as well as any. So rdq drops broken recordings but only <em>ranks</em> episodes by skill signals for a human to review. This is a controlled 2D task. On real multi-operator data (RoboMimic, keeping half of 300 demonstrations), rdq's skill scores beat random (operator tier 2.16 vs 2.00 on Can) but not published methods (2.32–2.37) or simply keeping the shortest demonstrations (2.53). On real Push-T demonstrations rdq caught all 62 injected recording faults and dropped none of the clean episodes.</p></div>
 </section>"""
 
     audit_html = ""
