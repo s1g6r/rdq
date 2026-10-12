@@ -10,7 +10,8 @@ It reads tables, not videos (unless you ask), and runs on a laptop.
 
 ```bash
 pip install -e .                       # Python 3.10+
-rdq check path/to/dataset --repo-id owner/name --html report.html --filter keep.json
+rdq check owner/name --html report.html --filter keep.json      # a Hub dataset id (fetches tables + card only)
+rdq check path/to/dataset --repo-id owner/name --video          # or a local folder, with camera checks
 rdq rank path/to/dataset --keep-top 0.9 --filter keep_ranked.json
 rdq passport path/to/dataset --repo-id owner/name --spdx passport.spdx.json --datasheet DATASHEET.md
 ```

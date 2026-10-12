@@ -18,11 +18,28 @@ from pathlib import Path
 from .dataset import DatasetLoadError
 
 
+def _resolve_path(path: str, repo_id: str | None, video: bool) -> tuple[str, str | None]:
+    """A local folder is used as is. Anything shaped like owner/name that isn't a folder is
+    fetched from the Hugging Face Hub (tables and card only, plus videos with --video)."""
+    if Path(path).exists() or path.count("/") != 1 or path.startswith((".", "/")):
+        return path, repo_id
+    from .hub import _hf
+
+    hf = _hf()
+    patterns = ["meta/*", "meta/**", "data/**", "README.md"] + (["videos/**"] if video else [])
+    print(f"fetching {path} from the Hugging Face Hub ({'with' if video else 'without'} videos)…", file=sys.stderr)
+    local = hf.snapshot_download(path, repo_type="dataset", allow_patterns=patterns)
+    return local, repo_id or path
+
+
 def _cmd_check(args) -> int:
     from .report import audit, format_terminal, write_filter, write_html, write_json
 
     try:
-        result = audit(args.path, max_frames=args.max_frames, repo_id=args.repo_id, video=args.video)
+        path, repo_id = _resolve_path(args.path, args.repo_id, args.video)
+        result = audit(path, max_frames=args.max_frames, repo_id=repo_id, video=args.video)
+        if repo_id:
+            result["dataset"]["path"] = repo_id
     except DatasetLoadError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -170,8 +187,8 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="rdq", description="Quality and provenance checks for robot-learning datasets")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    c = sub.add_parser("check", help="audit a local LeRobot dataset folder")
-    c.add_argument("path")
+    c = sub.add_parser("check", help="audit a LeRobot dataset folder, or a Hub dataset id (owner/name)")
+    c.add_argument("path", help="local dataset folder, or owner/name on the Hugging Face Hub")
     c.add_argument("--json", help="write the full report as JSON")
     c.add_argument("--html", help="write a shareable HTML report")
     c.add_argument("--filter", help="write the list of usable episodes (for LeRobot's episodes=)")

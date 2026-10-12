@@ -190,7 +190,7 @@ def build(summary: dict, toy: dict, bench: dict | None = None) -> str:
         scen_titles = {"structural": "30% recording faults", "skill": "40% imperfect operators", "mixed": "Faults and imperfect operators"}
         show = [("all data", "All data", "neutral"), ("random", "Random subset", "neutral"), ("keep shortest", "Keep shortest", "neutral"),
                 ("psd (Sojib et al.)", "Spectral metric (PSD)", "neutral"), ("deminf-lite", "DemInf-lite", "warn"),
-                ("rules (rdq check)", "rdq rules", "hl"), ("oracle", "Oracle", "ok")]
+                ("composite", "rdq composite score", "warn"), ("rules (rdq check)", "rdq rules", "hl"), ("oracle", "Oracle", "ok")]
         figs = []
         for key in ("structural", "skill", "mixed"):
             if key not in bs:
@@ -245,7 +245,7 @@ def build(summary: dict, toy: dict, bench: dict | None = None) -> str:
     <p>{dup} of the {a_n} datasets contain exact duplicate episodes, {empty} contain episodes with an empty or placeholder task instruction, and {idle} contain episodes where the robot barely moves. We group the findings by how much they can be trusted: an exact duplicate is certain, while a statistical rule can be wrong.</p>
   </div>
   {''.join(group_html)}
-  <p class="note">{audit['skipped_too_large']} sampled datasets were skipped because their tables exceeded 250 MB, and {audit['errors']} could not be read. The glitch check is new and fires on many datasets with noisy or unusual signals, and video length mismatches often follow harmless trimming, so treat the review group as leads to inspect, not as faults.</p>
+  <p class="note">{audit['skipped_too_large']} sampled datasets were skipped because their tables exceeded 250 MB, and {audit['errors']} could not be read. The glitch check is new and fires on many datasets with noisy or unusual signals, and video length mismatches often follow harmless trimming, so treat the review group as leads to inspect, not as faults. Since this audit ran we have improved two checks (the glitch threshold and how action lag is measured); a re-audit with the current version is under way and may change the counts for those two rows.</p>
 </section>"""
     else:
         audit_html = """

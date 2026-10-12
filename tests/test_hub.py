@@ -117,3 +117,24 @@ def test_network_errors_are_retried_not_recorded(tmp_path, monkeypatch):
     rows = [json.loads(l) for l in open(index)]
     assert rows[-1]["id"] == "alice/pick" and "score" in rows[-1]
     assert calls["n"] == 2
+
+
+def test_check_accepts_a_hub_id(tmp_path, monkeypatch, capsys):
+    from rdq import cli
+
+    src = syn.write_dataset(tmp_path / "src", syn.make_episodes(10))
+    (src / "README.md").write_text("---\nlicense: apache-2.0\n---\n" + TEMPLATE_CARD)
+
+    class FakeHF:
+        @staticmethod
+        def snapshot_download(repo_id, repo_type, allow_patterns):
+            assert "videos/**" not in allow_patterns
+            return str(src)
+
+    monkeypatch.setattr(hub, "_hf", lambda: FakeHF)
+    monkeypatch.chdir(tmp_path)
+    out = tmp_path / "r.json"
+    assert cli.main(["check", "someone/droid_subset", "--json", str(out), "--no-color"]) in (0, 1)
+    rep = json.loads(out.read_text())
+    assert rep["dataset"]["path"] == "someone/droid_subset"
+    assert rep["provenance"]["upstream"]["status"] == "relabelled"
