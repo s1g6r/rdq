@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rdq"
+version = "0.1.0"
+description = "Quality and provenance checks for robot-learning datasets (LeRobot format)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "pyarrow>=14",
+  "pyyaml>=6",
+  "huggingface_hub>=0.30",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+rdq = "rdq.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["rdq*"]

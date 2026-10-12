@@ -1,0 +1,466 @@
+{
+ "rows": [
+  {
+   "corruption_rate": 0.0,
+   "seed": 0,
+   "dataset_score": 99,
+   "usable": 198,
+   "planted": {
+    "idle": 0,
+    "desync": 0,
+    "glitch": 0,
+    "wrong_goal": 0
+   },
+   "caught": {
+    "idle": 0,
+    "desync": 0,
+    "glitch": 0,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 2,
+   "n_episodes": 200,
+   "success_raw": 1.0,
+   "success_filtered": 1.0,
+   "success_random": 1.0
+  },
+  {
+   "corruption_rate": 0.0,
+   "seed": 1,
+   "dataset_score": 100,
+   "usable": 200,
+   "planted": {
+    "idle": 0,
+    "desync": 0,
+    "glitch": 0,
+    "wrong_goal": 0
+   },
+   "caught": {
+    "idle": 0,
+    "desync": 0,
+    "glitch": 0,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 0,
+   "n_episodes": 200,
+   "success_raw": 1.0,
+   "success_filtered": 1.0,
+   "success_random": 1.0
+  },
+  {
+   "corruption_rate": 0.0,
+   "seed": 2,
+   "dataset_score": 100,
+   "usable": 200,
+   "planted": {
+    "idle": 0,
+    "desync": 0,
+    "glitch": 0,
+    "wrong_goal": 0
+   },
+   "caught": {
+    "idle": 0,
+    "desync": 0,
+    "glitch": 0,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 0,
+   "n_episodes": 200,
+   "success_raw": 1.0,
+   "success_filtered": 1.0,
+   "success_random": 1.0
+  },
+  {
+   "corruption_rate": 0.1,
+   "seed": 0,
+   "dataset_score": 96,
+   "usable": 183,
+   "planted": {
+    "idle": 5,
+    "desync": 5,
+    "glitch": 5,
+    "wrong_goal": 5
+   },
+   "caught": {
+    "idle": 5,
+    "desync": 5,
+    "glitch": 5,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 2,
+   "n_episodes": 200,
+   "success_raw": 0.7625,
+   "success_filtered": 0.975,
+   "success_random": 0.79
+  },
+  {
+   "corruption_rate": 0.1,
+   "seed": 1,
+   "dataset_score": 96,
+   "usable": 184,
+   "planted": {
+    "idle": 5,
+    "desync": 5,
+    "glitch": 5,
+    "wrong_goal": 5
+   },
+   "caught": {
+    "idle": 5,
+    "desync": 5,
+    "glitch": 5,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 1,
+   "n_episodes": 200,
+   "success_raw": 0.7775,
+   "success_filtered": 0.9725,
+   "success_random": 0.795
+  },
+  {
+   "corruption_rate": 0.1,
+   "seed": 2,
+   "dataset_score": 96,
+   "usable": 184,
+   "planted": {
+    "idle": 5,
+    "desync": 5,
+    "glitch": 5,
+    "wrong_goal": 5
+   },
+   "caught": {
+    "idle": 5,
+    "desync": 5,
+    "glitch": 5,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 1,
+   "n_episodes": 200,
+   "success_raw": 0.7675,
+   "success_filtered": 0.9775,
+   "success_random": 0.85
+  },
+  {
+   "corruption_rate": 0.2,
+   "seed": 0,
+   "dataset_score": 93,
+   "usable": 170,
+   "planted": {
+    "idle": 10,
+    "desync": 10,
+    "glitch": 10,
+    "wrong_goal": 10
+   },
+   "caught": {
+    "idle": 10,
+    "desync": 10,
+    "glitch": 10,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 0,
+   "n_episodes": 200,
+   "success_raw": 0.4475,
+   "success_filtered": 0.975,
+   "success_random": 0.5325
+  },
+  {
+   "corruption_rate": 0.2,
+   "seed": 1,
+   "dataset_score": 93,
+   "usable": 169,
+   "planted": {
+    "idle": 10,
+    "desync": 10,
+    "glitch": 10,
+    "wrong_goal": 10
+   },
+   "caught": {
+    "idle": 10,
+    "desync": 10,
+    "glitch": 10,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 1,
+   "n_episodes": 200,
+   "success_raw": 0.515,
+   "success_filtered": 0.895,
+   "success_random": 0.5025
+  },
+  {
+   "corruption_rate": 0.2,
+   "seed": 2,
+   "dataset_score": 92,
+   "usable": 167,
+   "planted": {
+    "idle": 10,
+    "desync": 10,
+    "glitch": 10,
+    "wrong_goal": 10
+   },
+   "caught": {
+    "idle": 10,
+    "desync": 10,
+    "glitch": 10,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 3,
+   "n_episodes": 200,
+   "success_raw": 0.4925,
+   "success_filtered": 0.9525,
+   "success_random": 0.4075
+  },
+  {
+   "corruption_rate": 0.3,
+   "seed": 0,
+   "dataset_score": 90,
+   "usable": 155,
+   "planted": {
+    "idle": 15,
+    "desync": 15,
+    "glitch": 15,
+    "wrong_goal": 15
+   },
+   "caught": {
+    "idle": 15,
+    "desync": 15,
+    "glitch": 15,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 0,
+   "n_episodes": 200,
+   "success_raw": 0.205,
+   "success_filtered": 0.9375,
+   "success_random": 0.235
+  },
+  {
+   "corruption_rate": 0.3,
+   "seed": 1,
+   "dataset_score": 90,
+   "usable": 155,
+   "planted": {
+    "idle": 15,
+    "desync": 15,
+    "glitch": 15,
+    "wrong_goal": 15
+   },
+   "caught": {
+    "idle": 15,
+    "desync": 15,
+    "glitch": 15,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 0,
+   "n_episodes": 200,
+   "success_raw": 0.29,
+   "success_filtered": 0.9,
+   "success_random": 0.2975
+  },
+  {
+   "corruption_rate": 0.3,
+   "seed": 2,
+   "dataset_score": 90,
+   "usable": 155,
+   "planted": {
+    "idle": 15,
+    "desync": 15,
+    "glitch": 15,
+    "wrong_goal": 15
+   },
+   "caught": {
+    "idle": 15,
+    "desync": 15,
+    "glitch": 15,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 0,
+   "n_episodes": 200,
+   "success_raw": 0.2325,
+   "success_filtered": 0.9275,
+   "success_random": 0.265
+  },
+  {
+   "corruption_rate": 0.4,
+   "seed": 0,
+   "dataset_score": 87,
+   "usable": 140,
+   "planted": {
+    "idle": 20,
+    "desync": 20,
+    "glitch": 20,
+    "wrong_goal": 20
+   },
+   "caught": {
+    "idle": 20,
+    "desync": 20,
+    "glitch": 20,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 0,
+   "n_episodes": 200,
+   "success_raw": 0.25,
+   "success_filtered": 0.88,
+   "success_random": 0.2075
+  },
+  {
+   "corruption_rate": 0.4,
+   "seed": 1,
+   "dataset_score": 87,
+   "usable": 140,
+   "planted": {
+    "idle": 20,
+    "desync": 20,
+    "glitch": 20,
+    "wrong_goal": 20
+   },
+   "caught": {
+    "idle": 20,
+    "desync": 20,
+    "glitch": 20,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 0,
+   "n_episodes": 200,
+   "success_raw": 0.2675,
+   "success_filtered": 0.85,
+   "success_random": 0.2425
+  },
+  {
+   "corruption_rate": 0.4,
+   "seed": 2,
+   "dataset_score": 86,
+   "usable": 140,
+   "planted": {
+    "idle": 20,
+    "desync": 20,
+    "glitch": 20,
+    "wrong_goal": 20
+   },
+   "caught": {
+    "idle": 20,
+    "desync": 20,
+    "glitch": 20,
+    "wrong_goal": 0
+   },
+   "clean_dropped": 0,
+   "n_episodes": 200,
+   "success_raw": 0.145,
+   "success_filtered": 0.7925,
+   "success_random": 0.19
+  }
+ ],
+ "summary": {
+  "by_rate": [
+   {
+    "corruption_rate": 0.0,
+    "seeds": 3,
+    "raw": 1.0,
+    "raw_ci": [
+     0.997,
+     1.0
+    ],
+    "filtered": 1.0,
+    "filtered_ci": [
+     0.997,
+     1.0
+    ],
+    "random": 1.0,
+    "random_ci": [
+     0.997,
+     1.0
+    ],
+    "dataset_score": 99.7,
+    "filtered_minus_random": 0.0
+   },
+   {
+    "corruption_rate": 0.1,
+    "seeds": 3,
+    "raw": 0.769,
+    "raw_ci": [
+     0.744,
+     0.792
+    ],
+    "filtered": 0.975,
+    "filtered_ci": [
+     0.965,
+     0.982
+    ],
+    "random": 0.812,
+    "random_ci": [
+     0.789,
+     0.833
+    ],
+    "dataset_score": 96.0,
+    "filtered_minus_random": 0.163
+   },
+   {
+    "corruption_rate": 0.2,
+    "seeds": 3,
+    "raw": 0.485,
+    "raw_ci": [
+     0.457,
+     0.513
+    ],
+    "filtered": 0.941,
+    "filtered_ci": [
+     0.926,
+     0.953
+    ],
+    "random": 0.481,
+    "random_ci": [
+     0.453,
+     0.509
+    ],
+    "dataset_score": 92.7,
+    "filtered_minus_random": 0.46
+   },
+   {
+    "corruption_rate": 0.3,
+    "seeds": 3,
+    "raw": 0.243,
+    "raw_ci": [
+     0.219,
+     0.268
+    ],
+    "filtered": 0.922,
+    "filtered_ci": [
+     0.905,
+     0.936
+    ],
+    "random": 0.266,
+    "random_ci": [
+     0.242,
+     0.292
+    ],
+    "dataset_score": 90.0,
+    "filtered_minus_random": 0.656
+   },
+   {
+    "corruption_rate": 0.4,
+    "seeds": 3,
+    "raw": 0.221,
+    "raw_ci": [
+     0.198,
+     0.245
+    ],
+    "filtered": 0.841,
+    "filtered_ci": [
+     0.819,
+     0.86
+    ],
+    "random": 0.213,
+    "random_ci": [
+     0.191,
+     0.237
+    ],
+    "dataset_score": 86.7,
+    "filtered_minus_random": 0.627
+   }
+  ],
+  "detection": {
+   "idle": "150/150",
+   "desync": "150/150",
+   "glitch": "150/150",
+   "wrong_goal": "0/150"
+  },
+  "clean_episodes_wrongly_dropped": "10/2400",
+  "corr_dataset_score_vs_raw_success": 0.971
+ }
+}

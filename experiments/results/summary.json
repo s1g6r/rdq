@@ -1,0 +1,736 @@
+{
+ "scan": {
+  "datasets_scanned": 3000,
+  "upstream_licences": {
+   "publisher_uploads": "862/3000 (28.7%)",
+   "publisher_uploads_download_share": "18.8%",
+   "known_upstream_datasets": "305/3000 (10.2%)",
+   "known_upstream_download_share": "51.9%",
+   "known_by_strongest_evidence": [
+    [
+     "repo-id",
+     259
+    ],
+    [
+     "card-link",
+     33
+    ],
+    [
+     "card-source",
+     8
+    ],
+    [
+     "card-mention",
+     5
+    ]
+   ],
+   "declared_differs_from_upstream": "201/305 (65.9%)",
+   "declared_differs_download_share": "32.0%",
+   "declared_differs_by_strongest_evidence": [
+    [
+     "repo-id",
+     189
+    ],
+    [
+     "card-link",
+     10
+    ],
+    [
+     "card-mention",
+     2
+    ]
+   ],
+   "declared_differs_high_confidence": "144/305 (47.2%)",
+   "declared_differs_high_confidence_download_share": "21.5%",
+   "declared_differs_status_counts": [
+    [
+     "relabelled",
+     191
+    ],
+    [
+     "upstream-conflict",
+     10
+    ]
+   ],
+   "no_upstream_grant": "45/305 (14.8%)",
+   "no_upstream_grant_download_share": "8.4%",
+   "critical_conflicts": 0,
+   "critical_conflicts_download_share": "0.0%",
+   "critical_by_strongest_evidence": [],
+   "knowledge_base_sources": 65,
+   "knowledge_base_high_confidence": 26,
+   "status_counts": [
+    [
+     "relabelled",
+     191
+    ],
+    [
+     "no-upstream-grant",
+     45
+    ],
+    [
+     "consistent",
+     42
+    ],
+    [
+     "upstream-conflict",
+     10
+    ],
+    [
+     "review",
+     10
+    ],
+    [
+     "missing",
+     6
+    ],
+    [
+     "restricted-redistribution",
+     1
+    ]
+   ],
+   "by_source": [
+    [
+     "LIBERO",
+     80
+    ],
+    [
+     "DROID",
+     28
+    ],
+    [
+     "RoboCasa / RoboCasa365",
+     17
+    ],
+    [
+     "ALOHA static datasets (as ported by LeRobot)",
+     17
+    ],
+    [
+     "BridgeData V2",
+     12
+    ],
+    [
+     "RH20T",
+     9
+    ],
+    [
+     "ACT ALOHA sim demos (insertion, transfer cube; human and scripted)",
+     8
+    ],
+    [
+     "xArm lift/push offline datasets (FOWM, Feng et al.)",
+     8
+    ],
+    [
+     "Mobile ALOHA datasets",
+     8
+    ],
+    [
+     "ABC-130K (XDOF)",
+     7
+    ],
+    [
+     "BEHAVIOR-1K 2025 challenge demos",
+     6
+    ],
+    [
+     "BitRobot HIW-500 (Humanoids in the Wild)",
+     6
+    ],
+    [
+     "UT Austin BUDS / Sailor / Sirius",
+     6
+    ],
+    [
+     "SmolVLA SO-100/SO-101 community datasets (lerobot/svla_*)",
+     5
+    ],
+    [
+     "Meta-World MT50 demos (LeRobot)",
+     5
+    ],
+    [
+     "MimicGen datasets",
+     5
+    ],
+    [
+     "Language-Table (Open X-Embodiment component)",
+     4
+    ],
+    [
+     "EgoDex",
+     4
+    ],
+    [
+     "DLR (SARA pour / grid clamp, EDAN shared control)",
+     4
+    ],
+    [
+     "RT-1 Robot Action / fractal20220817_data",
+     3
+    ],
+    [
+     "AgiBot World",
+     3
+    ],
+    [
+     "Push-T (Diffusion Policy, Chi et al.)",
+     3
+    ],
+    [
+     "BC-Z",
+     3
+    ],
+    [
+     "EPIC-KITCHENS",
+     3
+    ],
+    [
+     "Ego4D",
+     3
+    ],
+    [
+     "FurnitureBench",
+     3
+    ],
+    [
+     "FMB (Functional Manipulation Benchmark)",
+     3
+    ],
+    [
+     "Berkeley Autolab UR5",
+     3
+    ],
+    [
+     "QT-Opt Kuka grasping (OXE 'kuka')",
+     2
+    ],
+    [
+     "L2D (Learning to Drive, Yaak + Hugging Face)",
+     2
+    ],
+    [
+     "Berkeley Cable Routing",
+     2
+    ],
+    [
+     "TACO-Play (Task-Agnostic Real World Robot Play)",
+     2
+    ],
+    [
+     "RoboTurk Real (Sawyer) dataset",
+     2
+    ],
+    [
+     "UT Austin MUTEX",
+     2
+    ],
+    [
+     "TOTO benchmark",
+     2
+    ],
+    [
+     "Berkeley RPT (Robot Learning with Sensorimotor Pre-training)",
+     2
+    ],
+    [
+     "Jaco Play (CLVR)",
+     2
+    ],
+    [
+     "Stanford HYDRA",
+     2
+    ],
+    [
+     "IAMLab CMU Pickup Insert",
+     2
+    ],
+    [
+     "NYU Franka Play (play-to-policy / C-BeT)",
+     2
+    ],
+    [
+     "CMU PlayFusion",
+     2
+    ],
+    [
+     "Berkeley Fanuc Manipulation",
+     2
+    ],
+    [
+     "NYU Door Opening (VINN)",
+     2
+    ],
+    [
+     "Berkeley MVP (Real-World Robot Learning with Masked Visual Pre-training)",
+     2
+    ],
+    [
+     "UCSD Kitchen",
+     2
+    ],
+    [
+     "Config HABIT",
+     1
+    ],
+    [
+     "OpenDriveLab Kai0 (chi-zero) data",
+     1
+    ],
+    [
+     "Stanford Kuka Multimodal (Making Sense of Vision and Touch)",
+     1
+    ],
+    [
+     "Dobb-E / Homes of New York (OXE 'dobbe')",
+     1
+    ],
+    [
+     "UCSD Pick and Place",
+     1
+    ],
+    [
+     "UMI in-the-wild cup arrangement",
+     1
+    ],
+    [
+     "Imperial College Sawyer wrist cam",
+     1
+    ],
+    [
+     "Stanford RoboCook",
+     1
+    ],
+    [
+     "USC Cloth Sim",
+     1
+    ],
+    [
+     "Columbia CAIRLab Push-T real",
+     1
+    ],
+    [
+     "UT Austin VIOLA",
+     1
+    ],
+    [
+     "robomimic datasets",
+     1
+    ]
+   ]
+  },
+  "distinct_owners": 790,
+  "top_owners": [
+   [
+    "RoboCOIN",
+    796
+   ],
+   [
+    "VibeCuisine",
+    206
+   ],
+   [
+    "lerobot",
+    120
+   ],
+   [
+    "unitreerobotics",
+    60
+   ],
+   [
+    "allenai",
+    51
+   ],
+   [
+    "suz22",
+    49
+   ],
+   [
+    "ankile",
+    36
+   ],
+   [
+    "REBOOT26",
+    33
+   ],
+   [
+    "IPEC-COMMUNITY",
+    32
+   ],
+   [
+    "YOLO2431",
+    25
+   ]
+  ],
+  "owners_with_any_untouched_default": "624/790 (79.0%)",
+  "raw_files_available": 3000,
+  "licence_counts": [
+   [
+    "apache-2.0",
+    2751
+   ],
+   [
+    "mit",
+    101
+   ],
+   [
+    "none",
+    54
+   ],
+   [
+    "cc-by-4.0",
+    41
+   ],
+   [
+    "other",
+    24
+   ],
+   [
+    "cc-by-sa-4.0",
+    12
+   ],
+   [
+    "cc-by-nc-4.0",
+    9
+   ],
+   [
+    "cc-by-nc-sa-4.0",
+    5
+   ],
+   [
+    "cc-by-nc-nd-4.0",
+    2
+   ],
+   [
+    "odc-by",
+    1
+   ]
+  ],
+  "verdict_counts": [
+   [
+    "default licence, unconfirmed",
+    1537
+   ],
+   [
+    "documented",
+    1105
+   ],
+   [
+    "relabelled (attribution owed)",
+    178
+   ],
+   [
+    "no licence",
+    54
+   ],
+   [
+    "no upstream data licence",
+    44
+   ],
+   [
+    "licensed, no provenance",
+    32
+   ],
+   [
+    "custom licence",
+    22
+   ],
+   [
+    "non-commercial",
+    16
+   ],
+   [
+    "differs from upstream",
+    9
+   ],
+   [
+    "restricted source",
+    3
+   ]
+  ],
+  "apache_total": 2751,
+  "apache_that_are_untouched_default": "1694/2751 (61.6%)",
+  "all_untouched_default": "1694/3000 (56.5%)",
+  "top100_untouched_default": "45/100 (45.0%)",
+  "downloads_share_untouched_default": "51.9%",
+  "no_licence": "54/3000 (1.8%)",
+  "noncommercial": "16/3000 (0.5%)",
+  "restricted_source_mentions": 6,
+  "no_info_json_at_root": "465/3000 (15.5%)",
+  "codebase_versions": [
+   [
+    "v3.0",
+    1398
+   ],
+   [
+    "v2.1",
+    1049
+   ],
+   [
+    "v2.0",
+    88
+   ]
+  ],
+  "robot_type_missing_or_unknown": "228/2535 (9.0%)",
+  "names_true_mismatch": "4/2535 (0.2%)",
+  "names_single_placeholder": "86/2535 (3.4%)",
+  "names_missing": "101/2535 (4.0%)",
+  "no_action_feature": "239/2535 (9.4%)"
+ },
+ "audit": {
+  "attempted": 300,
+  "audited": 210,
+  "skipped_too_large": 85,
+  "errors": 5,
+  "error_examples": [
+   "DatasetLoadError: results/audit3/.downloads/Embodied-AI-6__eval_act has no parquet files under data/",
+   "DatasetLoadError: results/audit3/.downloads/Embodied-AI-6__eval_pi0.5 has no parquet files under data/",
+   "DatasetLoadError: results/audit3/.downloads/lance-format__aloha_static_cups_open-lance has no parquet files under data/",
+   "DatasetLoadError: results/audit3/.downloads/PinkSpam__pick_and_place has no parquet files under data/",
+   "ArrowInvalid: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file."
+  ],
+  "episodes_audited": 108718,
+  "episodes_flagged_unusable": "8746/108718 (8.0%)",
+  "datasets_with_critical": "34/210 (16.2%)",
+  "datasets_with_warning_or_critical": "122/210 (58.1%)",
+  "median_score": 98,
+  "median_usable_fraction": 0.9915,
+  "datasets_by_check": [
+   [
+    "episodes.spikes",
+    86
+   ],
+   [
+    "episodes.trajectory_outlier",
+    71
+   ],
+   [
+    "episodes.too_long",
+    41
+   ],
+   [
+    "values.dead_dimension",
+    39
+   ],
+   [
+    "schema.action_state_dims_differ",
+    37
+   ],
+   [
+    "tasks.too_short",
+    34
+   ],
+   [
+    "episodes.too_short",
+    25
+   ],
+   [
+    "episodes.idle",
+    22
+   ],
+   [
+    "episodes.idle_padding",
+    22
+   ],
+   [
+    "video.span_mismatch",
+    12
+   ],
+   [
+    "sync.action_state_uncorrelated",
+    11
+   ],
+   [
+    "episodes.duplicate",
+    9
+   ],
+   [
+    "info.load_warning",
+    8
+   ],
+   [
+    "info.no_robot_type",
+    6
+   ],
+   [
+    "counts.frames",
+    5
+   ],
+   [
+    "counts.length_mismatch",
+    5
+   ],
+   [
+    "stats.stale",
+    4
+   ],
+   [
+    "sync.action_state_lag",
+    2
+   ],
+   [
+    "counts.episodes",
+    2
+   ],
+   [
+    "tasks.placeholder",
+    2
+   ],
+   [
+    "files.orphaned",
+    2
+   ],
+   [
+    "time.non_monotonic",
+    2
+   ],
+   [
+    "schema.unnamed_channels",
+    1
+   ],
+   [
+    "stats.feature_missing",
+    1
+   ],
+   [
+    "values.non_finite",
+    1
+   ],
+   [
+    "schema.no_action",
+    1
+   ],
+   [
+    "schema.no_state",
+    1
+   ],
+   [
+    "schema.names_shape_mismatch",
+    1
+   ],
+   [
+    "counts.episode_gaps",
+    1
+   ]
+  ],
+  "episodes_by_check": [
+   [
+    "episodes.spikes",
+    5280
+   ],
+   [
+    "episodes.trajectory_outlier",
+    2924
+   ],
+   [
+    "episodes.duplicate",
+    1941
+   ],
+   [
+    "episodes.idle",
+    605
+   ],
+   [
+    "video.span_mismatch",
+    447
+   ],
+   [
+    "episodes.too_short",
+    392
+   ],
+   [
+    "counts.length_mismatch",
+    372
+   ],
+   [
+    "episodes.too_long",
+    232
+   ],
+   [
+    "episodes.idle_padding",
+    218
+   ],
+   [
+    "sync.action_state_uncorrelated",
+    98
+   ],
+   [
+    "sync.action_state_lag",
+    62
+   ],
+   [
+    "values.non_finite",
+    60
+   ],
+   [
+    "tasks.placeholder",
+    54
+   ],
+   [
+    "time.non_monotonic",
+    4
+   ],
+   [
+    "schema.action_state_dims_differ",
+    0
+   ],
+   [
+    "schema.unnamed_channels",
+    0
+   ],
+   [
+    "tasks.too_short",
+    0
+   ],
+   [
+    "counts.episodes",
+    0
+   ],
+   [
+    "counts.frames",
+    0
+   ],
+   [
+    "files.orphaned",
+    0
+   ],
+   [
+    "values.dead_dimension",
+    0
+   ],
+   [
+    "stats.feature_missing",
+    0
+   ],
+   [
+    "info.load_warning",
+    0
+   ],
+   [
+    "info.no_robot_type",
+    0
+   ],
+   [
+    "schema.no_action",
+    0
+   ],
+   [
+    "schema.no_state",
+    0
+   ],
+   [
+    "schema.names_shape_mismatch",
+    0
+   ],
+   [
+    "stats.stale",
+    0
+   ],
+   [
+    "counts.episode_gaps",
+    0
+   ]
+  ]
+ }
+}

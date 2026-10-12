@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+.hf_cache/
+.downloads/
+/results/
+*.tgz
+# internal notes and unpublished pages (audit page names specific datasets; owners first)
+OVERNIGHT.md
+research
+site/
