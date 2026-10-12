@@ -515,7 +515,7 @@ def check_stats(ds: Dataset, th: Thresholds) -> list[Finding]:
         span = np.ptp(data, axis=0)
         span = np.where(span < 1e-9, 1.0, span)
         problems = {}
-        recomputed = {"min": data.min(0), "max": data.max(0), "mean": data.mean(0)}
+        recomputed = {"min": data.min(0), "max": data.max(0), "mean": data.mean(0), "std": data.std(0)}
         for stat, value in recomputed.items():
             if stat not in entry:
                 continue
@@ -1013,7 +1013,7 @@ def check_action_state_sync(ds: Dataset, th: Thresholds) -> list[Finding]:
         return []
     m = th.lag_max
     best = {i: int(np.argmin(err)) - m for i, (err, _) in curves.items()}  # lag in frames
-    typical = int(np.median(list(best.values())))
+    typical = int(round(float(np.median(list(best.values())))))
     shifted = []
     for i, (err, _) in curves.items():
         k = best[i]

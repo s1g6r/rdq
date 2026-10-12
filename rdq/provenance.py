@@ -91,6 +91,8 @@ def classify_license(license_value) -> str:
     lic = str(license_value).strip().lower()
     if NONCOMMERCIAL_LICENSES.search(lic):
         return "noncommercial"
+    if re.search(r"(^|-)nd(-|$)", lic):
+        return "no-derivatives"
     if lic in PERMISSIVE_LICENSES or lic.startswith("cc-by-") and "nc" not in lic:
         return "permissive"
     return "other"
@@ -154,6 +156,8 @@ def analyse_card(readme: str | None, card_license=None, repo_id: str | None = No
         verdict = "no licence"
     elif lic_class == "noncommercial":
         verdict = "non-commercial"
+    elif lic_class == "no-derivatives":
+        verdict = "no-derivatives licence"
     elif upstream.status == "relabelled" and upstream.severity == "warning":
         verdict = "relabelled (attribution owed)"
     elif restricted or upstream.status == "restricted-redistribution":

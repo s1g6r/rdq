@@ -27,6 +27,8 @@ def episode_groups(ds: Dataset, group_by: str | None = None, mapping_csv: str | 
                 grp = keys.get("group") or keys.get("operator") or keys.get("collector")
                 if ep is not None and grp is not None:
                     out[int(ep)] = str(grp)
+        for i in ds.episodes:  # episodes the mapping forgot stay visible
+            out.setdefault(i, "(not in mapping)")
         return out
     if group_by in (None, "task"):
         return {i: ds.tasks.get(int(ep.task_index[0]), "unknown") if ep.task_index is not None and len(ep.task_index) else "unknown"
@@ -45,9 +47,11 @@ def scorecard(result: dict, scores: dict | None, groups: dict[int, str]) -> list
     usable = set(result["score"]["usable_episodes"])
     flagged = {int(k): v for k, v in result["score"]["flagged_episodes"].items()}
     eps = scores["episodes"] if scores else {}
+    present = {int(k) for k in result["score"]["episode_scores"]}
     by_group: dict[str, list[int]] = defaultdict(list)
     for i in sorted(groups):
-        by_group[groups[i]].append(i)
+        if i in present:  # a mapping row for an episode the dataset doesn't have is ignored
+            by_group[groups[i]].append(i)
     rows = []
     for g, idx in by_group.items():
         issues = Counter(c for i in idx for c in flagged.get(i, []))
