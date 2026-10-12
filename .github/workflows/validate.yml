@@ -1,0 +1,39 @@
+name: validate-real-data
+
+# Run by hand from the Actions tab. Audits a fixed set of public Hub datasets chosen because
+# earlier rdq versions misbehaved on them or because they contain unusual features, and
+# uploads the reports plus a summary table. Nothing is written back to the Hub.
+on:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - name: Audit the validation set
+        run: |
+          rdq audit --max-mb 400 --out val --repos \
+            RoboCOIN/Agilex_Cobot_Magic_heat_sandwich \
+            RoboCOIN/Agilex_Cobot_Magic_organize_desk_fail \
+            RoboCOIN/Agilex_Cobot_Magic_fold_short_sleeve_white \
+            binhng/vrh31_bodyshop_v1 \
+            YOLO2431/self-repair-gripper-v2 \
+            RoboCOIN/Leju_Kuavo_4_hotel_services \
+            lerobot/high_quality_folding \
+            zmfldlwx/community-v1-so101-pick_and_place-converted \
+            lerobot/svla_so100_sorting \
+            lerobot/svla_so100_stacking \
+            lerobot/droid_100 \
+            lerobot/pusht \
+            lerobot/aloha_sim_insertion_human
+      - run: python experiments/validate_real.py val >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: validation
+          path: val/
