@@ -1,0 +1,2755 @@
+{
+ "rows": [
+  {
+   "scenario": "structural",
+   "seed": 0,
+   "n": 200,
+   "keep_n": 140,
+   "rules_kept": 140,
+   "score_seconds": 9.52,
+   "labels": {
+    "frozen_log": 20,
+    "desync": 20,
+    "glitch": 20,
+    "expert": 140
+   },
+   "auroc": {
+    "length (longest first)": 0.481,
+    "psd (Sojib et al.)": 0.552,
+    "deminf-lite": 0.818,
+    "consistency": 0.773,
+    "hfr": 0.826,
+    "dither": 0.5,
+    "final-state outlier": 0.458,
+    "composite": 0.901,
+    "loss-based": 0.605,
+    "rules (rdq check)": 1.0
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "desync": 0.575,
+     "frozen_log": 0.438,
+     "glitch": 0.429
+    },
+    "psd (Sojib et al.)": {
+     "desync": 0.551,
+     "frozen_log": 0.477,
+     "glitch": 0.627
+    },
+    "deminf-lite": {
+     "desync": 0.947,
+     "frozen_log": 0.867,
+     "glitch": 0.64
+    },
+    "consistency": {
+     "desync": 0.96,
+     "frozen_log": 0.814,
+     "glitch": 0.545
+    },
+    "hfr": {
+     "desync": 0.483,
+     "frozen_log": 1.0,
+     "glitch": 0.996
+    },
+    "dither": {
+     "desync": 0.5,
+     "frozen_log": 0.5,
+     "glitch": 0.5
+    },
+    "final-state outlier": {
+     "desync": 0.543,
+     "frozen_log": 0.352,
+     "glitch": 0.479
+    },
+    "composite": {
+     "desync": 0.93,
+     "frozen_log": 0.97,
+     "glitch": 0.804
+    },
+    "loss-based": {
+     "desync": 1.0,
+     "frozen_log": 0.332,
+     "glitch": 0.482
+    },
+    "rules (rdq check)": {
+     "desync": 1.0,
+     "frozen_log": 1.0,
+     "glitch": 1.0
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.3,
+    "oracle": 0.0,
+    "random": 0.257,
+    "keep shortest": 0.293,
+    "psd (Sojib et al.)": 0.25,
+    "deminf-lite": 0.143,
+    "consistency": 0.157,
+    "hfr": 0.136,
+    "composite": 0.114,
+    "loss-based": 0.279,
+    "rules (rdq check)": 0.0,
+    "random, rules size": 0.286,
+    "rules + composite": 0.0
+   },
+   "success": {
+    "all data": 0.115,
+    "oracle": 0.9975,
+    "random": 0.26,
+    "keep shortest": 0.18,
+    "psd (Sojib et al.)": 0.275,
+    "deminf-lite": 0.8475,
+    "consistency": 0.8525,
+    "hfr": 0.1175,
+    "composite": 0.5475,
+    "loss-based": 0.755,
+    "rules (rdq check)": 0.9975,
+    "random, rules size": 0.1875,
+    "rules + composite": 0.9975
+   }
+  },
+  {
+   "scenario": "structural",
+   "seed": 1,
+   "n": 200,
+   "keep_n": 140,
+   "rules_kept": 140,
+   "score_seconds": 9.67,
+   "labels": {
+    "expert": 140,
+    "frozen_log": 20,
+    "desync": 20,
+    "glitch": 20
+   },
+   "auroc": {
+    "length (longest first)": 0.53,
+    "psd (Sojib et al.)": 0.613,
+    "deminf-lite": 0.834,
+    "consistency": 0.731,
+    "hfr": 0.759,
+    "dither": 0.5,
+    "final-state outlier": 0.554,
+    "composite": 0.868,
+    "loss-based": 0.585,
+    "rules (rdq check)": 1.0
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "desync": 0.59,
+     "frozen_log": 0.592,
+     "glitch": 0.408
+    },
+    "psd (Sojib et al.)": {
+     "desync": 0.56,
+     "frozen_log": 0.664,
+     "glitch": 0.615
+    },
+    "deminf-lite": {
+     "desync": 0.974,
+     "frozen_log": 0.88,
+     "glitch": 0.649
+    },
+    "consistency": {
+     "desync": 0.906,
+     "frozen_log": 0.879,
+     "glitch": 0.406
+    },
+    "hfr": {
+     "desync": 0.277,
+     "frozen_log": 1.0,
+     "glitch": 0.999
+    },
+    "dither": {
+     "desync": 0.5,
+     "frozen_log": 0.5,
+     "glitch": 0.5
+    },
+    "final-state outlier": {
+     "desync": 0.535,
+     "frozen_log": 0.574,
+     "glitch": 0.551
+    },
+    "composite": {
+     "desync": 0.836,
+     "frozen_log": 0.954,
+     "glitch": 0.815
+    },
+    "loss-based": {
+     "desync": 1.0,
+     "frozen_log": 0.271,
+     "glitch": 0.482
+    },
+    "rules (rdq check)": {
+     "desync": 1.0,
+     "frozen_log": 1.0,
+     "glitch": 1.0
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.3,
+    "oracle": 0.0,
+    "random": 0.286,
+    "keep shortest": 0.279,
+    "psd (Sojib et al.)": 0.243,
+    "deminf-lite": 0.157,
+    "consistency": 0.164,
+    "hfr": 0.136,
+    "composite": 0.15,
+    "loss-based": 0.257,
+    "rules (rdq check)": 0.0,
+    "random, rules size": 0.314,
+    "rules + composite": 0.0
+   },
+   "success": {
+    "all data": 0.105,
+    "oracle": 1.0,
+    "random": 0.2025,
+    "keep shortest": 0.35,
+    "psd (Sojib et al.)": 0.185,
+    "deminf-lite": 0.8875,
+    "consistency": 0.735,
+    "hfr": 0.075,
+    "composite": 0.205,
+    "loss-based": 0.855,
+    "rules (rdq check)": 1.0,
+    "random, rules size": 0.26,
+    "rules + composite": 1.0
+   }
+  },
+  {
+   "scenario": "structural",
+   "seed": 2,
+   "n": 200,
+   "keep_n": 140,
+   "rules_kept": 140,
+   "score_seconds": 9.33,
+   "labels": {
+    "glitch": 20,
+    "desync": 20,
+    "frozen_log": 20,
+    "expert": 140
+   },
+   "auroc": {
+    "length (longest first)": 0.456,
+    "psd (Sojib et al.)": 0.577,
+    "deminf-lite": 0.788,
+    "consistency": 0.723,
+    "hfr": 0.834,
+    "dither": 0.508,
+    "final-state outlier": 0.552,
+    "composite": 0.864,
+    "loss-based": 0.579,
+    "rules (rdq check)": 1.0
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "desync": 0.471,
+     "frozen_log": 0.419,
+     "glitch": 0.478
+    },
+    "psd (Sojib et al.)": {
+     "desync": 0.542,
+     "frozen_log": 0.5,
+     "glitch": 0.689
+    },
+    "deminf-lite": {
+     "desync": 0.963,
+     "frozen_log": 0.806,
+     "glitch": 0.596
+    },
+    "consistency": {
+     "desync": 0.979,
+     "frozen_log": 0.661,
+     "glitch": 0.53
+    },
+    "hfr": {
+     "desync": 0.514,
+     "frozen_log": 1.0,
+     "glitch": 0.987
+    },
+    "dither": {
+     "desync": 0.5,
+     "frozen_log": 0.525,
+     "glitch": 0.5
+    },
+    "final-state outlier": {
+     "desync": 0.489,
+     "frozen_log": 0.585,
+     "glitch": 0.583
+    },
+    "composite": {
+     "desync": 0.938,
+     "frozen_log": 0.879,
+     "glitch": 0.774
+    },
+    "loss-based": {
+     "desync": 1.0,
+     "frozen_log": 0.187,
+     "glitch": 0.551
+    },
+    "rules (rdq check)": {
+     "desync": 1.0,
+     "frozen_log": 1.0,
+     "glitch": 1.0
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.3,
+    "oracle": 0.0,
+    "random": 0.3,
+    "keep shortest": 0.321,
+    "psd (Sojib et al.)": 0.286,
+    "deminf-lite": 0.171,
+    "consistency": 0.179,
+    "hfr": 0.107,
+    "composite": 0.129,
+    "loss-based": 0.25,
+    "rules (rdq check)": 0.0,
+    "random, rules size": 0.271,
+    "rules + composite": 0.0
+   },
+   "success": {
+    "all data": 0.225,
+    "oracle": 0.9975,
+    "random": 0.21,
+    "keep shortest": 0.1325,
+    "psd (Sojib et al.)": 0.1375,
+    "deminf-lite": 0.965,
+    "consistency": 0.8175,
+    "hfr": 0.205,
+    "composite": 0.6575,
+    "loss-based": 0.9025,
+    "rules (rdq check)": 0.9975,
+    "random, rules size": 0.2825,
+    "rules + composite": 0.9975
+   }
+  },
+  {
+   "scenario": "structural",
+   "seed": 3,
+   "n": 200,
+   "keep_n": 140,
+   "rules_kept": 140,
+   "score_seconds": 9.11,
+   "labels": {
+    "frozen_log": 20,
+    "desync": 20,
+    "glitch": 20,
+    "expert": 140
+   },
+   "auroc": {
+    "length (longest first)": 0.471,
+    "psd (Sojib et al.)": 0.635,
+    "deminf-lite": 0.785,
+    "consistency": 0.717,
+    "hfr": 0.871,
+    "dither": 0.5,
+    "final-state outlier": 0.54,
+    "composite": 0.878,
+    "loss-based": 0.615,
+    "rules (rdq check)": 1.0
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "desync": 0.355,
+     "frozen_log": 0.493,
+     "glitch": 0.566
+    },
+    "psd (Sojib et al.)": {
+     "desync": 0.445,
+     "frozen_log": 0.704,
+     "glitch": 0.755
+    },
+    "deminf-lite": {
+     "desync": 0.959,
+     "frozen_log": 0.809,
+     "glitch": 0.589
+    },
+    "consistency": {
+     "desync": 0.873,
+     "frozen_log": 0.754,
+     "glitch": 0.525
+    },
+    "hfr": {
+     "desync": 0.614,
+     "frozen_log": 1.0,
+     "glitch": 0.999
+    },
+    "dither": {
+     "desync": 0.5,
+     "frozen_log": 0.5,
+     "glitch": 0.5
+    },
+    "final-state outlier": {
+     "desync": 0.443,
+     "frozen_log": 0.637,
+     "glitch": 0.54
+    },
+    "composite": {
+     "desync": 0.89,
+     "frozen_log": 0.902,
+     "glitch": 0.843
+    },
+    "loss-based": {
+     "desync": 1.0,
+     "frozen_log": 0.243,
+     "glitch": 0.603
+    },
+    "rules (rdq check)": {
+     "desync": 1.0,
+     "frozen_log": 1.0,
+     "glitch": 1.0
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.3,
+    "oracle": 0.0,
+    "random": 0.271,
+    "keep shortest": 0.321,
+    "psd (Sojib et al.)": 0.257,
+    "deminf-lite": 0.171,
+    "consistency": 0.193,
+    "hfr": 0.114,
+    "composite": 0.136,
+    "loss-based": 0.25,
+    "rules (rdq check)": 0.0,
+    "random, rules size": 0.293,
+    "rules + composite": 0.0
+   },
+   "success": {
+    "all data": 0.1825,
+    "oracle": 1.0,
+    "random": 0.14,
+    "keep shortest": 0.1725,
+    "psd (Sojib et al.)": 0.1575,
+    "deminf-lite": 0.9875,
+    "consistency": 0.5125,
+    "hfr": 0.125,
+    "composite": 0.64,
+    "loss-based": 0.9475,
+    "rules (rdq check)": 1.0,
+    "random, rules size": 0.2,
+    "rules + composite": 1.0
+   }
+  },
+  {
+   "scenario": "structural",
+   "seed": 4,
+   "n": 200,
+   "keep_n": 140,
+   "rules_kept": 140,
+   "score_seconds": 10.04,
+   "labels": {
+    "glitch": 20,
+    "desync": 20,
+    "frozen_log": 20,
+    "expert": 140
+   },
+   "auroc": {
+    "length (longest first)": 0.514,
+    "psd (Sojib et al.)": 0.62,
+    "deminf-lite": 0.8,
+    "consistency": 0.761,
+    "hfr": 0.836,
+    "dither": 0.5,
+    "final-state outlier": 0.447,
+    "composite": 0.892,
+    "loss-based": 0.622,
+    "rules (rdq check)": 1.0
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "desync": 0.542,
+     "frozen_log": 0.51,
+     "glitch": 0.49
+    },
+    "psd (Sojib et al.)": {
+     "desync": 0.534,
+     "frozen_log": 0.594,
+     "glitch": 0.731
+    },
+    "deminf-lite": {
+     "desync": 0.962,
+     "frozen_log": 0.843,
+     "glitch": 0.594
+    },
+    "consistency": {
+     "desync": 0.983,
+     "frozen_log": 0.851,
+     "glitch": 0.45
+    },
+    "hfr": {
+     "desync": 0.507,
+     "frozen_log": 1.0,
+     "glitch": 1.0
+    },
+    "dither": {
+     "desync": 0.5,
+     "frozen_log": 0.5,
+     "glitch": 0.5
+    },
+    "final-state outlier": {
+     "desync": 0.403,
+     "frozen_log": 0.467,
+     "glitch": 0.471
+    },
+    "composite": {
+     "desync": 0.951,
+     "frozen_log": 0.951,
+     "glitch": 0.774
+    },
+    "loss-based": {
+     "desync": 1.0,
+     "frozen_log": 0.383,
+     "glitch": 0.483
+    },
+    "rules (rdq check)": {
+     "desync": 1.0,
+     "frozen_log": 1.0,
+     "glitch": 1.0
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.3,
+    "oracle": 0.0,
+    "random": 0.321,
+    "keep shortest": 0.286,
+    "psd (Sojib et al.)": 0.257,
+    "deminf-lite": 0.179,
+    "consistency": 0.157,
+    "hfr": 0.114,
+    "composite": 0.121,
+    "loss-based": 0.257,
+    "rules (rdq check)": 0.0,
+    "random, rules size": 0.293,
+    "rules + composite": 0.0
+   },
+   "success": {
+    "all data": 0.155,
+    "oracle": 0.99,
+    "random": 0.115,
+    "keep shortest": 0.22,
+    "psd (Sojib et al.)": 0.3125,
+    "deminf-lite": 0.975,
+    "consistency": 0.9025,
+    "hfr": 0.12,
+    "composite": 0.875,
+    "loss-based": 0.9475,
+    "rules (rdq check)": 0.99,
+    "random, rules size": 0.175,
+    "rules + composite": 0.99
+   }
+  },
+  {
+   "scenario": "skill",
+   "seed": 0,
+   "n": 200,
+   "keep_n": 120,
+   "rules_kept": 200,
+   "score_seconds": 12.91,
+   "labels": {
+    "shaky": 20,
+    "failed": 20,
+    "expert": 120,
+    "detour": 20,
+    "hesitant": 20
+   },
+   "auroc": {
+    "length (longest first)": 0.815,
+    "psd (Sojib et al.)": 0.76,
+    "deminf-lite": 0.774,
+    "consistency": 0.688,
+    "hfr": 0.471,
+    "dither": 0.556,
+    "final-state outlier": 0.467,
+    "composite": 0.715,
+    "loss-based": 0.852,
+    "rules (rdq check)": 0.5
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "detour": 1.0,
+     "failed": 0.715,
+     "hesitant": 0.995,
+     "shaky": 0.55
+    },
+    "psd (Sojib et al.)": {
+     "detour": 0.965,
+     "failed": 0.577,
+     "hesitant": 0.902,
+     "shaky": 0.596
+    },
+    "deminf-lite": {
+     "detour": 0.793,
+     "failed": 0.563,
+     "hesitant": 0.818,
+     "shaky": 0.922
+    },
+    "consistency": {
+     "detour": 0.676,
+     "failed": 0.538,
+     "hesitant": 0.735,
+     "shaky": 0.804
+    },
+    "hfr": {
+     "detour": 0.708,
+     "failed": 0.174,
+     "hesitant": 0.069,
+     "shaky": 0.935
+    },
+    "dither": {
+     "detour": 0.725,
+     "failed": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    },
+    "final-state outlier": {
+     "detour": 0.433,
+     "failed": 0.394,
+     "hesitant": 0.485,
+     "shaky": 0.555
+    },
+    "composite": {
+     "detour": 0.895,
+     "failed": 0.351,
+     "hesitant": 0.633,
+     "shaky": 0.979
+    },
+    "loss-based": {
+     "detour": 1.0,
+     "failed": 0.552,
+     "hesitant": 0.856,
+     "shaky": 1.0
+    },
+    "rules (rdq check)": {
+     "detour": 0.5,
+     "failed": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.4,
+    "oracle": 0.0,
+    "random": 0.392,
+    "keep shortest": 0.208,
+    "psd (Sojib et al.)": 0.242,
+    "deminf-lite": 0.25,
+    "consistency": 0.275,
+    "hfr": 0.367,
+    "composite": 0.258,
+    "loss-based": 0.192,
+    "rules (rdq check)": 0.4,
+    "random, rules size": 0.4,
+    "rules + composite": 0.258
+   },
+   "success": {
+    "all data": 0.87,
+    "oracle": 0.9825,
+    "random": 0.775,
+    "keep shortest": 0.9425,
+    "psd (Sojib et al.)": 0.8475,
+    "deminf-lite": 0.525,
+    "consistency": 0.785,
+    "hfr": 0.6425,
+    "composite": 0.6825,
+    "loss-based": 0.7825,
+    "rules (rdq check)": 0.87,
+    "random, rules size": 0.87,
+    "rules + composite": 0.6825
+   }
+  },
+  {
+   "scenario": "skill",
+   "seed": 1,
+   "n": 200,
+   "keep_n": 120,
+   "rules_kept": 200,
+   "score_seconds": 11.45,
+   "labels": {
+    "shaky": 20,
+    "failed": 20,
+    "expert": 120,
+    "detour": 20,
+    "hesitant": 20
+   },
+   "auroc": {
+    "length (longest first)": 0.81,
+    "psd (Sojib et al.)": 0.772,
+    "deminf-lite": 0.807,
+    "consistency": 0.749,
+    "hfr": 0.43,
+    "dither": 0.55,
+    "final-state outlier": 0.536,
+    "composite": 0.763,
+    "loss-based": 0.812,
+    "rules (rdq check)": 0.5
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "detour": 1.0,
+     "failed": 0.67,
+     "hesitant": 0.996,
+     "shaky": 0.573
+    },
+    "psd (Sojib et al.)": {
+     "detour": 0.983,
+     "failed": 0.542,
+     "hesitant": 0.947,
+     "shaky": 0.618
+    },
+    "deminf-lite": {
+     "detour": 0.772,
+     "failed": 0.664,
+     "hesitant": 0.838,
+     "shaky": 0.954
+    },
+    "consistency": {
+     "detour": 0.863,
+     "failed": 0.701,
+     "hesitant": 0.689,
+     "shaky": 0.743
+    },
+    "hfr": {
+     "detour": 0.743,
+     "failed": 0.075,
+     "hesitant": 0.015,
+     "shaky": 0.888
+    },
+    "dither": {
+     "detour": 0.7,
+     "failed": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    },
+    "final-state outlier": {
+     "detour": 0.604,
+     "failed": 0.382,
+     "hesitant": 0.588,
+     "shaky": 0.573
+    },
+    "composite": {
+     "detour": 0.952,
+     "failed": 0.453,
+     "hesitant": 0.685,
+     "shaky": 0.963
+    },
+    "loss-based": {
+     "detour": 0.999,
+     "failed": 0.522,
+     "hesitant": 0.728,
+     "shaky": 1.0
+    },
+    "rules (rdq check)": {
+     "detour": 0.5,
+     "failed": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.4,
+    "oracle": 0.0,
+    "random": 0.433,
+    "keep shortest": 0.233,
+    "psd (Sojib et al.)": 0.242,
+    "deminf-lite": 0.217,
+    "consistency": 0.233,
+    "hfr": 0.367,
+    "composite": 0.233,
+    "loss-based": 0.242,
+    "rules (rdq check)": 0.4,
+    "random, rules size": 0.4,
+    "rules + composite": 0.233
+   },
+   "success": {
+    "all data": 0.935,
+    "oracle": 1.0,
+    "random": 0.8425,
+    "keep shortest": 0.855,
+    "psd (Sojib et al.)": 0.88,
+    "deminf-lite": 0.7675,
+    "consistency": 0.795,
+    "hfr": 0.775,
+    "composite": 0.9275,
+    "loss-based": 0.9325,
+    "rules (rdq check)": 0.935,
+    "random, rules size": 0.935,
+    "rules + composite": 0.9275
+   }
+  },
+  {
+   "scenario": "skill",
+   "seed": 2,
+   "n": 200,
+   "keep_n": 120,
+   "rules_kept": 200,
+   "score_seconds": 12.34,
+   "labels": {
+    "shaky": 20,
+    "failed": 20,
+    "expert": 120,
+    "detour": 20,
+    "hesitant": 20
+   },
+   "auroc": {
+    "length (longest first)": 0.815,
+    "psd (Sojib et al.)": 0.751,
+    "deminf-lite": 0.804,
+    "consistency": 0.745,
+    "hfr": 0.42,
+    "dither": 0.531,
+    "final-state outlier": 0.489,
+    "composite": 0.739,
+    "loss-based": 0.817,
+    "rules (rdq check)": 0.5
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "detour": 1.0,
+     "failed": 0.683,
+     "hesitant": 0.995,
+     "shaky": 0.584
+    },
+    "psd (Sojib et al.)": {
+     "detour": 0.953,
+     "failed": 0.607,
+     "hesitant": 0.972,
+     "shaky": 0.472
+    },
+    "deminf-lite": {
+     "detour": 0.817,
+     "failed": 0.61,
+     "hesitant": 0.834,
+     "shaky": 0.955
+    },
+    "consistency": {
+     "detour": 0.752,
+     "failed": 0.708,
+     "hesitant": 0.679,
+     "shaky": 0.842
+    },
+    "hfr": {
+     "detour": 0.609,
+     "failed": 0.119,
+     "hesitant": 0.027,
+     "shaky": 0.927
+    },
+    "dither": {
+     "detour": 0.625,
+     "failed": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    },
+    "final-state outlier": {
+     "detour": 0.516,
+     "failed": 0.447,
+     "hesitant": 0.52,
+     "shaky": 0.474
+    },
+    "composite": {
+     "detour": 0.864,
+     "failed": 0.497,
+     "hesitant": 0.614,
+     "shaky": 0.981
+    },
+    "loss-based": {
+     "detour": 0.995,
+     "failed": 0.499,
+     "hesitant": 0.775,
+     "shaky": 1.0
+    },
+    "rules (rdq check)": {
+     "detour": 0.5,
+     "failed": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.4,
+    "oracle": 0.0,
+    "random": 0.442,
+    "keep shortest": 0.233,
+    "psd (Sojib et al.)": 0.225,
+    "deminf-lite": 0.225,
+    "consistency": 0.192,
+    "hfr": 0.392,
+    "composite": 0.25,
+    "loss-based": 0.217,
+    "rules (rdq check)": 0.4,
+    "random, rules size": 0.4,
+    "rules + composite": 0.25
+   },
+   "success": {
+    "all data": 0.8675,
+    "oracle": 1.0,
+    "random": 0.765,
+    "keep shortest": 0.8925,
+    "psd (Sojib et al.)": 0.95,
+    "deminf-lite": 0.6675,
+    "consistency": 0.915,
+    "hfr": 0.665,
+    "composite": 0.7575,
+    "loss-based": 0.8275,
+    "rules (rdq check)": 0.8675,
+    "random, rules size": 0.8675,
+    "rules + composite": 0.7575
+   }
+  },
+  {
+   "scenario": "skill",
+   "seed": 3,
+   "n": 200,
+   "keep_n": 120,
+   "rules_kept": 200,
+   "score_seconds": 12.52,
+   "labels": {
+    "shaky": 20,
+    "failed": 20,
+    "expert": 120,
+    "detour": 20,
+    "hesitant": 20
+   },
+   "auroc": {
+    "length (longest first)": 0.765,
+    "psd (Sojib et al.)": 0.724,
+    "deminf-lite": 0.827,
+    "consistency": 0.683,
+    "hfr": 0.42,
+    "dither": 0.537,
+    "final-state outlier": 0.47,
+    "composite": 0.717,
+    "loss-based": 0.803,
+    "rules (rdq check)": 0.5
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "detour": 0.978,
+     "failed": 0.657,
+     "hesitant": 0.986,
+     "shaky": 0.44
+    },
+    "psd (Sojib et al.)": {
+     "detour": 0.968,
+     "failed": 0.587,
+     "hesitant": 0.93,
+     "shaky": 0.41
+    },
+    "deminf-lite": {
+     "detour": 0.853,
+     "failed": 0.616,
+     "hesitant": 0.866,
+     "shaky": 0.972
+    },
+    "consistency": {
+     "detour": 0.8,
+     "failed": 0.632,
+     "hesitant": 0.616,
+     "shaky": 0.684
+    },
+    "hfr": {
+     "detour": 0.555,
+     "failed": 0.208,
+     "hesitant": 0.037,
+     "shaky": 0.878
+    },
+    "dither": {
+     "detour": 0.65,
+     "failed": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    },
+    "final-state outlier": {
+     "detour": 0.43,
+     "failed": 0.412,
+     "hesitant": 0.558,
+     "shaky": 0.478
+    },
+    "composite": {
+     "detour": 0.924,
+     "failed": 0.4,
+     "hesitant": 0.597,
+     "shaky": 0.948
+    },
+    "loss-based": {
+     "detour": 0.998,
+     "failed": 0.456,
+     "hesitant": 0.757,
+     "shaky": 1.0
+    },
+    "rules (rdq check)": {
+     "detour": 0.5,
+     "failed": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.4,
+    "oracle": 0.0,
+    "random": 0.367,
+    "keep shortest": 0.25,
+    "psd (Sojib et al.)": 0.258,
+    "deminf-lite": 0.192,
+    "consistency": 0.242,
+    "hfr": 0.4,
+    "composite": 0.283,
+    "loss-based": 0.25,
+    "rules (rdq check)": 0.4,
+    "random, rules size": 0.4,
+    "rules + composite": 0.283
+   },
+   "success": {
+    "all data": 0.8575,
+    "oracle": 0.9875,
+    "random": 0.6125,
+    "keep shortest": 0.9125,
+    "psd (Sojib et al.)": 0.8725,
+    "deminf-lite": 0.725,
+    "consistency": 0.8425,
+    "hfr": 0.585,
+    "composite": 0.54,
+    "loss-based": 0.76,
+    "rules (rdq check)": 0.8575,
+    "random, rules size": 0.8575,
+    "rules + composite": 0.54
+   }
+  },
+  {
+   "scenario": "skill",
+   "seed": 4,
+   "n": 200,
+   "keep_n": 120,
+   "rules_kept": 200,
+   "score_seconds": 11.99,
+   "labels": {
+    "shaky": 20,
+    "failed": 20,
+    "expert": 120,
+    "detour": 20,
+    "hesitant": 20
+   },
+   "auroc": {
+    "length (longest first)": 0.751,
+    "psd (Sojib et al.)": 0.704,
+    "deminf-lite": 0.811,
+    "consistency": 0.703,
+    "hfr": 0.424,
+    "dither": 0.525,
+    "final-state outlier": 0.516,
+    "composite": 0.705,
+    "loss-based": 0.807,
+    "rules (rdq check)": 0.5
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "detour": 0.955,
+     "failed": 0.607,
+     "hesitant": 0.995,
+     "shaky": 0.447
+    },
+    "psd (Sojib et al.)": {
+     "detour": 0.917,
+     "failed": 0.504,
+     "hesitant": 0.927,
+     "shaky": 0.468
+    },
+    "deminf-lite": {
+     "detour": 0.859,
+     "failed": 0.579,
+     "hesitant": 0.849,
+     "shaky": 0.959
+    },
+    "consistency": {
+     "detour": 0.666,
+     "failed": 0.601,
+     "hesitant": 0.676,
+     "shaky": 0.869
+    },
+    "hfr": {
+     "detour": 0.614,
+     "failed": 0.132,
+     "hesitant": 0.027,
+     "shaky": 0.923
+    },
+    "dither": {
+     "detour": 0.6,
+     "failed": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    },
+    "final-state outlier": {
+     "detour": 0.458,
+     "failed": 0.454,
+     "hesitant": 0.647,
+     "shaky": 0.507
+    },
+    "composite": {
+     "detour": 0.798,
+     "failed": 0.492,
+     "hesitant": 0.545,
+     "shaky": 0.983
+    },
+    "loss-based": {
+     "detour": 0.998,
+     "failed": 0.477,
+     "hesitant": 0.751,
+     "shaky": 1.0
+    },
+    "rules (rdq check)": {
+     "detour": 0.5,
+     "failed": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.4,
+    "oracle": 0.0,
+    "random": 0.425,
+    "keep shortest": 0.25,
+    "psd (Sojib et al.)": 0.308,
+    "deminf-lite": 0.192,
+    "consistency": 0.267,
+    "hfr": 0.4,
+    "composite": 0.292,
+    "loss-based": 0.258,
+    "rules (rdq check)": 0.4,
+    "random, rules size": 0.4,
+    "rules + composite": 0.292
+   },
+   "success": {
+    "all data": 0.87,
+    "oracle": 1.0,
+    "random": 0.68,
+    "keep shortest": 0.8425,
+    "psd (Sojib et al.)": 0.8675,
+    "deminf-lite": 0.82,
+    "consistency": 0.7725,
+    "hfr": 0.4725,
+    "composite": 0.6225,
+    "loss-based": 0.5775,
+    "rules (rdq check)": 0.87,
+    "random, rules size": 0.87,
+    "rules + composite": 0.6225
+   }
+  },
+  {
+   "scenario": "mixed",
+   "seed": 0,
+   "n": 200,
+   "keep_n": 130,
+   "rules_kept": 170,
+   "score_seconds": 10.2,
+   "labels": {
+    "shaky": 10,
+    "glitch": 10,
+    "failed": 10,
+    "frozen_log": 10,
+    "expert": 130,
+    "detour": 10,
+    "desync": 10,
+    "hesitant": 10
+   },
+   "auroc": {
+    "length (longest first)": 0.608,
+    "psd (Sojib et al.)": 0.638,
+    "deminf-lite": 0.841,
+    "consistency": 0.745,
+    "hfr": 0.62,
+    "dither": 0.514,
+    "final-state outlier": 0.42,
+    "composite": 0.821,
+    "loss-based": 0.682,
+    "rules (rdq check)": 0.714
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "desync": 0.423,
+     "detour": 1.0,
+     "failed": 0.587,
+     "frozen_log": 0.356,
+     "glitch": 0.329,
+     "hesitant": 0.987,
+     "shaky": 0.574
+    },
+    "psd (Sojib et al.)": {
+     "desync": 0.382,
+     "detour": 0.972,
+     "failed": 0.581,
+     "frozen_log": 0.516,
+     "glitch": 0.546,
+     "hesitant": 0.901,
+     "shaky": 0.566
+    },
+    "deminf-lite": {
+     "desync": 0.947,
+     "detour": 0.881,
+     "failed": 0.685,
+     "frozen_log": 0.851,
+     "glitch": 0.73,
+     "hesitant": 0.862,
+     "shaky": 0.935
+    },
+    "consistency": {
+     "desync": 0.956,
+     "detour": 0.793,
+     "failed": 0.632,
+     "frozen_log": 0.753,
+     "glitch": 0.528,
+     "hesitant": 0.642,
+     "shaky": 0.909
+    },
+    "hfr": {
+     "desync": 0.543,
+     "detour": 0.731,
+     "failed": 0.108,
+     "frozen_log": 1.0,
+     "glitch": 0.999,
+     "hesitant": 0.026,
+     "shaky": 0.932
+    },
+    "dither": {
+     "desync": 0.5,
+     "detour": 0.6,
+     "failed": 0.5,
+     "frozen_log": 0.5,
+     "glitch": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    },
+    "final-state outlier": {
+     "desync": 0.435,
+     "detour": 0.458,
+     "failed": 0.35,
+     "frozen_log": 0.418,
+     "glitch": 0.395,
+     "hesitant": 0.401,
+     "shaky": 0.482
+    },
+    "composite": {
+     "desync": 0.929,
+     "detour": 0.955,
+     "failed": 0.537,
+     "frozen_log": 0.917,
+     "glitch": 0.883,
+     "hesitant": 0.559,
+     "shaky": 0.966
+    },
+    "loss-based": {
+     "desync": 1.0,
+     "detour": 0.941,
+     "failed": 0.452,
+     "frozen_log": 0.272,
+     "glitch": 0.599,
+     "hesitant": 0.54,
+     "shaky": 0.972
+    },
+    "rules (rdq check)": {
+     "desync": 1.0,
+     "detour": 0.5,
+     "failed": 0.5,
+     "frozen_log": 1.0,
+     "glitch": 1.0,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.35,
+    "oracle": 0.0,
+    "random": 0.338,
+    "keep shortest": 0.308,
+    "psd (Sojib et al.)": 0.3,
+    "deminf-lite": 0.177,
+    "consistency": 0.223,
+    "hfr": 0.246,
+    "composite": 0.177,
+    "loss-based": 0.246,
+    "rules (rdq check)": 0.235,
+    "random, rules size": 0.353,
+    "rules + composite": 0.138
+   },
+   "success": {
+    "all data": 0.3075,
+    "oracle": 1.0,
+    "random": 0.4425,
+    "keep shortest": 0.095,
+    "psd (Sojib et al.)": 0.19,
+    "deminf-lite": 0.86,
+    "consistency": 0.5875,
+    "hfr": 0.3675,
+    "composite": 0.7175,
+    "loss-based": 0.7925,
+    "rules (rdq check)": 0.9325,
+    "random, rules size": 0.3825,
+    "rules + composite": 0.9175
+   }
+  },
+  {
+   "scenario": "mixed",
+   "seed": 1,
+   "n": 200,
+   "keep_n": 130,
+   "rules_kept": 170,
+   "score_seconds": 10.41,
+   "labels": {
+    "shaky": 10,
+    "failed": 10,
+    "glitch": 10,
+    "frozen_log": 10,
+    "expert": 130,
+    "detour": 10,
+    "desync": 10,
+    "hesitant": 10
+   },
+   "auroc": {
+    "length (longest first)": 0.658,
+    "psd (Sojib et al.)": 0.675,
+    "deminf-lite": 0.806,
+    "consistency": 0.748,
+    "hfr": 0.623,
+    "dither": 0.529,
+    "final-state outlier": 0.454,
+    "composite": 0.79,
+    "loss-based": 0.699,
+    "rules (rdq check)": 0.714
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "desync": 0.416,
+     "detour": 1.0,
+     "failed": 0.674,
+     "frozen_log": 0.451,
+     "glitch": 0.576,
+     "hesitant": 0.983,
+     "shaky": 0.505
+    },
+    "psd (Sojib et al.)": {
+     "desync": 0.405,
+     "detour": 0.997,
+     "failed": 0.664,
+     "frozen_log": 0.474,
+     "glitch": 0.72,
+     "hesitant": 0.979,
+     "shaky": 0.489
+    },
+    "deminf-lite": {
+     "desync": 0.982,
+     "detour": 0.851,
+     "failed": 0.674,
+     "frozen_log": 0.918,
+     "glitch": 0.415,
+     "hesitant": 0.829,
+     "shaky": 0.972
+    },
+    "consistency": {
+     "desync": 1.0,
+     "detour": 0.666,
+     "failed": 0.639,
+     "frozen_log": 0.861,
+     "glitch": 0.643,
+     "hesitant": 0.565,
+     "shaky": 0.861
+    },
+    "hfr": {
+     "desync": 0.658,
+     "detour": 0.604,
+     "failed": 0.174,
+     "frozen_log": 1.0,
+     "glitch": 0.999,
+     "hesitant": 0.038,
+     "shaky": 0.885
+    },
+    "dither": {
+     "desync": 0.5,
+     "detour": 0.7,
+     "failed": 0.5,
+     "frozen_log": 0.5,
+     "glitch": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    },
+    "final-state outlier": {
+     "desync": 0.429,
+     "detour": 0.432,
+     "failed": 0.495,
+     "frozen_log": 0.527,
+     "glitch": 0.501,
+     "hesitant": 0.585,
+     "shaky": 0.205
+    },
+    "composite": {
+     "desync": 0.982,
+     "detour": 0.833,
+     "failed": 0.567,
+     "frozen_log": 0.978,
+     "glitch": 0.745,
+     "hesitant": 0.452,
+     "shaky": 0.97
+    },
+    "loss-based": {
+     "desync": 1.0,
+     "detour": 0.907,
+     "failed": 0.485,
+     "frozen_log": 0.407,
+     "glitch": 0.579,
+     "hesitant": 0.548,
+     "shaky": 0.963
+    },
+    "rules (rdq check)": {
+     "desync": 1.0,
+     "detour": 0.5,
+     "failed": 0.5,
+     "frozen_log": 1.0,
+     "glitch": 1.0,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.35,
+    "oracle": 0.0,
+    "random": 0.338,
+    "keep shortest": 0.277,
+    "psd (Sojib et al.)": 0.269,
+    "deminf-lite": 0.177,
+    "consistency": 0.192,
+    "hfr": 0.254,
+    "composite": 0.2,
+    "loss-based": 0.262,
+    "rules (rdq check)": 0.235,
+    "random, rules size": 0.341,
+    "rules + composite": 0.154
+   },
+   "success": {
+    "all data": 0.305,
+    "oracle": 1.0,
+    "random": 0.4275,
+    "keep shortest": 0.205,
+    "psd (Sojib et al.)": 0.1125,
+    "deminf-lite": 0.97,
+    "consistency": 0.89,
+    "hfr": 0.445,
+    "composite": 0.8825,
+    "loss-based": 0.71,
+    "rules (rdq check)": 0.9325,
+    "random, rules size": 0.2825,
+    "rules + composite": 0.9025
+   }
+  },
+  {
+   "scenario": "mixed",
+   "seed": 2,
+   "n": 200,
+   "keep_n": 130,
+   "rules_kept": 170,
+   "score_seconds": 10.48,
+   "labels": {
+    "shaky": 10,
+    "frozen_log": 10,
+    "failed": 10,
+    "glitch": 10,
+    "expert": 130,
+    "detour": 10,
+    "desync": 10,
+    "hesitant": 10
+   },
+   "auroc": {
+    "length (longest first)": 0.657,
+    "psd (Sojib et al.)": 0.709,
+    "deminf-lite": 0.8,
+    "consistency": 0.799,
+    "hfr": 0.628,
+    "dither": 0.521,
+    "final-state outlier": 0.457,
+    "composite": 0.805,
+    "loss-based": 0.679,
+    "rules (rdq check)": 0.714
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "desync": 0.491,
+     "detour": 0.943,
+     "failed": 0.594,
+     "frozen_log": 0.423,
+     "glitch": 0.628,
+     "hesitant": 1.0,
+     "shaky": 0.517
+    },
+    "psd (Sojib et al.)": {
+     "desync": 0.603,
+     "detour": 0.965,
+     "failed": 0.641,
+     "frozen_log": 0.441,
+     "glitch": 0.838,
+     "hesitant": 0.933,
+     "shaky": 0.545
+    },
+    "deminf-lite": {
+     "desync": 0.985,
+     "detour": 0.845,
+     "failed": 0.528,
+     "frozen_log": 0.972,
+     "glitch": 0.525,
+     "hesitant": 0.785,
+     "shaky": 0.958
+    },
+    "consistency": {
+     "desync": 0.998,
+     "detour": 0.758,
+     "failed": 0.838,
+     "frozen_log": 0.982,
+     "glitch": 0.531,
+     "hesitant": 0.607,
+     "shaky": 0.88
+    },
+    "hfr": {
+     "desync": 0.507,
+     "detour": 0.706,
+     "failed": 0.27,
+     "frozen_log": 1.0,
+     "glitch": 0.993,
+     "hesitant": 0.014,
+     "shaky": 0.908
+    },
+    "dither": {
+     "desync": 0.5,
+     "detour": 0.65,
+     "failed": 0.5,
+     "frozen_log": 0.5,
+     "glitch": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    },
+    "final-state outlier": {
+     "desync": 0.472,
+     "detour": 0.422,
+     "failed": 0.445,
+     "frozen_log": 0.486,
+     "glitch": 0.502,
+     "hesitant": 0.485,
+     "shaky": 0.389
+    },
+    "composite": {
+     "desync": 0.944,
+     "detour": 0.901,
+     "failed": 0.613,
+     "frozen_log": 0.996,
+     "glitch": 0.756,
+     "hesitant": 0.439,
+     "shaky": 0.989
+    },
+    "loss-based": {
+     "desync": 1.0,
+     "detour": 0.892,
+     "failed": 0.415,
+     "frozen_log": 0.413,
+     "glitch": 0.595,
+     "hesitant": 0.499,
+     "shaky": 0.938
+    },
+    "rules (rdq check)": {
+     "desync": 1.0,
+     "detour": 0.5,
+     "failed": 0.5,
+     "frozen_log": 1.0,
+     "glitch": 1.0,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.35,
+    "oracle": 0.0,
+    "random": 0.354,
+    "keep shortest": 0.269,
+    "psd (Sojib et al.)": 0.223,
+    "deminf-lite": 0.185,
+    "consistency": 0.185,
+    "hfr": 0.246,
+    "composite": 0.185,
+    "loss-based": 0.246,
+    "rules (rdq check)": 0.235,
+    "random, rules size": 0.353,
+    "rules + composite": 0.162
+   },
+   "success": {
+    "all data": 0.38,
+    "oracle": 0.985,
+    "random": 0.2875,
+    "keep shortest": 0.285,
+    "psd (Sojib et al.)": 0.345,
+    "deminf-lite": 0.8425,
+    "consistency": 0.7775,
+    "hfr": 0.2075,
+    "composite": 0.8275,
+    "loss-based": 0.925,
+    "rules (rdq check)": 0.9325,
+    "random, rules size": 0.2725,
+    "rules + composite": 0.94
+   }
+  },
+  {
+   "scenario": "mixed",
+   "seed": 3,
+   "n": 200,
+   "keep_n": 130,
+   "rules_kept": 171,
+   "score_seconds": 11.11,
+   "labels": {
+    "shaky": 10,
+    "glitch": 10,
+    "frozen_log": 10,
+    "failed": 10,
+    "expert": 130,
+    "detour": 10,
+    "desync": 10,
+    "hesitant": 10
+   },
+   "auroc": {
+    "length (longest first)": 0.612,
+    "psd (Sojib et al.)": 0.601,
+    "deminf-lite": 0.781,
+    "consistency": 0.811,
+    "hfr": 0.606,
+    "dither": 0.521,
+    "final-state outlier": 0.52,
+    "composite": 0.792,
+    "loss-based": 0.655,
+    "rules (rdq check)": 0.707
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "desync": 0.52,
+     "detour": 0.968,
+     "failed": 0.519,
+     "frozen_log": 0.379,
+     "glitch": 0.546,
+     "hesitant": 0.99,
+     "shaky": 0.361
+    },
+    "psd (Sojib et al.)": {
+     "desync": 0.481,
+     "detour": 0.788,
+     "failed": 0.399,
+     "frozen_log": 0.515,
+     "glitch": 0.725,
+     "hesitant": 0.884,
+     "shaky": 0.415
+    },
+    "deminf-lite": {
+     "desync": 0.971,
+     "detour": 0.835,
+     "failed": 0.478,
+     "frozen_log": 0.896,
+     "glitch": 0.514,
+     "hesitant": 0.827,
+     "shaky": 0.948
+    },
+    "consistency": {
+     "desync": 0.93,
+     "detour": 0.79,
+     "failed": 0.882,
+     "frozen_log": 0.894,
+     "glitch": 0.496,
+     "hesitant": 0.863,
+     "shaky": 0.824
+    },
+    "hfr": {
+     "desync": 0.437,
+     "detour": 0.664,
+     "failed": 0.168,
+     "frozen_log": 1.0,
+     "glitch": 1.0,
+     "hesitant": 0.066,
+     "shaky": 0.909
+    },
+    "dither": {
+     "desync": 0.5,
+     "detour": 0.65,
+     "failed": 0.5,
+     "frozen_log": 0.5,
+     "glitch": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    },
+    "final-state outlier": {
+     "desync": 0.531,
+     "detour": 0.407,
+     "failed": 0.305,
+     "frozen_log": 0.545,
+     "glitch": 0.509,
+     "hesitant": 0.651,
+     "shaky": 0.692
+    },
+    "composite": {
+     "desync": 0.892,
+     "detour": 0.854,
+     "failed": 0.451,
+     "frozen_log": 0.985,
+     "glitch": 0.788,
+     "hesitant": 0.657,
+     "shaky": 0.919
+    },
+    "loss-based": {
+     "desync": 1.0,
+     "detour": 0.838,
+     "failed": 0.41,
+     "frozen_log": 0.358,
+     "glitch": 0.687,
+     "hesitant": 0.376,
+     "shaky": 0.914
+    },
+    "rules (rdq check)": {
+     "desync": 0.95,
+     "detour": 0.5,
+     "failed": 0.5,
+     "frozen_log": 1.0,
+     "glitch": 1.0,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.35,
+    "oracle": 0.0,
+    "random": 0.331,
+    "keep shortest": 0.292,
+    "psd (Sojib et al.)": 0.315,
+    "deminf-lite": 0.185,
+    "consistency": 0.192,
+    "hfr": 0.246,
+    "composite": 0.2,
+    "loss-based": 0.254,
+    "rules (rdq check)": 0.24,
+    "random, rules size": 0.345,
+    "rules + composite": 0.169
+   },
+   "success": {
+    "all data": 0.3975,
+    "oracle": 0.9875,
+    "random": 0.2675,
+    "keep shortest": 0.36,
+    "psd (Sojib et al.)": 0.3975,
+    "deminf-lite": 0.8475,
+    "consistency": 0.74,
+    "hfr": 0.31,
+    "composite": 0.7725,
+    "loss-based": 0.77,
+    "rules (rdq check)": 0.9,
+    "random, rules size": 0.4,
+    "rules + composite": 0.785
+   }
+  },
+  {
+   "scenario": "mixed",
+   "seed": 4,
+   "n": 200,
+   "keep_n": 130,
+   "rules_kept": 170,
+   "score_seconds": 10.89,
+   "labels": {
+    "shaky": 10,
+    "frozen_log": 10,
+    "failed": 10,
+    "glitch": 10,
+    "expert": 130,
+    "detour": 10,
+    "desync": 10,
+    "hesitant": 10
+   },
+   "auroc": {
+    "length (longest first)": 0.641,
+    "psd (Sojib et al.)": 0.61,
+    "deminf-lite": 0.823,
+    "consistency": 0.729,
+    "hfr": 0.619,
+    "dither": 0.543,
+    "final-state outlier": 0.438,
+    "composite": 0.83,
+    "loss-based": 0.666,
+    "rules (rdq check)": 0.714
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "desync": 0.397,
+     "detour": 1.0,
+     "failed": 0.698,
+     "frozen_log": 0.491,
+     "glitch": 0.413,
+     "hesitant": 0.998,
+     "shaky": 0.493
+    },
+    "psd (Sojib et al.)": {
+     "desync": 0.305,
+     "detour": 0.99,
+     "failed": 0.618,
+     "frozen_log": 0.435,
+     "glitch": 0.625,
+     "hesitant": 0.849,
+     "shaky": 0.448
+    },
+    "deminf-lite": {
+     "desync": 0.964,
+     "detour": 0.837,
+     "failed": 0.625,
+     "frozen_log": 0.916,
+     "glitch": 0.625,
+     "hesitant": 0.844,
+     "shaky": 0.949
+    },
+    "consistency": {
+     "desync": 0.956,
+     "detour": 0.73,
+     "failed": 0.617,
+     "frozen_log": 0.826,
+     "glitch": 0.405,
+     "hesitant": 0.784,
+     "shaky": 0.788
+    },
+    "hfr": {
+     "desync": 0.461,
+     "detour": 0.786,
+     "failed": 0.248,
+     "frozen_log": 1.0,
+     "glitch": 0.995,
+     "hesitant": 0.038,
+     "shaky": 0.802
+    },
+    "dither": {
+     "desync": 0.5,
+     "detour": 0.8,
+     "failed": 0.5,
+     "frozen_log": 0.5,
+     "glitch": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    },
+    "final-state outlier": {
+     "desync": 0.43,
+     "detour": 0.592,
+     "failed": 0.335,
+     "frozen_log": 0.452,
+     "glitch": 0.438,
+     "hesitant": 0.37,
+     "shaky": 0.452
+    },
+    "composite": {
+     "desync": 0.952,
+     "detour": 0.945,
+     "failed": 0.558,
+     "frozen_log": 0.962,
+     "glitch": 0.685,
+     "hesitant": 0.748,
+     "shaky": 0.96
+    },
+    "loss-based": {
+     "desync": 1.0,
+     "detour": 0.826,
+     "failed": 0.452,
+     "frozen_log": 0.347,
+     "glitch": 0.525,
+     "hesitant": 0.526,
+     "shaky": 0.989
+    },
+    "rules (rdq check)": {
+     "desync": 1.0,
+     "detour": 0.5,
+     "failed": 0.5,
+     "frozen_log": 1.0,
+     "glitch": 1.0,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    }
+   },
+   "kept_bad_fraction": {
+    "all data": 0.35,
+    "oracle": 0.0,
+    "random": 0.362,
+    "keep shortest": 0.292,
+    "psd (Sojib et al.)": 0.269,
+    "deminf-lite": 0.169,
+    "consistency": 0.223,
+    "hfr": 0.246,
+    "composite": 0.154,
+    "loss-based": 0.277,
+    "rules (rdq check)": 0.235,
+    "random, rules size": 0.329,
+    "rules + composite": 0.131
+   },
+   "success": {
+    "all data": 0.3075,
+    "oracle": 1.0,
+    "random": 0.41,
+    "keep shortest": 0.2325,
+    "psd (Sojib et al.)": 0.3075,
+    "deminf-lite": 0.865,
+    "consistency": 0.845,
+    "hfr": 0.2675,
+    "composite": 0.8725,
+    "loss-based": 0.585,
+    "rules (rdq check)": 0.915,
+    "random, rules size": 0.2975,
+    "rules + composite": 0.8775
+   }
+  }
+ ],
+ "summary": {
+  "mixed": {
+   "seeds": 5,
+   "episodes": 200,
+   "keep_n": 130,
+   "rules_kept_mean": 170.2,
+   "score_seconds_mean": 10.62,
+   "success": {
+    "all data": {
+     "success": 0.34,
+     "ci95": [
+      0.319,
+      0.361
+     ],
+     "per_seed": [
+      0.308,
+      0.305,
+      0.38,
+      0.398,
+      0.308
+     ],
+     "kept_bad_fraction": 0.35
+    },
+    "oracle": {
+     "success": 0.995,
+     "ci95": [
+      0.99,
+      0.997
+     ],
+     "per_seed": [
+      1.0,
+      1.0,
+      0.985,
+      0.988,
+      1.0
+     ],
+     "kept_bad_fraction": 0.0
+    },
+    "random": {
+     "success": 0.367,
+     "ci95": [
+      0.346,
+      0.388
+     ],
+     "per_seed": [
+      0.442,
+      0.428,
+      0.288,
+      0.268,
+      0.41
+     ],
+     "kept_bad_fraction": 0.345
+    },
+    "keep shortest": {
+     "success": 0.235,
+     "ci95": [
+      0.217,
+      0.255
+     ],
+     "per_seed": [
+      0.095,
+      0.205,
+      0.285,
+      0.36,
+      0.232
+     ],
+     "kept_bad_fraction": 0.288
+    },
+    "psd (Sojib et al.)": {
+     "success": 0.271,
+     "ci95": [
+      0.251,
+      0.29
+     ],
+     "per_seed": [
+      0.19,
+      0.112,
+      0.345,
+      0.398,
+      0.308
+     ],
+     "kept_bad_fraction": 0.275
+    },
+    "deminf-lite": {
+     "success": 0.877,
+     "ci95": [
+      0.862,
+      0.891
+     ],
+     "per_seed": [
+      0.86,
+      0.97,
+      0.842,
+      0.848,
+      0.865
+     ],
+     "kept_bad_fraction": 0.179
+    },
+    "consistency": {
+     "success": 0.768,
+     "ci95": [
+      0.749,
+      0.786
+     ],
+     "per_seed": [
+      0.588,
+      0.89,
+      0.778,
+      0.74,
+      0.845
+     ],
+     "kept_bad_fraction": 0.203
+    },
+    "hfr": {
+     "success": 0.32,
+     "ci95": [
+      0.299,
+      0.34
+     ],
+     "per_seed": [
+      0.368,
+      0.445,
+      0.208,
+      0.31,
+      0.268
+     ],
+     "kept_bad_fraction": 0.248
+    },
+    "composite": {
+     "success": 0.815,
+     "ci95": [
+      0.797,
+      0.831
+     ],
+     "per_seed": [
+      0.718,
+      0.882,
+      0.828,
+      0.772,
+      0.872
+     ],
+     "kept_bad_fraction": 0.183
+    },
+    "loss-based": {
+     "success": 0.757,
+     "ci95": [
+      0.737,
+      0.775
+     ],
+     "per_seed": [
+      0.792,
+      0.71,
+      0.925,
+      0.77,
+      0.585
+     ],
+     "kept_bad_fraction": 0.257
+    },
+    "rules (rdq check)": {
+     "success": 0.922,
+     "ci95": [
+      0.91,
+      0.933
+     ],
+     "per_seed": [
+      0.932,
+      0.932,
+      0.932,
+      0.9,
+      0.915
+     ],
+     "kept_bad_fraction": 0.236
+    },
+    "random, rules size": {
+     "success": 0.327,
+     "ci95": [
+      0.307,
+      0.348
+     ],
+     "per_seed": [
+      0.382,
+      0.282,
+      0.272,
+      0.4,
+      0.298
+     ],
+     "kept_bad_fraction": 0.344
+    },
+    "rules + composite": {
+     "success": 0.884,
+     "ci95": [
+      0.87,
+      0.898
+     ],
+     "per_seed": [
+      0.918,
+      0.902,
+      0.94,
+      0.785,
+      0.878
+     ],
+     "kept_bad_fraction": 0.151
+    }
+   },
+   "auroc": {
+    "length (longest first)": 0.635,
+    "psd (Sojib et al.)": 0.647,
+    "deminf-lite": 0.81,
+    "consistency": 0.766,
+    "hfr": 0.619,
+    "dither": 0.526,
+    "final-state outlier": 0.458,
+    "composite": 0.808,
+    "loss-based": 0.676,
+    "rules (rdq check)": 0.713
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "desync": 0.449,
+     "detour": 0.982,
+     "failed": 0.614,
+     "frozen_log": 0.42,
+     "glitch": 0.498,
+     "hesitant": 0.992,
+     "shaky": 0.49
+    },
+    "psd (Sojib et al.)": {
+     "desync": 0.435,
+     "detour": 0.942,
+     "failed": 0.581,
+     "frozen_log": 0.476,
+     "glitch": 0.691,
+     "hesitant": 0.909,
+     "shaky": 0.493
+    },
+    "deminf-lite": {
+     "desync": 0.97,
+     "detour": 0.85,
+     "failed": 0.598,
+     "frozen_log": 0.911,
+     "glitch": 0.562,
+     "hesitant": 0.829,
+     "shaky": 0.952
+    },
+    "consistency": {
+     "desync": 0.968,
+     "detour": 0.747,
+     "failed": 0.722,
+     "frozen_log": 0.863,
+     "glitch": 0.521,
+     "hesitant": 0.692,
+     "shaky": 0.852
+    },
+    "hfr": {
+     "desync": 0.521,
+     "detour": 0.698,
+     "failed": 0.194,
+     "frozen_log": 1.0,
+     "glitch": 0.997,
+     "hesitant": 0.036,
+     "shaky": 0.887
+    },
+    "dither": {
+     "desync": 0.5,
+     "detour": 0.68,
+     "failed": 0.5,
+     "frozen_log": 0.5,
+     "glitch": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    },
+    "final-state outlier": {
+     "desync": 0.459,
+     "detour": 0.462,
+     "failed": 0.386,
+     "frozen_log": 0.486,
+     "glitch": 0.469,
+     "hesitant": 0.498,
+     "shaky": 0.444
+    },
+    "composite": {
+     "desync": 0.94,
+     "detour": 0.898,
+     "failed": 0.545,
+     "frozen_log": 0.968,
+     "glitch": 0.771,
+     "hesitant": 0.571,
+     "shaky": 0.961
+    },
+    "loss-based": {
+     "desync": 1.0,
+     "detour": 0.881,
+     "failed": 0.443,
+     "frozen_log": 0.359,
+     "glitch": 0.597,
+     "hesitant": 0.498,
+     "shaky": 0.955
+    },
+    "rules (rdq check)": {
+     "desync": 0.99,
+     "detour": 0.5,
+     "failed": 0.5,
+     "frozen_log": 1.0,
+     "glitch": 1.0,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    }
+   }
+  },
+  "skill": {
+   "seeds": 5,
+   "episodes": 200,
+   "keep_n": 120,
+   "rules_kept_mean": 200.0,
+   "score_seconds_mean": 12.24,
+   "success": {
+    "all data": {
+     "success": 0.88,
+     "ci95": [
+      0.865,
+      0.894
+     ],
+     "per_seed": [
+      0.87,
+      0.935,
+      0.868,
+      0.858,
+      0.87
+     ],
+     "kept_bad_fraction": 0.4
+    },
+    "oracle": {
+     "success": 0.994,
+     "ci95": [
+      0.99,
+      0.997
+     ],
+     "per_seed": [
+      0.982,
+      1.0,
+      1.0,
+      0.988,
+      1.0
+     ],
+     "kept_bad_fraction": 0.0
+    },
+    "random": {
+     "success": 0.735,
+     "ci95": [
+      0.715,
+      0.754
+     ],
+     "per_seed": [
+      0.775,
+      0.842,
+      0.765,
+      0.612,
+      0.68
+     ],
+     "kept_bad_fraction": 0.412
+    },
+    "keep shortest": {
+     "success": 0.889,
+     "ci95": [
+      0.874,
+      0.902
+     ],
+     "per_seed": [
+      0.942,
+      0.855,
+      0.892,
+      0.912,
+      0.842
+     ],
+     "kept_bad_fraction": 0.235
+    },
+    "psd (Sojib et al.)": {
+     "success": 0.884,
+     "ci95": [
+      0.869,
+      0.897
+     ],
+     "per_seed": [
+      0.848,
+      0.88,
+      0.95,
+      0.872,
+      0.868
+     ],
+     "kept_bad_fraction": 0.255
+    },
+    "deminf-lite": {
+     "success": 0.701,
+     "ci95": [
+      0.681,
+      0.721
+     ],
+     "per_seed": [
+      0.525,
+      0.768,
+      0.668,
+      0.725,
+      0.82
+     ],
+     "kept_bad_fraction": 0.215
+    },
+    "consistency": {
+     "success": 0.822,
+     "ci95": [
+      0.805,
+      0.838
+     ],
+     "per_seed": [
+      0.785,
+      0.795,
+      0.915,
+      0.842,
+      0.772
+     ],
+     "kept_bad_fraction": 0.242
+    },
+    "hfr": {
+     "success": 0.628,
+     "ci95": [
+      0.607,
+      0.649
+     ],
+     "per_seed": [
+      0.642,
+      0.775,
+      0.665,
+      0.585,
+      0.472
+     ],
+     "kept_bad_fraction": 0.385
+    },
+    "composite": {
+     "success": 0.706,
+     "ci95": [
+      0.686,
+      0.726
+     ],
+     "per_seed": [
+      0.682,
+      0.928,
+      0.758,
+      0.54,
+      0.622
+     ],
+     "kept_bad_fraction": 0.263
+    },
+    "loss-based": {
+     "success": 0.776,
+     "ci95": [
+      0.757,
+      0.794
+     ],
+     "per_seed": [
+      0.782,
+      0.932,
+      0.828,
+      0.76,
+      0.578
+     ],
+     "kept_bad_fraction": 0.232
+    },
+    "rules (rdq check)": {
+     "success": 0.88,
+     "ci95": [
+      0.865,
+      0.894
+     ],
+     "per_seed": [
+      0.87,
+      0.935,
+      0.868,
+      0.858,
+      0.87
+     ],
+     "kept_bad_fraction": 0.4
+    },
+    "random, rules size": {
+     "success": 0.88,
+     "ci95": [
+      0.865,
+      0.894
+     ],
+     "per_seed": [
+      0.87,
+      0.935,
+      0.868,
+      0.858,
+      0.87
+     ],
+     "kept_bad_fraction": 0.4
+    },
+    "rules + composite": {
+     "success": 0.706,
+     "ci95": [
+      0.686,
+      0.726
+     ],
+     "per_seed": [
+      0.682,
+      0.928,
+      0.758,
+      0.54,
+      0.622
+     ],
+     "kept_bad_fraction": 0.263
+    }
+   },
+   "auroc": {
+    "length (longest first)": 0.791,
+    "psd (Sojib et al.)": 0.742,
+    "deminf-lite": 0.805,
+    "consistency": 0.714,
+    "hfr": 0.433,
+    "dither": 0.54,
+    "final-state outlier": 0.496,
+    "composite": 0.728,
+    "loss-based": 0.818,
+    "rules (rdq check)": 0.5
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "detour": 0.987,
+     "failed": 0.666,
+     "hesitant": 0.993,
+     "shaky": 0.519
+    },
+    "psd (Sojib et al.)": {
+     "detour": 0.957,
+     "failed": 0.563,
+     "hesitant": 0.936,
+     "shaky": 0.513
+    },
+    "deminf-lite": {
+     "detour": 0.819,
+     "failed": 0.606,
+     "hesitant": 0.841,
+     "shaky": 0.952
+    },
+    "consistency": {
+     "detour": 0.751,
+     "failed": 0.636,
+     "hesitant": 0.679,
+     "shaky": 0.788
+    },
+    "hfr": {
+     "detour": 0.646,
+     "failed": 0.142,
+     "hesitant": 0.035,
+     "shaky": 0.91
+    },
+    "dither": {
+     "detour": 0.66,
+     "failed": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    },
+    "final-state outlier": {
+     "detour": 0.488,
+     "failed": 0.418,
+     "hesitant": 0.56,
+     "shaky": 0.517
+    },
+    "composite": {
+     "detour": 0.887,
+     "failed": 0.439,
+     "hesitant": 0.615,
+     "shaky": 0.971
+    },
+    "loss-based": {
+     "detour": 0.998,
+     "failed": 0.501,
+     "hesitant": 0.773,
+     "shaky": 1.0
+    },
+    "rules (rdq check)": {
+     "detour": 0.5,
+     "failed": 0.5,
+     "hesitant": 0.5,
+     "shaky": 0.5
+    }
+   }
+  },
+  "structural": {
+   "seeds": 5,
+   "episodes": 200,
+   "keep_n": 140,
+   "rules_kept_mean": 140.0,
+   "score_seconds_mean": 9.53,
+   "success": {
+    "all data": {
+     "success": 0.157,
+     "ci95": [
+      0.141,
+      0.173
+     ],
+     "per_seed": [
+      0.115,
+      0.105,
+      0.225,
+      0.182,
+      0.155
+     ],
+     "kept_bad_fraction": 0.3
+    },
+    "oracle": {
+     "success": 0.997,
+     "ci95": [
+      0.993,
+      0.999
+     ],
+     "per_seed": [
+      0.998,
+      1.0,
+      0.998,
+      1.0,
+      0.99
+     ],
+     "kept_bad_fraction": 0.0
+    },
+    "random": {
+     "success": 0.185,
+     "ci95": [
+      0.169,
+      0.203
+     ],
+     "per_seed": [
+      0.26,
+      0.202,
+      0.21,
+      0.14,
+      0.115
+     ],
+     "kept_bad_fraction": 0.287
+    },
+    "keep shortest": {
+     "success": 0.211,
+     "ci95": [
+      0.194,
+      0.229
+     ],
+     "per_seed": [
+      0.18,
+      0.35,
+      0.132,
+      0.172,
+      0.22
+     ],
+     "kept_bad_fraction": 0.3
+    },
+    "psd (Sojib et al.)": {
+     "success": 0.213,
+     "ci95": [
+      0.196,
+      0.232
+     ],
+     "per_seed": [
+      0.275,
+      0.185,
+      0.138,
+      0.158,
+      0.312
+     ],
+     "kept_bad_fraction": 0.259
+    },
+    "deminf-lite": {
+     "success": 0.932,
+     "ci95": [
+      0.921,
+      0.943
+     ],
+     "per_seed": [
+      0.848,
+      0.888,
+      0.965,
+      0.988,
+      0.975
+     ],
+     "kept_bad_fraction": 0.164
+    },
+    "consistency": {
+     "success": 0.764,
+     "ci95": [
+      0.745,
+      0.782
+     ],
+     "per_seed": [
+      0.852,
+      0.735,
+      0.818,
+      0.512,
+      0.902
+     ],
+     "kept_bad_fraction": 0.17
+    },
+    "hfr": {
+     "success": 0.129,
+     "ci95": [
+      0.115,
+      0.144
+     ],
+     "per_seed": [
+      0.118,
+      0.075,
+      0.205,
+      0.125,
+      0.12
+     ],
+     "kept_bad_fraction": 0.121
+    },
+    "composite": {
+     "success": 0.585,
+     "ci95": [
+      0.563,
+      0.606
+     ],
+     "per_seed": [
+      0.548,
+      0.205,
+      0.658,
+      0.64,
+      0.875
+     ],
+     "kept_bad_fraction": 0.13
+    },
+    "loss-based": {
+     "success": 0.881,
+     "ci95": [
+      0.867,
+      0.895
+     ],
+     "per_seed": [
+      0.755,
+      0.855,
+      0.902,
+      0.948,
+      0.948
+     ],
+     "kept_bad_fraction": 0.259
+    },
+    "rules (rdq check)": {
+     "success": 0.997,
+     "ci95": [
+      0.993,
+      0.999
+     ],
+     "per_seed": [
+      0.998,
+      1.0,
+      0.998,
+      1.0,
+      0.99
+     ],
+     "kept_bad_fraction": 0.0
+    },
+    "random, rules size": {
+     "success": 0.221,
+     "ci95": [
+      0.203,
+      0.24
+     ],
+     "per_seed": [
+      0.188,
+      0.26,
+      0.282,
+      0.2,
+      0.175
+     ],
+     "kept_bad_fraction": 0.291
+    },
+    "rules + composite": {
+     "success": 0.997,
+     "ci95": [
+      0.993,
+      0.999
+     ],
+     "per_seed": [
+      0.998,
+      1.0,
+      0.998,
+      1.0,
+      0.99
+     ],
+     "kept_bad_fraction": 0.0
+    }
+   },
+   "auroc": {
+    "length (longest first)": 0.49,
+    "psd (Sojib et al.)": 0.599,
+    "deminf-lite": 0.805,
+    "consistency": 0.741,
+    "hfr": 0.825,
+    "dither": 0.502,
+    "final-state outlier": 0.51,
+    "composite": 0.881,
+    "loss-based": 0.601,
+    "rules (rdq check)": 1.0
+   },
+   "auroc_by_type": {
+    "length (longest first)": {
+     "desync": 0.507,
+     "frozen_log": 0.49,
+     "glitch": 0.474
+    },
+    "psd (Sojib et al.)": {
+     "desync": 0.526,
+     "frozen_log": 0.588,
+     "glitch": 0.683
+    },
+    "deminf-lite": {
+     "desync": 0.961,
+     "frozen_log": 0.841,
+     "glitch": 0.614
+    },
+    "consistency": {
+     "desync": 0.94,
+     "frozen_log": 0.792,
+     "glitch": 0.491
+    },
+    "hfr": {
+     "desync": 0.479,
+     "frozen_log": 1.0,
+     "glitch": 0.996
+    },
+    "dither": {
+     "desync": 0.5,
+     "frozen_log": 0.505,
+     "glitch": 0.5
+    },
+    "final-state outlier": {
+     "desync": 0.483,
+     "frozen_log": 0.523,
+     "glitch": 0.525
+    },
+    "composite": {
+     "desync": 0.909,
+     "frozen_log": 0.931,
+     "glitch": 0.802
+    },
+    "loss-based": {
+     "desync": 1.0,
+     "frozen_log": 0.283,
+     "glitch": 0.52
+    },
+    "rules (rdq check)": {
+     "desync": 1.0,
+     "frozen_log": 1.0,
+     "glitch": 1.0
+    }
+   }
+  }
+ }
+}

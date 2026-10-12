@@ -137,6 +137,7 @@ def build(summary: dict, toy: dict) -> str:
         "custom licence": ("Custom or other licence", "neutral"),
         "non-commercial": ("Non-commercial licence", "neutral"),
         "restricted source": ("Mentions a restricted source", "warn"),
+        "licence conflicts with upstream": ("Licence conflicts with its source", "crit"),
     }
     verdict_rows = [
         (verdict_names.get(v, (v, "neutral"))[0], 100 * c / n, verdict_names.get(v, (v, "neutral"))[1])
@@ -151,6 +152,37 @@ def build(summary: dict, toy: dict) -> str:
         ("one generic name for all channels", names_ph[2], "neutral"),
         ("names contradict the declared shape", names_mm[2], "crit"),
     ]
+
+    upstream_html = ""
+    up = scan.get("upstream_licences")
+    if up:
+        k_hit, k_tot, k_pct = frac(up["known_upstream_datasets"])
+        d_hit, d_tot, d_pct = frac(up["declared_differs_from_upstream"])
+        src_rows = [(f"{name}", 100 * cnt / k_hit, "neutral") for name, cnt in up["by_source"]]
+        status_names = {"relabelled": ("CC BY upstream, relabelled permissive", "hl"), "consistent": ("Matches upstream", "ok"),
+                        "upstream-conflict": ("Conflicts with upstream terms", "crit"), "missing": ("No licence declared", "warn"),
+                        "review": ("Custom licence, needs review", "warn"), "restricted-redistribution": ("Upstream forbids sharing copies", "warn")}
+        st_rows = [(status_names.get(k, (k, "neutral"))[0], 100 * c / k_hit, status_names.get(k, (k, "neutral"))[1])
+                   for k, c in up["status_counts"] if k in status_names and k != "missing"]
+        n_crit = len(up.get("critical_conflicts") or [])
+        upstream_html = f"""
+<section id="upstream" class="sec">
+  <div class="col">
+    <p class="eyebrow">Licence &amp; provenance</p>
+    <h2>Conversions rarely keep their source's licence</h2>
+    <p>{k_hit} of the {n:,} datasets ({k_pct:.1f}%) are mirrors or conversions of public datasets whose original terms we checked against the primary source: DROID, BridgeData V2, LIBERO, AgiBot World, EgoDex, EPIC-KITCHENS, HOI4D and Ego4D. They are among the most used: <b>{up['known_upstream_download_share']} of all downloads</b>.</p>
+    <p><b>{d_hit} of those {d_tot} ({d_pct:.0f}%) declare a licence that differs from the original.</b> Most are CC BY 4.0 datasets relabelled <code>apache-2.0</code>, which drops the attribution and change-notice duties on paper but not in law. {"At least one conversion of a non-commercial, share-alike dataset is tagged apache-2.0 and served without the original's access agreement." if n_crit else ""}</p>
+  </div>
+  <figure class="fig">
+    <figcaption>Declared licence vs the original terms · {k_hit} conversions of known datasets</figcaption>
+    {hbars(st_rows)}
+  </figure>
+  <figure class="fig">
+    <figcaption>Which originals they come from · share of the {k_hit}</figcaption>
+    {hbars(src_rows)}
+  </figure>
+  <p class="note">A tag on a mirror cannot grant rights its uploader does not hold. Matches are made from a link to the original project on the card or from the repository name (for example <code>droid_1.0.1</code>); name matches are flagged as needing confirmation. Data recorded <em>on</em> a robot brand (for example an AgiBot G1) is not counted as that brand's dataset. Not legal advice.</p>
+</section>"""
 
     audit_html = ""
     if audit and audit.get("audited"):
@@ -323,6 +355,7 @@ footer {{ padding-top: 28px; font: 400 .8rem/1.6 var(--mono); color: var(--muted
   <p class="note">One organisation, {esc(top_owner)}, publishes {top_owner_n} of the {n:,} datasets with its own card template, which our checker counts as written by the owner. Without it, the untouched-default share would be higher, not lower.</p>
 </section>
 
+{upstream_html}
 <section id="metadata" class="sec">
   <div class="col">
     <p class="eyebrow">Metadata</p>

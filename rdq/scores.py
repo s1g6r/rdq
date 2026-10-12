@@ -14,7 +14,8 @@ using signals that need no trained policy and no rollouts, only the tables:
                 clusters are counted as multimodal, so a "minority strategy" is
                 reported instead of being called noise.
   hfr, ldlj     smoothness: share of velocity power above a cut-off frequency, and
-                log dimensionless jerk. Lower HFR / higher LDLJ is smoother.
+                log dimensionless jerk. Lower HFR / higher LDLJ is smoother. Reported for
+                review only: pauses look "smooth", so HFR can rank hesitant demos as good.
   psd_power     the training-free spectral metric of Sojib et al. (2026) replicated as
                 published. By Parseval it is roughly length x mean squared position,
                 so it is reported as a baseline, not used in the composite.
@@ -27,7 +28,8 @@ using signals that need no trained policy and no rollouts, only the tables:
   keep_ranges   frame ranges left after trimming idle runs, following the openpi
                 DROID recipe (idle runs of 7+ steps removed, segments under 16 dropped).
 
-None of these are verdicts. They are evidence for ranking and review. Length is
+The composite is the mean rank of deminf and consistency. None of these are verdicts.
+They are evidence for ranking and review. Length is
 reported separately and the composite's correlation with length is checked,
 because many published curation metrics turn out to be length in disguise.
 """
@@ -539,11 +541,14 @@ def _composite(out: dict[int, EpisodeScores], summary: dict) -> None:
     ids = sorted(out)
     if len(ids) < 3:
         return
+    # Smoothness (HFR) and hesitation are reported but left out of the composite: in the
+    # curation benchmark HFR ranked paused or failed demos as *better* (AUROC 0.04-0.19 on
+    # those types) and dither carried no signal, so averaging them in diluted DemInf-lite and
+    # consistency. This choice was made after seeing that benchmark; the RoboMimic MH run
+    # (experiments/robomimic_mh.py) is the independent check.
     cols = [
         _rank01([out[i].deminf if out[i].deminf is not None else np.nan for i in ids], True),
         _rank01([out[i].consistency if out[i].consistency is not None else np.nan for i in ids], False),
-        _rank01([out[i].hfr if out[i].hfr is not None else np.nan for i in ids], False),
-        _rank01([out[i].dither if out[i].dither is not None else np.nan for i in ids], False),
     ]
     M = np.vstack(cols)
     import warnings
