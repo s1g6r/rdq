@@ -153,6 +153,13 @@ def keep_ranges(idle: np.ndarray, fps: float | None) -> list[tuple[int, int]]:
 # --------------------------------------------------------------------------- DemInf-lite
 
 
+def _pairwise(x: np.ndarray) -> np.ndarray:
+    """Euclidean distance matrix through one matrix product (much faster than broadcasting)."""
+    sq = (x * x).sum(1)
+    d2 = sq[:, None] + sq[None, :] - 2.0 * (x @ x.T)
+    return np.sqrt(np.maximum(d2, 0.0))
+
+
 def ksg_frame_mi(zs: np.ndarray, za: np.ndarray, batch: int, passes: int, rng: np.random.Generator) -> np.ndarray:
     """Per-frame KSG (Kraskov algorithm 1) mutual-information contributions, max-norm over blocks."""
     n = len(zs)
@@ -168,12 +175,13 @@ def ksg_frame_mi(zs: np.ndarray, za: np.ndarray, batch: int, passes: int, rng: n
                 idx = order[max(0, n - batch) :]
             b = len(idx)
             s, a = zs[idx], za[idx]
-            ds = np.sqrt(np.maximum(((s[:, None, :] - s[None, :, :]) ** 2).sum(-1), 0))
-            da = np.sqrt(np.maximum(((a[:, None, :] - a[None, :, :]) ** 2).sum(-1), 0))
+            ds = _pairwise(s)
+            da = _pairwise(a)
             np.fill_diagonal(ds, np.inf)
             np.fill_diagonal(da, np.inf)
             dj = np.maximum(ds, da)
-            srt = np.sort(dj, axis=1)
+            srt = np.partition(dj, max(DIGAMMA_KS) - 1, axis=1)[:, : max(DIGAMMA_KS)]
+            srt.sort(axis=1)
             acc = np.zeros(b)
             for k in DIGAMMA_KS:
                 rho = srt[:, k - 1][:, None]
