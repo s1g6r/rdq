@@ -61,7 +61,7 @@
     "@type": "sc:Organization",
     "name": "acme-robotics"
   },
-  "datePublished": "2026-10-12",
+  "dateModified": "2026-10-12",
   "version": "1.0.0",
   "rdq:pinnedRevision": "1.0.0",
   "keywords": [
@@ -94,6 +94,86 @@
       "name": "videos",
       "includes": "videos/**/*.mp4",
       "encodingFormat": "video/mp4"
+    }
+  ],
+  "recordSet": [
+    {
+      "@type": "cr:RecordSet",
+      "@id": "frame_records",
+      "name": "frame_records",
+      "description": "One record per frame (index columns only).",
+      "field": [
+        {
+          "@type": "cr:Field",
+          "@id": "frame_records/episode_index",
+          "name": "episode_index",
+          "dataType": "sc:Integer",
+          "source": {
+            "fileSet": {
+              "@id": "frames"
+            },
+            "extract": {
+              "column": "episode_index"
+            }
+          }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "frame_records/frame_index",
+          "name": "frame_index",
+          "dataType": "sc:Integer",
+          "source": {
+            "fileSet": {
+              "@id": "frames"
+            },
+            "extract": {
+              "column": "frame_index"
+            }
+          }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "frame_records/index",
+          "name": "index",
+          "dataType": "sc:Integer",
+          "source": {
+            "fileSet": {
+              "@id": "frames"
+            },
+            "extract": {
+              "column": "index"
+            }
+          }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "frame_records/task_index",
+          "name": "task_index",
+          "dataType": "sc:Integer",
+          "source": {
+            "fileSet": {
+              "@id": "frames"
+            },
+            "extract": {
+              "column": "task_index"
+            }
+          }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "frame_records/timestamp",
+          "name": "timestamp",
+          "dataType": "sc:Float",
+          "source": {
+            "fileSet": {
+              "@id": "frames"
+            },
+            "extract": {
+              "column": "timestamp"
+            }
+          }
+        }
+      ]
     }
   ],
   "rai:dataCollection": "Leader-arm teleoperation (SO-101 leader to follower), 30 Hz",
@@ -203,6 +283,7 @@
       "idle_edge_ratio": 0.4,
       "spike_fraction": 0.3,
       "spike_window": 7,
+      "spike_systematic_share": 0.5,
       "stats_rel_tolerance": 0.05,
       "lag_max": 15,
       "lag_deviation": 4,
@@ -251,7 +332,7 @@
   ],
   "rdq:attestation": {
     "generatedBy": "rdq 0.2.0",
-    "generatedAt": "2026-10-12T07:24:44+00:00",
+    "generatedAt": "2026-10-12T10:30:05+00:00",
     "signedBy": null,
     "note": "Machine-generated. Owner answers are recorded as given and not verified by rdq. Not legal advice."
   },

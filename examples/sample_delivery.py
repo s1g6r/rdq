@@ -88,8 +88,8 @@ def build(out: Path) -> dict:
     (out / "passport.spdx.json").write_text(json.dumps(to_spdx(passport), indent=2, default=str))
     (out / "DATASHEET.md").write_text(to_datasheet(passport))
     usable = set(result["score"]["usable_episodes"])
-    caught = {k: sum(1 for i, t in truth.items() if t == k and i not in usable) for k in set(truth.values())}
-    planted = {k: sum(1 for t in truth.values() if t == k) for k in set(truth.values())}
+    caught = {k: sum(1 for i, t in truth.items() if t == k and i not in usable) for k in sorted(set(truth.values()))}
+    planted = {k: sum(1 for t in truth.values() if t == k) for k in sorted(set(truth.values()))}
     clean_dropped = sum(1 for i in range(150) if i not in truth and i not in usable)
     summary = {"planted": planted, "dropped_by_rules": caught, "clean_dropped": clean_dropped,
                "score": result["score"]["dataset_score"], "usable": len(usable)}

@@ -3,7 +3,7 @@
     "name": "rdq",
     "version": "0.2.0"
   },
-  "audited_at": "2026-10-12T07:24:16+00:00",
+  "audited_at": "2026-10-12T10:29:53+00:00",
   "dataset": {
     "path": "acme-robotics/so101_pick_place_delivery_03",
     "codebase_version": "3.0",
@@ -19,8 +19,10 @@
     "cameras": [
       "observation.images.front"
     ],
-    "tasks": 1
+    "tasks": 1,
+    "features_not_checked": {}
   },
+  "not_checked": [],
   "score": {
     "dataset_score": 93,
     "episode_scores": {
@@ -412,7 +414,7 @@
     {
       "check": "episodes.idle",
       "severity": "critical",
-      "message": "10 episodes barely move (less than 5% of a typical episode); the robot was probably not doing the task",
+      "message": "10 episodes barely move (less than 5% of a typical episode of the same task); the robot was probably not doing the task",
       "episodes": [
         101,
         106,
@@ -472,6 +474,38 @@
           "137": 3,
           "142": 3,
           "147": 3
+        },
+        "channels_per_episode": {
+          "102": [
+            "shoulder_pan"
+          ],
+          "107": [
+            "shoulder_pan"
+          ],
+          "112": [
+            "shoulder_pan"
+          ],
+          "117": [
+            "shoulder_pan"
+          ],
+          "122": [
+            "shoulder_pan"
+          ],
+          "127": [
+            "shoulder_pan"
+          ],
+          "132": [
+            "shoulder_pan"
+          ],
+          "137": [
+            "shoulder_pan"
+          ],
+          "142": [
+            "shoulder_pan"
+          ],
+          "147": [
+            "shoulder_pan"
+          ]
         }
       }
     },
@@ -564,6 +598,7 @@
     "idle_edge_ratio": 0.4,
     "spike_fraction": 0.3,
     "spike_window": 7,
+    "spike_systematic_share": 0.5,
     "stats_rel_tolerance": 0.05,
     "lag_max": 15,
     "lag_deviation": 4,

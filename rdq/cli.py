@@ -18,7 +18,7 @@ from pathlib import Path
 from .dataset import DatasetLoadError
 
 
-def _resolve_path(path: str, repo_id: str | None, video: bool) -> tuple[str, str | None]:
+def _resolve_path(path: str, repo_id: str | None, video: bool, max_mb: float | None = None) -> tuple[str, str | None]:
     """A local folder is used as is. Anything shaped like owner/name that isn't a folder is
     fetched from the Hugging Face Hub (tables and card only, plus videos with --video)."""
     if Path(path).exists() or path.count("/") != 1 or path.startswith((".", "/")):
@@ -30,7 +30,16 @@ def _resolve_path(path: str, repo_id: str | None, video: bool) -> tuple[str, str
     print(f"no local folder '{path}', so fetching it from the Hugging Face Hub "
           f"({'with' if video else 'without'} videos)…", file=sys.stderr)
     try:
+        if max_mb:
+            info = hf.HfApi().dataset_info(path, files_metadata=True)
+            prefixes = ("data/", "meta/", "videos/") if video else ("data/", "meta/")
+            size = sum((f.size or 0) for f in info.siblings if f.rfilename.startswith(prefixes)) / 1e6
+            if size > max_mb:
+                raise DatasetLoadError(f"'{path}' is {size:,.0f} MB to download, over --max-mb {max_mb:g}; "
+                                       "raise the limit or download a subset yourself")
         local = hf.snapshot_download(path, repo_type="dataset", allow_patterns=patterns)
+    except DatasetLoadError:
+        raise
     except Exception as exc:  # noqa: BLE001 - hub errors come in many types
         raise DatasetLoadError(f"'{path}' is not a local folder and could not be fetched from the Hub "
                                f"({type(exc).__name__}: {str(exc).splitlines()[0][:200]})") from exc
@@ -56,7 +65,7 @@ def _cmd_check(args) -> int:
     from .report import audit, format_terminal, write_filter, write_html, write_json
 
     try:
-        path, repo_id = _resolve_path(args.path, args.repo_id, args.video)
+        path, repo_id = _resolve_path(args.path, args.repo_id, args.video, args.max_mb)
         result = audit(path, max_frames=args.max_frames, repo_id=repo_id, video=args.video)
         if repo_id:
             result["dataset"]["path"] = repo_id
@@ -292,6 +301,7 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--fail-under", type=int, help="exit with code 1 if the score is below this (for CI)")
     c.add_argument("--no-color", action="store_true")
     c.add_argument("--repo-id", help="hub id of the dataset (enables upstream-licence matching by name)")
+    c.add_argument("--max-mb", type=float, default=2000, help="refuse to fetch a Hub dataset larger than this (default 2000 MB)")
     c.add_argument("--video", action="store_true", help="also decode a few frames per episode (frozen/black/blur/decode checks; needs PyAV)")
     c.set_defaults(fn=_cmd_check)
 

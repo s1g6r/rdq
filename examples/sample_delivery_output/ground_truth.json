@@ -84,17 +84,17 @@
  },
  "summary": {
   "planted": {
-   "duplicate": 1,
    "desync": 10,
-   "glitch": 10,
+   "duplicate": 1,
    "frozen_log": 10,
+   "glitch": 10,
    "shaky": 50
   },
   "dropped_by_rules": {
-   "duplicate": 1,
    "desync": 10,
-   "glitch": 10,
+   "duplicate": 1,
    "frozen_log": 10,
+   "glitch": 10,
    "shaky": 0
   },
   "clean_dropped": 0,

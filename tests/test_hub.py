@@ -125,16 +125,26 @@ def test_check_accepts_a_hub_id(tmp_path, monkeypatch, capsys):
     src = syn.write_dataset(tmp_path / "src", syn.make_episodes(10))
     (src / "README.md").write_text("---\nlicense: apache-2.0\n---\n" + TEMPLATE_CARD)
 
+    class File:
+        def __init__(self, name, size):
+            self.rfilename, self.size = name, size
+
     class FakeHF:
         @staticmethod
         def snapshot_download(repo_id, repo_type, allow_patterns):
             assert "videos/**" not in allow_patterns
             return str(src)
 
+        class HfApi:
+            def dataset_info(self, repo_id, files_metadata):
+                return type("Info", (), {"siblings": [File("data/x.parquet", 5_000_000), File("videos/a.mp4", 9e9)]})()
+
     monkeypatch.setattr(hub, "_hf", lambda: FakeHF)
     monkeypatch.chdir(tmp_path)
     out = tmp_path / "r.json"
     assert cli.main(["check", "someone/droid_subset", "--json", str(out), "--no-color"]) in (0, 1)
+    # videos are not counted without --video; a small --max-mb refuses the download
+    assert cli.main(["check", "someone/droid_subset", "--max-mb", "1"]) == 2
     rep = json.loads(out.read_text())
     assert rep["dataset"]["path"] == "someone/droid_subset"
     assert rep["provenance"]["upstream"]["status"] == "relabelled"
