@@ -725,7 +725,7 @@ def _action_tracks_state(ds: Dataset, th: Thresholds, sample: int = 40) -> bool:
         if a in ep.features
         and s in ep.features
         and ep.features[a].shape == ep.features[s].shape
-        and ep.length > 2 * th.lag_max
+        and ep.length > th.lag_max + 10
         and np.all(np.isfinite(ep.features[a]))
         and np.all(np.isfinite(ep.features[s]))
     ][:sample]
@@ -848,7 +848,7 @@ def check_action_state_sync(ds: Dataset, th: Thresholds) -> list[Finding]:
         if a in ep.features
         and s in ep.features
         and ep.features[a].shape == ep.features[s].shape
-        and ep.length > 2 * th.lag_max
+        and ep.length > th.lag_max + 10
         and np.all(np.isfinite(ep.features[a]))
         and np.all(np.isfinite(ep.features[s]))
     ]
