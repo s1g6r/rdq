@@ -158,10 +158,11 @@ def build(summary: dict, toy: dict, bench: dict | None = None) -> str:
     if up:
         k_hit, k_tot, k_pct = frac(up["known_upstream_datasets"])
         d_hit, d_tot, d_pct = frac(up["declared_differs_from_upstream"])
-        src_rows = [(f"{name}", 100 * cnt / k_hit, "neutral") for name, cnt in up["by_source"]]
+        src_rows = [(name.split(" (")[0], 100 * cnt / k_hit, "neutral") for name, cnt in up["by_source"][:10]]
         status_names = {"relabelled": ("CC BY upstream, relabelled permissive", "hl"), "consistent": ("Matches upstream", "ok"),
                         "upstream-conflict": ("Conflicts with upstream terms", "crit"), "missing": ("No licence declared", "warn"),
-                        "review": ("Custom licence, needs review", "warn"), "restricted-redistribution": ("Upstream forbids sharing copies", "warn")}
+                        "review": ("Custom licence, needs review", "warn"), "restricted-redistribution": ("Upstream forbids sharing copies", "warn"),
+                        "no-upstream-grant": ("Original states no data licence", "warn")}
         st_rows = [(status_names.get(k, (k, "neutral"))[0], 100 * c / k_hit, status_names.get(k, (k, "neutral"))[1])
                    for k, c in up["status_counts"] if k in status_names and k != "missing"]
         n_crit = len(up.get("critical_conflicts") or [])
@@ -169,19 +170,19 @@ def build(summary: dict, toy: dict, bench: dict | None = None) -> str:
 <section id="upstream" class="sec">
   <div class="col">
     <p class="eyebrow">Licence &amp; provenance</p>
-    <h2>Conversions rarely keep their source's licence</h2>
-    <p>{k_hit} of the {n:,} datasets ({k_pct:.1f}%) are mirrors or conversions of public datasets whose original terms we checked against the primary source: DROID, BridgeData V2, LIBERO, AgiBot World, EgoDex, EPIC-KITCHENS, HOI4D and Ego4D. They are among the most used: <b>{up['known_upstream_download_share']} of all downloads</b>.</p>
-    <p><b>{d_hit} of those {d_tot} ({d_pct:.0f}%) declare a licence that differs from the original.</b> Most are CC BY 4.0 datasets relabelled <code>apache-2.0</code>, which drops the attribution and change-notice duties on paper but not in law. {"At least one conversion of a non-commercial, share-alike dataset is tagged apache-2.0 and served without the original's access agreement." if n_crit else ""}</p>
+    <h2>Conversions often drop their source's licence</h2>
+    <p>We checked the terms of 65 public robot datasets against their primary sources (26 with an explicit data licence from the original authors) and traced {k_hit:,} of the {n:,} Hub datasets ({k_pct:.0f}%, <b>{up['known_upstream_download_share']} of all downloads</b>) to one of them, by a link on the card or by repository name.</p>
+    <p><b>{d_hit} of those {d_tot:,} declare a licence that differs from the original's terms: {up['declared_differs_download_share']} of all downloads</b>, or {up['declared_differs_high_confidence_download_share']} counting only high-confidence sources. Most are CC BY 4.0 datasets relabelled <code>apache-2.0</code> or MIT, which drops the attribution and change-notice duties on paper but not in law. {"At least one conversion of a non-commercial, share-alike dataset is tagged apache-2.0 and served without the original's access agreement. " if n_crit else ""}Another {frac(up['no_upstream_grant'])[0]} datasets ({up['no_upstream_grant_download_share']} of downloads) carry a licence for data whose original release never stated one: popular simulation demos among them.</p>
   </div>
   <figure class="fig">
-    <figcaption>Declared licence vs the original terms · {k_hit} conversions of known datasets</figcaption>
+    <figcaption>Declared licence vs the original terms · {k_hit:,} datasets traced to a known original</figcaption>
     {hbars(st_rows)}
   </figure>
   <figure class="fig">
-    <figcaption>Which originals they come from · share of the {k_hit}</figcaption>
+    <figcaption>Most common originals · share of the {k_hit:,}</figcaption>
     {hbars(src_rows)}
   </figure>
-  <p class="note">A tag on a mirror cannot grant rights its uploader does not hold. Matches are made from a link to the original project on the card or from the repository name (for example <code>droid_1.0.1</code>); name matches are flagged as needing confirmation. Data recorded <em>on</em> a robot brand (for example an AgiBot G1) is not counted as that brand's dataset. Not legal advice.</p>
+  <p class="note">A tag on a mirror cannot grant rights its uploader does not hold. Matches are made from a link to the original project on the card or from the repository name (for example <code>droid_1.0.1</code>); name matches are flagged as needing confirmation, and an umbrella statement (such as the Open X-Embodiment README's CC BY 4.0) counts as medium confidence. When the uploader is the original rights holder, a different tag may be a deliberate relicence. Most of the \"matches upstream\" group is one organisation (RoboCOIN) publishing its own data. Data recorded <em>on</em> a robot brand (for example an AgiBot G1) is not counted as that brand's dataset. Not legal advice.</p>
 </section>"""
 
     bench_html = ""

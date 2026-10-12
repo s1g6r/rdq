@@ -29,7 +29,8 @@ def test_noncommercial_upstream_relabelled_permissive_is_critical():
 
 def test_robot_name_is_not_a_dataset_source():
     # Data recorded on an AgiBot robot is not AgiBot World.
-    assert match_sources("RoboCOIN/AgiBot-g1_pick_up_battery", "") == []
+    keys = {m.key for m in match_sources("RoboCOIN/AgiBot-g1_pick_up_battery", "")}
+    assert "agibot_world" not in keys and keys <= {"robocoin"}
     assert match_sources("user/android_app_demos", "") == []
 
 
@@ -139,3 +140,26 @@ def test_passport_validates_with_mlcroissant(tmp_path):
     root, readme = _ds(tmp_path)
     p = build_passport(audit(root, readme=readme, repo_id="someone/droid_subset"), readme, root, repo_id="someone/droid_subset")
     mlc.Dataset(jsonld=p)  # raises on validation errors
+
+
+def test_upstream_without_a_data_licence():
+    a = assess_card("lerobot/aloha_sim_insertion_human", "", "mit")
+    assert a.status == "no-upstream-grant" and a.severity == "warning"
+    assert a.concluded is None
+
+
+def test_umbrella_licence_caps_severity():
+    a = assess_card("IPEC-COMMUNITY/language_table_lerobot", "", "apache-2.0")
+    assert a.status == "relabelled" and a.severity == "warning"
+    assert any("umbrella" in n for n in a.notes)
+
+
+def test_knowledge_base_patterns_do_not_overlap_on_known_ids():
+    from rdq.licenses import UPSTREAM_SOURCES
+    import re
+
+    ids = ["IPEC-COMMUNITY/bc_z_lerobot", "lerobot/berkeley_cable_routing", "ember-lab-berkeley/robocasa365-pretrain-mg",
+           "cadene/droid_1.0.1", "IPEC-COMMUNITY/bridge_orig_lerobot", "lerobot/pusht", "lerobot/libero"]
+    for rid in ids:
+        hits = [s.key for s in UPSTREAM_SOURCES if re.search(s.id_pattern, rid.lower())]
+        assert len(hits) == 1, (rid, hits)

@@ -28,3 +28,6 @@ rdq = "rdq.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["rdq*"]
+
+[tool.setuptools.package-data]
+rdq = ["data/*.json"]

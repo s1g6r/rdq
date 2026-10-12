@@ -23,9 +23,10 @@ rdq passport path/to/dataset --repo-id owner/name --spdx passport.spdx.json --da
 LeRobot's `push_to_hub()` defaults to `license="apache-2.0"` and writes a template card. In a scan of the 3,000 most-downloaded LeRobot datasets on the Hub (October 2026):
 
 - **56.5%** (51.9% of downloads) carry `apache-2.0` on an unedited template card. That is most likely the tool's default rather than a licence the owner chose.
-- **127** are mirrors or conversions of public datasets whose terms we checked against the primary source (DROID, BridgeData V2, LIBERO, AgiBot World, EgoDex, EPIC-KITCHENS, HOI4D, Ego4D). They account for 21% of downloads. **87% of them (111) declare a licence that differs from the original.** Most are CC BY 4.0 relabelled as apache-2.0. At least one is a non-commercial, share-alike dataset tagged apache-2.0.
+- **1,167** (70.6% of downloads) can be traced to one of 65 public robot datasets whose terms we checked against the primary source (26 of them at high confidence). **201 of these (32% of downloads) declare a licence that differs from the original's terms**, 144 of them (21.5% of downloads) against a high-confidence source. Most are CC BY 4.0 data relabelled as apache-2.0 or MIT. At least one is a non-commercial, share-alike dataset tagged apache-2.0.
+- **45 more** (8.4% of downloads) declare a licence on data whose original release states no data licence at all, only a code licence. ALOHA sim, Push-T and xArm are examples.
 
-`rdq` reports a verdict for every dataset and marks how strong each upstream match is: the card links to the source, the repo name matches, or the card only mentions it. The upstream table lives in [`rdq/licenses.py`](rdq/licenses.py). Every entry keeps the statement, its URL and the date it was checked. A tag on a mirror cannot grant rights the uploader doesn't hold. This is a diligence aid, not legal advice.
+`rdq` reports a verdict for every dataset and marks how strong each upstream match is: the card links to the source, the repo name matches, or the card only mentions it. The upstream table lives in [`rdq/data/upstream_licences.json`](rdq/data/upstream_licences.json). Every entry keeps the statement, its URL, the date it was checked and a confidence level. For example, an Open X-Embodiment component that only has the umbrella CC BY 4.0 line counts as medium confidence and never produces a critical finding. A tag on a mirror cannot grant rights the uploader doesn't hold. This is a diligence aid, not legal advice.
 
 ### Data passport
 

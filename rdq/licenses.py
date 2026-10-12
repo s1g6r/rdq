@@ -43,122 +43,44 @@ class UpstreamSource:
     id_pattern: str  # regex on the lower-cased repo id
     link_pattern: str | None = None  # regex for the upstream's URL in the card (strong evidence)
     mention_pattern: str | None = None  # regex for the upstream's name in the card (weak evidence)
+    confidence: str = "high"  # high: explicit data licence; medium: umbrella/indirect; low: uncertain mapping
+    notes: str = ""
 
 
-# Checked 2026-10-12 against the primary sources listed. See research notes R4.
-UPSTREAM_SOURCES: tuple[UpstreamSource, ...] = (
-    UpstreamSource(
-        key="droid",
-        name="DROID",
-        license="CC-BY-4.0",
-        commercial_training=True,
-        redistribution=True,
-        restrictions=(ATTRIBUTION, CHANGE_NOTICE),
-        statement_url="https://arxiv.org/abs/2403.12945",
-        statement="DROID is released under CC BY 4.0 (stated in the DROID paper).",
-        checked="2026-10-12",
-        id_pattern=r"(^|[/_\-.])droid([_\-.]|\d|$)",
-        link_pattern=r"droid-dataset\.github\.io",
-    ),
-    UpstreamSource(
-        key="bridge_v2",
-        name="BridgeData V2",
-        license="CC-BY-4.0",
-        commercial_training=True,
-        redistribution=True,
-        restrictions=(ATTRIBUTION, CHANGE_NOTICE),
-        statement_url="https://rail-berkeley.github.io/bridgedata/",
-        statement="All data is provided under the Creative Commons Attribution 4.0 International License.",
-        checked="2026-10-12",
-        id_pattern=r"bridge[_\-]?(data)?[_\-]?(v2|orig)|bridgedata|bridgev2",
-        link_pattern=r"rail-berkeley\.github\.io/bridgedata",
-        mention_pattern=r"bridgedata v2|bridgedata",
-    ),
-    UpstreamSource(
-        key="libero",
-        name="LIBERO",
-        license="CC-BY-4.0",
-        commercial_training=True,
-        redistribution=True,
-        restrictions=(ATTRIBUTION, CHANGE_NOTICE),
-        statement_url="https://github.com/Lifelong-Robot-Learning/LIBERO",
-        statement="LIBERO code is MIT; the released datasets are CC BY 4.0.",
-        checked="2026-10-12",
-        id_pattern=r"(^|[/_\-])libero[_\-]?(10|90|goal|object|spatial|long)?([_\-]|$)",
-        link_pattern=r"lifelong-robot-learning/libero|libero-project\.github\.io",
-    ),
-    UpstreamSource(
-        key="agibot_world",
-        name="AgiBot World",
-        license="CC-BY-NC-SA-4.0",
-        commercial_training=False,
-        redistribution=True,
-        restrictions=(ATTRIBUTION, NONCOMMERCIAL, SHAREALIKE, AGREEMENT),
-        statement_url="https://huggingface.co/datasets/agibot-world/AgiBotWorld-Alpha",
-        statement="AgiBot World Community License Agreement, CC BY-NC-SA 4.0, gated access.",
-        checked="2026-10-12",
-        # Data recorded *on* an AgiBot robot (e.g. RoboCOIN/AgiBot-g1_*) is not AgiBot World.
-        id_pattern=r"agibot[_\-]?world|agibot[_\-](alpha|beta)",
-        link_pattern=r"agibot-world/agibotworld|agibot-world\.com",
-        mention_pattern=r"agibotworld|agibot world|agibot-world",
-    ),
-    UpstreamSource(
-        key="egodex",
-        name="EgoDex",
-        license="CC-BY-NC-ND-4.0",
-        commercial_training=False,
-        redistribution=False,  # ND: no adapted copies may be shared
-        restrictions=(ATTRIBUTION, NONCOMMERCIAL, NODERIVS),
-        statement_url="https://github.com/apple/ml-egodex",
-        statement="EgoDex is available under CC-by-NC-ND terms.",
-        checked="2026-10-12",
-        id_pattern=r"egodex",
-        link_pattern=r"apple/ml-egodex",
-        mention_pattern=r"egodex",
-    ),
-    UpstreamSource(
-        key="epic_kitchens",
-        name="EPIC-KITCHENS",
-        license="CC-BY-NC-4.0",
-        commercial_training=False,
-        redistribution=True,
-        restrictions=(ATTRIBUTION, NONCOMMERCIAL),
-        statement_url="https://epic-kitchens.github.io/2025",
-        statement="EPIC-KITCHENS is CC BY-NC 4.0; commercial licences on request.",
-        checked="2026-10-12",
-        id_pattern=r"epic[_\-]?kitchens?",
-        link_pattern=r"epic-kitchens\.github\.io",
-        mention_pattern=r"epic[- ]kitchens",
-    ),
-    UpstreamSource(
-        key="hoi4d",
-        name="HOI4D",
-        license="CC-BY-NC-4.0",
-        commercial_training=False,
-        redistribution=True,
-        restrictions=(ATTRIBUTION, NONCOMMERCIAL),
-        statement_url="https://hoi4d.github.io/",
-        statement="HOI4D is released under CC BY-NC 4.0.",
-        checked="2026-10-12",
-        id_pattern=r"hoi4d",
-        link_pattern=r"hoi4d\.github\.io",
-        mention_pattern=r"hoi4d",
-    ),
-    UpstreamSource(
-        key="ego4d",
-        name="Ego4D",
-        license="LicenseRef-Ego4D",
-        commercial_training=True,
-        redistribution=False,
-        restrictions=(AGREEMENT, NO_REDISTRIBUTION),
-        statement_url="https://ego4d-data.org/pdfs/Ego4D-Licenses-Draft.pdf",
-        statement="Use requires a signed agreement; licensees may not give third parties access to the data.",
-        checked="2026-10-12",
-        id_pattern=r"ego4d",
-        link_pattern=r"ego4d-data\.org",
-        mention_pattern=r"ego4d",
-    ),
-)
+NOT_STATED = "not stated"
+
+
+def _load_sources() -> tuple[UpstreamSource, ...]:
+    """Read the packaged knowledge base (rdq/data/upstream_licences.json)."""
+    import json
+    from importlib.resources import files
+
+    data = json.loads(files("rdq").joinpath("data/upstream_licences.json").read_text())
+    out = []
+    for e in data["sources"]:
+        out.append(
+            UpstreamSource(
+                key=e["key"],
+                name=e["name"],
+                license=e["license"],
+                commercial_training=e.get("commercial_training"),
+                redistribution=e.get("redistribution"),
+                restrictions=tuple(e.get("restrictions") or ()),
+                statement_url=e["statement_url"],
+                statement=e["statement"],
+                checked=e.get("checked", ""),
+                id_pattern=e["id_pattern"],
+                link_pattern=e.get("link_pattern"),
+                mention_pattern=e.get("mention_pattern"),
+                confidence=e.get("confidence", "high"),
+                notes=e.get("notes", ""),
+            )
+        )
+    return tuple(out)
+
+
+# Each entry was checked against a primary source; see the JSON file for statements and dates.
+UPSTREAM_SOURCES: tuple[UpstreamSource, ...] = _load_sources()
 
 _BY_KEY = {s.key: s for s in UPSTREAM_SOURCES}
 
@@ -182,7 +104,7 @@ class LicenseAssessment:
     """Declared licence versus what the known upstream sources allow."""
 
     declared: str | None
-    status: str  # consistent | relabelled | upstream-conflict | restricted-redistribution | review | no-known-upstream | missing
+    status: str  # consistent | relabelled | upstream-conflict | restricted-redistribution | review | no-upstream-grant | no-known-upstream | missing
     severity: str  # critical | warning | info | ok
     concluded: str | None  # most restrictive upstream licence, if any upstream is known
     commercial_training: bool | None
@@ -235,6 +157,23 @@ def assess(declared, matches: list[SourceMatch]) -> LicenseAssessment:
             redistribution=None,
         )
     sources = [_BY_KEY[m.key] for m in matches]
+    if all(s.license == NOT_STATED for s in sources):
+        names = ", ".join(s.name for s in sources)
+        return LicenseAssessment(
+            declared=tag,
+            status="no-upstream-grant",
+            severity="warning" if tag else "info",
+            concluded=None,
+            commercial_training=None,
+            redistribution=None,
+            upstream=[{"key": s.key, "name": s.name, "license": s.license, "evidence": m.evidence,
+                       "statement_url": s.statement_url, "statement": s.statement, "checked": s.checked,
+                       "confidence": s.confidence} for s, m in zip(sources, matches)],
+            notes=[f"appears to be derived from {names}, whose original release states no data licence (only a code "
+                   f"licence), so the declared '{tag or 'none'}' cannot be traced to a grant from the data's authors"],
+        )
+    sources = [s for s in sources if s.license != NOT_STATED] or sources
+    matches = [m for m in matches if _BY_KEY[m.key].license != NOT_STATED] or matches
     restrictions = sorted({r for s in sources for r in s.restrictions})
     commercial = None if any(s.commercial_training is None for s in sources) else all(s.commercial_training for s in sources)
     redistribution = None if any(s.redistribution is None for s in sources) else all(s.redistribution for s in sources)
@@ -250,6 +189,7 @@ def assess(declared, matches: list[SourceMatch]) -> LicenseAssessment:
             "statement_url": s.statement_url,
             "statement": s.statement,
             "checked": s.checked,
+            "confidence": s.confidence,
         }
         for s, m in zip(sources, matches)
     ]
@@ -291,6 +231,17 @@ def assess(declared, matches: list[SourceMatch]) -> LicenseAssessment:
     else:
         status, severity = "upstream-conflict", "warning"
         notes.append(f"declared {tag} differs from upstream {concluded} ({names})")
+    weakest = min(sources, key=lambda s: {"high": 2, "medium": 1, "low": 0}.get(s.confidence, 0)).confidence
+    if weakest == "medium":
+        notes.append("the upstream licence comes from an umbrella or indirect statement (e.g. the Open X-Embodiment README), not the component's own release")
+        if severity == "critical":
+            severity = "warning"
+    elif weakest == "low":
+        notes.append("the upstream licence mapping is uncertain; treat this as a lead, not a finding")
+        if severity in ("critical", "warning"):
+            severity = "info"
+    if status in ("relabelled", "upstream-conflict"):
+        notes.append("if the uploader is the original rights holder, the new tag may be a deliberate relicence")
     if evidence == {"repo-id"}:
         notes.append("match is by repo name only; confirm the source before relying on it")
     elif evidence == {"card-mention"}:

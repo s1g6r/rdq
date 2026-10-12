@@ -1,0 +1,1233 @@
+{
+ "version": "2026-10-12",
+ "note": "Upstream terms of public robot datasets, each checked against a primary source. confidence: high = explicit data licence from the original authors; medium = umbrella or indirect statement (e.g. the Open X-Embodiment README); low = umbrella statement with an uncertain mapping. license 'not stated' means the original release states no data licence. Not legal advice.",
+ "sources": [
+  {
+   "key": "droid",
+   "name": "DROID",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://arxiv.org/abs/2403.12945",
+   "statement": "DROID is released under CC BY 4.0 (stated in the DROID paper).",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|[/_\\-.])droid([_\\-.]|\\d|$)",
+   "link_pattern": "droid-dataset\\.github\\.io",
+   "mention_pattern": null,
+   "notes": ""
+  },
+  {
+   "key": "bridge_v2",
+   "name": "BridgeData V2",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://rail-berkeley.github.io/bridgedata/",
+   "statement": "All data is provided under the Creative Commons Attribution 4.0 International License.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "bridge[_\\-]?(data)?[_\\-]?(v2|orig)|bridgedata|bridgev2",
+   "link_pattern": "rail-berkeley\\.github\\.io/bridgedata",
+   "mention_pattern": "bridgedata v2|bridgedata",
+   "notes": ""
+  },
+  {
+   "key": "libero",
+   "name": "LIBERO",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/Lifelong-Robot-Learning/LIBERO",
+   "statement": "LIBERO code is MIT; the released datasets are CC BY 4.0.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|[/_\\-])libero[_\\-]?(10|90|goal|object|spatial|long)?([_\\-]|$)",
+   "link_pattern": "lifelong-robot-learning/libero|libero-project\\.github\\.io",
+   "mention_pattern": null,
+   "notes": ""
+  },
+  {
+   "key": "agibot_world",
+   "name": "AgiBot World",
+   "license": "CC-BY-NC-SA-4.0",
+   "commercial_training": false,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "non-commercial",
+    "share-alike",
+    "signed-agreement"
+   ],
+   "statement_url": "https://huggingface.co/datasets/agibot-world/AgiBotWorld-Alpha",
+   "statement": "AgiBot World Community License Agreement, CC BY-NC-SA 4.0, gated access.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "agibot[_\\-]?world|agibot[_\\-](alpha|beta)",
+   "link_pattern": "agibot-world/agibotworld|agibot-world\\.com",
+   "mention_pattern": "agibotworld|agibot world|agibot-world",
+   "notes": ""
+  },
+  {
+   "key": "egodex",
+   "name": "EgoDex",
+   "license": "CC-BY-NC-ND-4.0",
+   "commercial_training": false,
+   "redistribution": false,
+   "restrictions": [
+    "attribution",
+    "non-commercial",
+    "no-derivatives"
+   ],
+   "statement_url": "https://github.com/apple/ml-egodex",
+   "statement": "EgoDex is available under CC-by-NC-ND terms.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "egodex",
+   "link_pattern": "apple/ml-egodex",
+   "mention_pattern": "egodex",
+   "notes": ""
+  },
+  {
+   "key": "epic_kitchens",
+   "name": "EPIC-KITCHENS",
+   "license": "CC-BY-NC-4.0",
+   "commercial_training": false,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "non-commercial"
+   ],
+   "statement_url": "https://epic-kitchens.github.io/2025",
+   "statement": "EPIC-KITCHENS is CC BY-NC 4.0; commercial licences on request.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "epic[_\\-]?kitchens?",
+   "link_pattern": "epic-kitchens\\.github\\.io",
+   "mention_pattern": "epic[- ]kitchens",
+   "notes": ""
+  },
+  {
+   "key": "hoi4d",
+   "name": "HOI4D",
+   "license": "CC-BY-NC-4.0",
+   "commercial_training": false,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "non-commercial"
+   ],
+   "statement_url": "https://hoi4d.github.io/",
+   "statement": "HOI4D is released under CC BY-NC 4.0.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "hoi4d",
+   "link_pattern": "hoi4d\\.github\\.io",
+   "mention_pattern": "hoi4d",
+   "notes": ""
+  },
+  {
+   "key": "ego4d",
+   "name": "Ego4D",
+   "license": "LicenseRef-Ego4D",
+   "commercial_training": true,
+   "redistribution": false,
+   "restrictions": [
+    "signed-agreement",
+    "no-redistribution"
+   ],
+   "statement_url": "https://ego4d-data.org/pdfs/Ego4D-Licenses-Draft.pdf",
+   "statement": "Use requires a signed agreement; licensees may not give third parties access to the data.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "ego4d",
+   "link_pattern": "ego4d-data\\.org",
+   "mention_pattern": "ego4d",
+   "notes": ""
+  },
+  {
+   "key": "oxe_language_table",
+   "name": "Language-Table (Open X-Embodiment component)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "language[-_]?table",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Google's own release (github.com/google-research/language-table) has an Apache-2.0 LICENSE for code and its README states no data licence; data is served from the same gresearch/robotics bucket as OXE. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "oxe_fractal_rt1",
+   "name": "RT-1 Robot Action / fractal20220817_data",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "fractal20220817|(^|[/_-])rt-1([/_-]|$)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). RT-1 project page (robotics-transformer1.github.io) links the data (gs://gresearch/rt-1-data-release) without a licence; robotics_transformer repo is Apache-2.0 for code only. allenai/MolmoAct2-RT-1-Dataset is a processed derivative. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "oxe_kuka_qtopt",
+   "name": "QT-Opt Kuka grasping (OXE 'kuka')",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)kuka([-_](lerobot|qt[-_]?opt))?$",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone data licence for the QT-Opt data was found; Google contribution distributed through OXE. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "bc_z",
+   "name": "BC-Z",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://www.kaggle.com/datasets/google/bc-z-robot",
+   "statement": "Attribution 4.0 International (CC BY 4.0)",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|[/_-])bc[-_]z([-_]|$)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Kaggle licence field on the dataset published by the 'Google' Kaggle account (linked from sites.google.com/view/bc-z). Agrees with the OXE umbrella."
+  },
+  {
+   "key": "furniture_bench",
+   "name": "FurnitureBench",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "furniture[-_]?bench",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component release (clvrai/furniture-bench, MIT LICENSE for code; dataset docs and site show only '(c) Copyright 2023, CLVR @ KAIST') states no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "taco_play",
+   "name": "TACO-Play (Task-Agnostic Real World Robot Play)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://www.kaggle.com/datasets/oiermees/taco-robot",
+   "statement": "Attribution 4.0 International (CC BY 4.0)",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "taco[-_]?play",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Kaggle licence field on the dataset published by first author Oier Mees (the LeRobot card's homepage). Agrees with the OXE umbrella."
+  },
+  {
+   "key": "fmb",
+   "name": "FMB (Functional Manipulation Benchmark)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://functional-manipulation-benchmark.github.io/",
+   "statement": "All data is provided under the Creative Commons Attribution 4.0 International License",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|[/_-])fmb([-_]|$)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Explicit data licence on the official project site; agrees with the OXE umbrella."
+  },
+  {
+   "key": "berkeley_cable_routing",
+   "name": "Berkeley Cable Routing",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://sites.google.com/view/cablerouting/data",
+   "statement": "All data is provided under the Creative Commons Attribution 4.0 International License",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "cable[-_]routing",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Explicit statement on the official dataset page (linked from charlesxu0124/CableRouting, whose MIT LICENSE covers code). Agrees with the OXE umbrella."
+  },
+  {
+   "key": "roboturk_real",
+   "name": "RoboTurk Real (Sawyer) dataset",
+   "license": "MIT",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution"
+   ],
+   "statement_url": "https://github.com/StanfordVL/roboturk_real_dataset",
+   "statement": "This dataset and codebase are released under the MIT License.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "roboturk",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Component's own explicit data licence (MIT) differs from the OXE umbrella (CC BY 4.0). The rightsholder's own MIT grant governs the original; both are permissive. MIT allows sublicensing, so an Apache-2.0 tag on a mirror is not a hard conflict provided the MIT notice is kept."
+  },
+  {
+   "key": "utaustin_mutex",
+   "name": "UT Austin MUTEX",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "utaustin[-_]mutex|(^|/)mutex([-_]|$)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component release (UT-Austin-RPL/MUTEX, MIT LICENSE for code; project page; Box download) states no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "toto",
+   "name": "TOTO benchmark",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)toto([-_]lerobot)?$",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component release (AGI-Labs/toto_benchmark, BSD-2-Clause LICENSE for code; toto-benchmark.org) states no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "berkeley_autolab_ur5",
+   "name": "Berkeley Autolab UR5",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "berkeley[-_]autolab[-_]ur5",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component site (sites.google.com/view/berkeley-ur5) gives a citation request but no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "berkeley_rpt",
+   "name": "Berkeley RPT (Robot Learning with Sensorimotor Pre-training)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "berkeley[-_]rpt",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Project page states no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "stanford_kuka_multimodal",
+   "name": "Stanford Kuka Multimodal (Making Sense of Vision and Touch)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "stanford[-_]kuka[-_]multimodal",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component release (stanford-iprl-lab/multimodal_representation, MIT LICENSE for code; project site) states no data licence. The LeRobot mirror's 'mit' tag mirrors the code licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "jaco_play",
+   "name": "Jaco Play (CLVR)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/clvrai/clvr_jaco_play_dataset",
+   "statement": "The data is available under the Creative Commons Attribution 4.0 International License.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "jaco[-_]?play",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "README statement plus a CC BY 4.0 LICENSE file in the official repo. Agrees with the OXE umbrella."
+  },
+  {
+   "key": "viola",
+   "name": "UT Austin VIOLA",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|[/_-])viola([-_]|$)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component release (UT-Austin-RPL/VIOLA, MIT LICENSE for code; project page) states no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "nyu_franka_play",
+   "name": "NYU Franka Play (play-to-policy / C-BeT)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "nyu[-_]franka[-_]play",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component release (jeffacce/play-to-policy, MIT LICENSE for code; datasets on OSF; project page) states no data licence; OSF licence field could not be read. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "austin_buds_sailor_sirius",
+   "name": "UT Austin BUDS / Sailor / Sirius",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "austin[-_](buds|sailor|sirius)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component repos (UT-Austin-RPL/BUDS, sailor, sirius; MIT LICENSE for code) state no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "ucsd_kitchen",
+   "name": "UCSD Kitchen",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "ucsd[-_]kitchen",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release located; not checked beyond OXE. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "ucsd_pick_and_place",
+   "name": "UCSD Pick and Place",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "ucsd[-_]pick[-_]and[-_]place",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release located; not checked beyond OXE. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "cmu_play_fusion",
+   "name": "CMU PlayFusion",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "cmu[-_]play[-_]fusion",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Project page (play-fusion.github.io) states no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "iamlab_cmu_pickup_insert",
+   "name": "IAMLab CMU Pickup Insert",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "iamlab[-_]cmu",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "dlr_datasets",
+   "name": "DLR (SARA pour / grid clamp, EDAN shared control)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "(^|/)dlr[-_](sara|edan)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "columbia_cairlab_pusht_real",
+   "name": "Columbia CAIRLab Push-T real",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "columbia[-_]cairlab[-_]pusht",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Real Push-T data from the Diffusion Policy authors; their repo licence ('This repository is released under the MIT license.') covers code, and no data licence is stated. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "stanford_hydra",
+   "name": "Stanford HYDRA",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "stanford[-_]hydra",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Project page states no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "dobbe_hony",
+   "name": "Dobb-E / Homes of New York (OXE 'dobbe')",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)dobbe([-_]|$)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). dobb-e.com licenses source code MIT and website content separately; no licence is stated for the HoNY data. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "nyu_door_opening",
+   "name": "NYU Door Opening (VINN)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "nyu[-_]door[-_]opening",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "berkeley_fanuc_manipulation",
+   "name": "Berkeley Fanuc Manipulation",
+   "license": "LicenseRef-BerkeleyFanuc-MIT-NonCommercial",
+   "commercial_training": null,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "non-commercial"
+   ],
+   "statement_url": "https://sites.google.com/berkeley.edu/fanuc-manipulation",
+   "statement": "The dataset is released under the permissive MIT license, allowing free use, redistribution, and adaptation",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "berkeley[-_]fanuc",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Self-contradictory: the page names MIT but (per two separate fetches) limits the grant to non-commercial purposes; the raw page could not be retrieved to confirm the tail of the sentence. Contested against the OXE umbrella (CC BY 4.0). Treat commercial use as unclear and verify manually."
+  },
+  {
+   "key": "berkeley_mvp",
+   "name": "Berkeley MVP (Real-World Robot Learning with Masked Visual Pre-training)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "berkeley[-_]mvp",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Project page states no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "stanford_robocook",
+   "name": "Stanford RoboCook",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "robocook",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Project page links a Google Drive download with no licence; hshi74/robocook LICENSE (MIT) covers code. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "imperialcollege_sawyer_wrist_cam",
+   "name": "Imperial College Sawyer wrist cam",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "imperialcollege[-_]sawyer",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "usc_cloth_sim",
+   "name": "USC Cloth Sim",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "usc[-_]cloth[-_]sim",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
+  },
+  {
+   "key": "aloha_sim_act",
+   "name": "ACT ALOHA sim demos (insertion, transfer cube; human and scripted)",
+   "license": "not stated",
+   "commercial_training": null,
+   "redistribution": null,
+   "restrictions": [],
+   "statement_url": "https://github.com/tonyzhaozh/act",
+   "statement": "You can find all scripted/human demo for simulated environments here.",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)aloha[-_]sim[-_](insertion|transfer[-_]cube)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Data licence not stated. The ACT repo LICENSE is MIT (Copyright 2023 Tony Z. Zhao) and covers code; the demos are a Google Drive folder with no terms. The LeRobot 'mit' tag reflects the code licence, not a data grant. Scripted episodes can be regenerated with the MIT code."
+  },
+  {
+   "key": "mobile_aloha",
+   "name": "Mobile ALOHA datasets",
+   "license": "not stated",
+   "commercial_training": null,
+   "redistribution": null,
+   "restrictions": [],
+   "statement_url": "https://mobile-aloha.github.io/",
+   "statement": "[no licence statement; the project page links 'Datasets' to a Google Drive folder]",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)aloha[-_]mobile[-_]",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Data licence not stated on the project page or in MarkFzp/mobile-aloha (MIT LICENSE for code)."
+  },
+  {
+   "key": "aloha_static",
+   "name": "ALOHA static datasets (as ported by LeRobot)",
+   "license": "not stated",
+   "commercial_training": null,
+   "redistribution": null,
+   "restrictions": [],
+   "statement_url": "https://tonyzhaozh.github.io/aloha/",
+   "statement": "[no licence statement; the ALOHA page offers no dataset download]",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "(^|/)aloha[-_]static[-_]",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "LeRobot cards cite the ALOHA paper/page, which publishes no dataset or terms; the static ALOHA demos appear to be the co-training data distributed with the Mobile ALOHA Drive folder (unconfirmed). tonyzhaozh/aloha is MIT for code. LeRobot mirrors are inconsistent among themselves (mit and apache-2.0)."
+  },
+  {
+   "key": "pusht_diffusion_policy",
+   "name": "Push-T (Diffusion Policy, Chi et al.)",
+   "license": "not stated",
+   "commercial_training": null,
+   "redistribution": null,
+   "restrictions": [],
+   "statement_url": "https://github.com/real-stanford/diffusion_policy",
+   "statement": "This repository is released under the MIT license.",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)pusht(_image|_keypoints)?$",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Data licence not stated. The quoted MIT licence covers the repository (code); training data is a separate download (diffusion-policy.cs.columbia.edu/data/training/pusht.zip) with no terms on the project page. LeRobot's 'mit' tag reflects the code licence."
+  },
+  {
+   "key": "xarm_fowm",
+   "name": "xArm lift/push offline datasets (FOWM, Feng et al.)",
+   "license": "not stated",
+   "commercial_training": null,
+   "redistribution": null,
+   "restrictions": [],
+   "statement_url": "https://github.com/fyhMer/fowm",
+   "statement": "This repository is licensed under the MIT license.",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)xarm[-_](lift|push)[-_]medium",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "xarm_lift_medium(_replay)/xarm_push_medium(_replay) are the offline datasets released with FOWM (Google Drive links in the README). The MIT statement covers the repository; no data licence is stated. LeRobot cards point to the TD-MPC homepage, but the datasets come from FOWM."
+  },
+  {
+   "key": "umi_cup_in_the_wild",
+   "name": "UMI in-the-wild cup arrangement",
+   "license": "not stated",
+   "commercial_training": null,
+   "redistribution": null,
+   "restrictions": [],
+   "statement_url": "https://github.com/real-stanford/universal_manipulation_interface",
+   "statement": "This repository is released under the MIT license.",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "umi[-_]cup[-_]in[-_]the[-_]wild",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "The MIT statement covers code; the project page and README give no data licence."
+  },
+  {
+   "key": "metaworld_mt50_lerobot",
+   "name": "Meta-World MT50 demos (LeRobot)",
+   "license": "Apache-2.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://huggingface.co/docs/lerobot/metaworld",
+   "statement": "We provide a LeRobot-ready dataset for Meta-World MT50 on the HF Hub",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "metaworld[-_]?mt50",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "No independent upstream dataset: Hugging Face's own docs present lerobot/metaworld_mt50 as their release, and its card tags apache-2.0, which is LeRobot's template default. Who generated it and how is not documented. The Meta-World benchmark code is MIT."
+  },
+  {
+   "key": "robocasa",
+   "name": "RoboCasa / RoboCasa365",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/robocasa/robocasa#license",
+   "statement": "Assets and Datasets: CC BY 4.0",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "robocasa",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Official README: code MIT, assets and datasets CC BY 4.0. The ember-lab-berkeley cards call themselves a 'Mirror of RoboCasa365' and claim 'MIT, inherited from upstream RoboCasa365', which mixes up the code licence and the data licence."
+  },
+  {
+   "key": "behavior_1k_2025_challenge",
+   "name": "BEHAVIOR-1K 2025 challenge demos",
+   "license": "MIT",
+   "commercial_training": null,
+   "redistribution": true,
+   "restrictions": [
+    "attribution"
+   ],
+   "statement_url": "https://huggingface.co/datasets/behavior-1k/2025-challenge-demos",
+   "statement": "license: mit",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "behavior[-_]?1k|(^|/)2025[-_]challenge[-_]demos$",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "The authors' own HF card tags MIT, but only as a tag. The demos are renders of the BEHAVIOR Data Bundle, whose EULA (OmniGibson asset_utils.py) says 'Data may only be used for non-commercial academic research.' and forbids redistribution. Commercial training is therefore unclear."
+  },
+  {
+   "key": "abc_130k",
+   "name": "ABC-130K (XDOF)",
+   "license": "Apache-2.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://huggingface.co/datasets/XDOF/ABC-130k",
+   "statement": "Released under the Apache License 2.0. See `LICENSE`.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "abc[-_]?130k",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Official XDOF card. The upstream is gated (contact-sharing click-through), but the mirrors are ungated. That is not a licence conflict."
+  },
+  {
+   "key": "l2d",
+   "name": "L2D (Learning to Drive, Yaak + Hugging Face)",
+   "license": "Apache-2.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://huggingface.co/datasets/yaak-ai/L2D",
+   "statement": "license: apache-2.0",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)l2d([-_]v\\d+)?$",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "The original authors' card, but the tag sits in the stock LeRobot template, and apache-2.0 is the push_to_hub default. No LICENSE file, and neither the blog post nor yaak.ai states terms. Street-scene video may raise GDPR issues that are separate from copyright. yaak-ai/lerobot-driving-school is NOT L2D (a 10-episode 2023 ActionGPT sample, same org) and is deliberately not matched."
+  },
+  {
+   "key": "unitree_g1_datasets",
+   "name": "Unitree robotics datasets (unitreerobotics/*)",
+   "license": "Apache-2.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://huggingface.co/datasets/unitreerobotics/G1_Dex3_ToastedBread_Dataset",
+   "statement": "license: apache-2.0",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "^unitreerobotics/",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "The rightsholder's own cards, but using the stock LeRobot template tag (possibly a default). Only Unitree's own org matches. Third-party data recorded on G1 robots (e.g. RoboCOIN/Unitree_G1edu_*, aarontung/g1-*, mncai/G1_*) is a different dataset."
+  },
+  {
+   "key": "robocoin",
+   "name": "RoboCOIN (BAAI / FlagOpen)",
+   "license": "Apache-2.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications",
+    "signed-agreement"
+   ],
+   "statement_url": "https://huggingface.co/datasets/RoboCOIN/Cobot_Magic_make_hamburger",
+   "statement": "This dataset is released under the apache-2.0 license.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "^robocoin/",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Explicit text on the official cards. A click-through gate asks users to cite the paper and not to harm human subjects. The repo names carry robot brands (AgiBot, Galaxea, Unitree, Galbot, Leju...), but these are RoboCOIN data, not AgiBot World or Galaxea Open-World."
+  },
+  {
+   "key": "rh20t",
+   "name": "RH20T",
+   "license": "LicenseRef-RH20T-split-CC-BY-SA-4.0-and-CC-BY-NC-4.0",
+   "commercial_training": null,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications",
+    "share-alike",
+    "non-commercial"
+   ],
+   "statement_url": "https://rh20t.github.io/",
+   "statement": "Commercial use of the RH20T-NC subset or models trained on it is not allowed.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "rh20t",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Split by scene: RH20T-C (scene_0001-0005) is CC BY-SA 4.0 and allows commercial use; RH20T-NC (scene_0006-0010) is CC BY-NC 4.0 (the page's link points to the BY-NC-SA deed). The robot-lev mirrors keep this per-episode split. rh20t_api code is MIT."
+  },
+  {
+   "key": "roboset",
+   "name": "RoboSet (RoboHive / RoboPen)",
+   "license": "MIT",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution"
+   ],
+   "statement_url": "https://robopen.github.io/roboset/",
+   "statement": "This work is licensed under the MIT-License.",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "(^|/)roboset",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Website footer statement; it is unclear whether it covers the data or only the site. robohive code is Apache-2.0."
+  },
+  {
+   "key": "galaxea_open_world",
+   "name": "Galaxea Open-World Dataset",
+   "license": "CC-BY-NC-SA-4.0",
+   "commercial_training": false,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications",
+    "non-commercial",
+    "share-alike",
+    "signed-agreement"
+   ],
+   "statement_url": "https://huggingface.co/datasets/OpenGalaxea/Galaxea-Open-World-Dataset",
+   "statement": "All the data and code within this repo are under CC BY-NC-SA 4.0",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "galaxea[-_]?open[-_]?world",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "'Galaxea Community License Agreement', gated. Repo ids naming a Galaxea robot (e.g. RoboCOIN/Galaxea_R1_Lite_*) are not this dataset."
+  },
+  {
+   "key": "agibot_digital_world",
+   "name": "AgiBot Digital World",
+   "license": "CC-BY-NC-SA-4.0",
+   "commercial_training": false,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications",
+    "non-commercial",
+    "share-alike"
+   ],
+   "statement_url": "https://huggingface.co/datasets/agibot-world/AgiBotDigitalWorld",
+   "statement": "All the data and code within this repo are under CC BY-NC-SA 4.0",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "agibot[-_]?digital[-_]?world",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Official card. This is separate from AgiBot World (already covered)."
+  },
+  {
+   "key": "dexmimicgen",
+   "name": "DexMimicGen datasets",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/NVlabs/dexmimicgen#license",
+   "statement": "the datasets are released under CC-BY 4.0",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "dexmimicgen",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "The code is under the NVIDIA Source Code License (non-commercial); only the datasets are CC BY 4.0."
+  },
+  {
+   "key": "mimicgen",
+   "name": "MimicGen datasets",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://github.com/NVlabs/mimicgen#license",
+   "statement": "the datasets are released under CC-BY 4.0",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|[/_-])mimicgen",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "The README changelog says that on 04/04/2024 the 'Dataset license changed to CC-BY 4.0, which is less restrictive'. Copies taken before then may carry the older terms. Code: NVIDIA Source Code License."
+  },
+  {
+   "key": "robomimic",
+   "name": "robomimic datasets",
+   "license": "MIT",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution"
+   ],
+   "statement_url": "https://huggingface.co/datasets/robomimic/robomimic_datasets",
+   "statement": "license: mit",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "robomimic",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Tag only, on the official robomimic org card (amandlek/robomimic also tags MIT). The docs site and README state no data licence. The code is MIT."
+  },
+  {
+   "key": "lerobot_svla_so10x",
+   "name": "SmolVLA SO-100/SO-101 community datasets (lerobot/svla_*)",
+   "license": "Apache-2.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://huggingface.co/datasets/lerobot/svla_so100_pickplace",
+   "statement": "license: apache-2.0",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)svla[-_]so10[01][-_]",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Hugging Face's own first-party release, so the tag is the creator's declaration (though it is the LeRobot template default)."
+  },
+  {
+   "key": "kai0",
+   "name": "OpenDriveLab Kai0 (chi-zero) data",
+   "license": "CC-BY-NC-SA-4.0",
+   "commercial_training": false,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications",
+    "non-commercial",
+    "share-alike"
+   ],
+   "statement_url": "https://github.com/OpenDriveLab/kai0",
+   "statement": "The data and checkpoint are under CC BY-NC-SA 4.0.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|/)kai0",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Code is Apache-2.0. The HF card's licence paragraph is an empty template, but its YAML tag (cc-by-nc-sa-4.0) agrees with the GitHub README."
+  },
+  {
+   "key": "hiw_500",
+   "name": "BitRobot HIW-500 (Humanoids in the Wild)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://huggingface.co/datasets/BitRobot/HIW-500",
+   "statement": "The public HIW-500 dataset is released under the CC BY 4.0 license",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "hiw[-_]?500",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Official card; the LeRobot conversion BitRobot/HIW-500-LeRobot comes from the same org and carries the same text."
+  },
+  {
+   "key": "habit",
+   "name": "Config HABIT",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
+   ],
+   "statement_url": "https://huggingface.co/datasets/configinc/HABIT",
+   "statement": "license: cc-by-4.0",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|/)habit$",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Official card by the authors (Config, KAIST), with a YAML tag plus a 'License: CC BY 4.0' badge. The project page states no licence."
+  },
+  {
+   "key": "tacverse",
+   "name": "TacVerse (Xense Robotics)",
+   "license": "CC-BY-SA-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications",
+    "share-alike"
+   ],
+   "statement_url": "https://huggingface.co/datasets/TacVerse/TacVerse",
+   "statement": "Released under CC BY-SA 4.0.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "^tacverse/",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "The landing card adds that derivative datasets must use the same CC BY-SA 4.0 terms."
+  }
+ ]
+}
