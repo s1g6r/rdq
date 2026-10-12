@@ -9,7 +9,7 @@
 It reads tables, not videos (unless you ask), and runs on a laptop for typical datasets: about 1.4 GB of memory for 600,000 frames. For DROID-scale corpora, audit a sample of episodes.
 
 ```bash
-pip install -e .                       # Python 3.10+
+pip install git+https://github.com/s1g6r/rdq    # Python 3.10+
 rdq check owner/name --html report.html --filter keep.json      # a Hub dataset id (fetches tables + card only)
 rdq check path/to/dataset --repo-id owner/name --video          # or a local folder, with camera checks
 rdq rank path/to/dataset --json scores.json                     # rank episodes for review

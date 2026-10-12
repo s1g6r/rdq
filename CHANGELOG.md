@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.1 (unreleased)
+## 0.2.1 (2026-10-12)
 
 Fixes from a pre-release review against real Hub dataset schemas.
 
