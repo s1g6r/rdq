@@ -283,3 +283,12 @@ def test_share_alike_added_to_cc_by_is_stricter():
 def test_list_valued_licence_uses_the_most_restrictive_tag():
     p = analyse_card("---\nlicense:\n- mit\n- cc-by-nc-4.0\n---\nhello")
     assert p.license == "cc-by-nc-4.0" and p.verdict == "non-commercial"
+
+
+def test_bottom_line_says_what_to_do():
+    p = analyse_card("---\nlicense: apache-2.0\n---\nhi", repo_id="someone/droid_1.0.1")
+    assert p.bottom_level == "go" and "credit DROID" in p.bottom_line
+    p = analyse_card("---\nlicense: cc-by-nc-4.0\n---\nhi")
+    assert p.bottom_level == "stop"
+    p = analyse_card("no front matter")
+    assert p.bottom_level == "stop" and "permission" in p.bottom_line

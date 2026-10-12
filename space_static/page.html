@@ -27,6 +27,9 @@
   .row { display:flex; gap:8px; margin:4px 0; flex-wrap:wrap; }
   .k { color:var(--muted); min-width:170px; }
   .pill { display:inline-block; padding:1px 10px; border-radius:999px; font-size:13px; font-weight:600; border:1px solid currentColor; }
+  .bottom { font-size:17px; padding:12px 14px; border-radius:10px; margin:0 0 14px; border:1px solid var(--line); }
+  .bottom.go { border-color:var(--ok); } .bottom.check { border-color:var(--warn); } .bottom.stop { border-color:var(--crit); }
+  .bottom b { margin-right:6px; }
   .critical { color:var(--crit); } .warning { color:var(--warn); } .info { color:var(--info); } .ok { color:var(--ok); }
   ul { padding-left:20px; margin:8px 0 0; } li { margin:4px 0; }
   a { color:var(--accent); }
@@ -111,7 +114,11 @@ async function check(raw) {
 function render(id, p) {
   const up = p.upstream || {};
   const sev = up.severity || (p.verdict === "documented" ? "ok" : "info");
+  const lvl = p.bottom_level || "check";
+  const word = {go: "✅ OK to use", check: "⚠️ Check first", stop: "⛔ Stop"}[lvl] || "⚠️ Check first";
   let h = `<div class="card"><h2>${esc(id)}</h2>`;
+  h += `<p class="bottom ${esc(lvl)}"><b class="${{go:"ok",check:"warning",stop:"critical"}[lvl] || "warning"}">${word}</b>${esc(p.bottom_line)}</p>`;
+  h += `<details><summary>Details</summary>`;
   h += `<div class="row"><span class="k">Declared licence</span><span>${esc(p.license || "none")}</span></div>`;
   h += `<div class="row"><span class="k">Verdict</span><span class="pill ${esc(sev)}">${esc(p.verdict)}</span></div>`;
   if ((up.upstream || []).length) {
@@ -124,7 +131,7 @@ function render(id, p) {
   }
   if ((p.notes || []).length) h += `<div class="row" style="margin-top:12px"><span class="k">Notes</span></div><ul>` +
     p.notes.map(n => `<li>${esc(n)}</li>`).join("") + `</ul>`;
-  $("#out").innerHTML = h + `</div>`;
+  $("#out").innerHTML = h + `</details></div>`;
 }
 $("#f").addEventListener("submit", e => { e.preventDefault(); check($("#q").value); });
 document.querySelectorAll(".examples a").forEach(a => a.addEventListener("click", () => { $("#q").value = a.dataset.id; check(a.dataset.id); }));

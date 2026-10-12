@@ -139,7 +139,12 @@ def format_terminal(result: dict, color: bool = True) -> str:
         lines += ["", c("  Not checked", _BOLD)] + [f"  · {_clean(n)}" for n in result["not_checked"]]
     prov = result.get("provenance")
     if prov:
-        lines += ["", c("  Licence & provenance", _BOLD), f"  licence: {prov['license'] or 'none'} → {prov['verdict']}"]
+        tag = {"go": "OK", "check": "CHECK", "stop": "STOP"}.get(prov.get("bottom_level"), "CHECK")
+        col = {"OK": _COLORS.get("info", ""), "CHECK": _COLORS.get("warning", ""), "STOP": _COLORS.get("critical", "")}[tag]
+        lines += ["", c("  Licence & provenance", _BOLD)]
+        if prov.get("bottom_line"):
+            lines.append(f"  {c(tag, col)}  {_clean(prov['bottom_line'])}")
+        lines.append(f"  licence: {prov['license'] or 'none'} → {prov['verdict']}")
         up = prov.get("upstream") or {}
         if up.get("upstream"):
             terms = f" ({up.get('concluded')})" if up.get("concluded") else ""
@@ -209,6 +214,7 @@ def render_html(result: dict) -> str:
         prov_html = f"""
 <section class="card">
   <h2>Licence &amp; provenance</h2>
+  <p class="bottom"><b>{_esc({"go": "OK", "check": "Check first", "stop": "Stop"}.get(prov.get("bottom_level"), "Check first"))}:</b> {_esc(prov.get("bottom_line", ""))}</p>
   <div class="prov"><span class="pill {('ok' if prov['verdict'] == 'documented' and (prov.get('upstream') or {}).get('severity', 'ok') in ('ok', 'info') else 'flag')}">{_esc(prov['verdict'])}</span>
   <span>licence: <b>{_esc(prov['license'] or 'none')}</b></span></div>
   <ul class="notes">{notes}</ul>

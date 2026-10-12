@@ -63,6 +63,8 @@ class ProvenanceResult:
     license_link: str | None = None
     source_datasets: list[str] = field(default_factory=list)
     upstream: dict | None = None  # licenses.LicenseAssessment as a dict
+    bottom_line: str = ""  # one plain-English sentence: can I use this, and on what condition?
+    bottom_level: str = "check"  # go | check | stop
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -108,6 +110,39 @@ def _mentioned_as_data(name: str, text: str) -> bool:
         if not _MODEL_CONTEXT.search(window):
             return True
     return False
+
+
+def bottom_line(verdict: str, lic, lic_class: str, up: dict, default_unconfirmed: bool) -> tuple[str, str]:
+    """(go | check | stop, one sentence) answering: can I train on this, and on what condition?"""
+    names = ", ".join(u["name"] for u in up.get("upstream") or []) or "the original dataset"
+    status = up.get("status")
+    if up.get("commercial_training") is False and status == "upstream-conflict":
+        return "stop", (f"Do not use it commercially: it appears to come from {names}, which only allows non-commercial use, "
+                        "whatever this copy's tag says. Confirm the source before relying on it.")
+    if lic_class == "missing":
+        return "stop", "No licence: nobody has given you permission to reuse this data. Ask the uploader before using it."
+    if lic_class == "noncommercial":
+        return "stop", f"Research and other non-commercial use only ({lic})."
+    if status == "relabelled":
+        return "go", (f"Usable, including commercially, as long as you credit {names} and say you changed it "
+                      f"({up.get('concluded')}). The {lic} tag on this copy does not remove that duty.")
+    if status == "no-upstream-grant":
+        return "check", (f"Unclear: {names} never put a licence on the data itself. Ask its authors before commercial use; "
+                         f"the {lic or 'missing'} tag on this copy is not their permission.")
+    if status in ("restricted-redistribution",) or verdict == "restricted source":
+        return "check", f"Read the original terms first: {names} restricts how the data and copies of it may be shared."
+    if status == "upstream-conflict":
+        return "check", f"The tag here ({lic}) differs from the original's terms ({up.get('concluded') or 'see notes'}); follow the original's terms."
+    if status in ("consistent", "publisher-upload", "stricter-than-upstream"):
+        return "go", f"Follow the {lic} licence{' and credit ' + names if str(lic).lower().startswith('cc-by') else ''}."
+    if default_unconfirmed:
+        return "check", ("The apache-2.0 tag looks like the upload tool's default, not a choice by the owner. Ask the "
+                         "uploader to confirm it before relying on it, especially for commercial use.")
+    if lic_class == "no-derivatives":
+        return "check", f"You may share it unchanged, but the {lic} licence forbids sharing modified versions."
+    if lic_class == "permissive":
+        return "go", f"Follow the {lic} licence."
+    return "check", f"Custom licence ({lic}): read its terms before use."
 
 
 def analyse_card(readme: str | None, card_license=None, repo_id: str | None = None) -> ProvenanceResult:
@@ -174,7 +209,10 @@ def analyse_card(readme: str | None, card_license=None, repo_id: str | None = No
         verdict = "documented"
     else:
         verdict = "custom licence"
+    level, line = bottom_line(verdict, lic, lic_class, upstream.to_dict(), default_unconfirmed)
     return ProvenanceResult(
+        bottom_line=line,
+        bottom_level=level,
         license=str(lic) if lic else None,
         license_class=lic_class,
         template_card=template,
