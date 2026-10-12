@@ -123,6 +123,9 @@ def format_terminal(result: dict, color: bool = True) -> str:
     prov = result.get("provenance")
     if prov:
         lines += ["", c("  Licence & provenance", _BOLD), f"  licence: {prov['license'] or 'none'} → {prov['verdict']}"]
+        up = prov.get("upstream") or {}
+        if up.get("upstream"):
+            lines.append(f"  upstream: {', '.join(u['name'] for u in up['upstream'])} ({up.get('concluded')}) → {up.get('status')}")
         for note in prov["notes"]:
             lines.append(f"  · {note}")
     return "\n".join(lines)
@@ -178,6 +181,10 @@ def render_html(result: dict) -> str:
     prov_html = ""
     if prov:
         notes = "".join(f"<li>{_esc(n)}</li>" for n in prov["notes"]) or "<li>No issues found in the dataset card.</li>"
+        up = prov.get("upstream") or {}
+        for u in up.get("upstream") or []:
+            notes += (f'<li>Upstream evidence: “{_esc(u["statement"])}” (<a href="{_esc(u["statement_url"])}">{_esc(u["name"])}</a>, '
+                      f'checked {_esc(u["checked"])}, matched by {_esc(u["evidence"])})</li>')
         prov_html = f"""
 <section class="card">
   <h2>Licence &amp; provenance</h2>

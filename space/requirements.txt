@@ -1,0 +1,7 @@
+gradio>=4
+numpy>=1.24
+pandas>=2.0
+pyarrow>=14
+pyyaml>=6
+scipy>=1.10
+huggingface_hub>=0.30
