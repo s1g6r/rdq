@@ -142,7 +142,8 @@ def format_terminal(result: dict, color: bool = True) -> str:
         lines += ["", c("  Licence & provenance", _BOLD), f"  licence: {prov['license'] or 'none'} → {prov['verdict']}"]
         up = prov.get("upstream") or {}
         if up.get("upstream"):
-            lines.append(f"  upstream: {', '.join(u['name'] for u in up['upstream'])} ({up.get('concluded')}) → {up.get('status')}")
+            terms = f" ({up.get('concluded')})" if up.get("concluded") else ""
+            lines.append(f"  upstream: {', '.join(u['name'] for u in up['upstream'])}{terms} → {up.get('status')}")
         for note in prov["notes"]:
             lines.append(f"  · {_clean(note)}")
     return "\n".join(lines)

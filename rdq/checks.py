@@ -10,6 +10,8 @@ from __future__ import annotations
 import hashlib
 from dataclasses import asdict, dataclass, field
 
+import re
+
 import numpy as np
 
 from .dataset import Dataset, Episode
@@ -64,8 +66,22 @@ class Finding:
     episodes: list[int] = field(default_factory=list)
     details: dict = field(default_factory=dict)
 
+    def __post_init__(self):
+        self.message = _singular(self.message)
+
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+_SINGULAR = {"are": "is", "have": "has", "were": "was", "move": "moves", "spend": "spends", "point": "points",
+             "barely move": "barely moves"}
+
+
+def _singular(msg: str) -> str:
+    """Fix verb agreement after "1 episode" ("1 episode are" -> "1 episode is")."""
+    def fix(m):
+        return f"{m.group(1)}1 episode {_SINGULAR[m.group(2)]}"
+    return re.sub(r"(^|\bin )1 episode (barely move|are|have|were|move|spend|point)\b", fix, msg)
 
 
 def _eps(n: int) -> str:
