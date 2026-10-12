@@ -1,0 +1,285 @@
+[
+ {
+  "task": "can",
+  "demos": 300,
+  "tiers": {
+   "better": 100,
+   "okay": 100,
+   "worse": 100
+  },
+  "mask_names": [
+   "20_percent",
+   "20_percent_train",
+   "20_percent_valid",
+   "50_percent",
+   "50_percent_train",
+   "50_percent_valid",
+   "better",
+   "better_operator_1",
+   "better_operator_1_train",
+   "better_operator_1_valid",
+   "better_operator_2",
+   "better_operator_2_train",
+   "better_operator_2_valid",
+   "better_train",
+   "better_valid",
+   "okay",
+   "okay_better",
+   "okay_better_train",
+   "okay_better_valid",
+   "okay_operator_1",
+   "okay_operator_1_train",
+   "okay_operator_1_valid",
+   "okay_operator_2",
+   "okay_operator_2_train",
+   "okay_operator_2_valid",
+   "okay_train",
+   "okay_valid",
+   "train",
+   "valid",
+   "worse",
+   "worse_better",
+   "worse_better_train",
+   "worse_better_valid",
+   "worse_okay",
+   "worse_okay_train",
+   "worse_okay_valid",
+   "worse_operator_1",
+   "worse_operator_1_train",
+   "worse_operator_1_valid",
+   "worse_operator_2",
+   "worse_operator_2_train",
+   "worse_operator_2_valid",
+   "worse_train",
+   "worse_valid"
+  ],
+  "median_length_by_tier": {
+   "better": 136.0,
+   "okay": 176.0,
+   "worse": 270.5
+  },
+  "kept_fraction": 0.5,
+  "kept_set_mean_tier": {
+   "random (mean of 1000 draws)": 1.997,
+   "oracle": 2.667,
+   "keep shortest (length)": 2.533,
+   "PSD (Sojib et al., replicated)": 2.533,
+   "rdq deminf-lite": 2.187,
+   "rdq consistency": 2.147,
+   "rdq hfr": 1.92,
+   "rdq ldlj": 2.5,
+   "rdq dither": 2.0,
+   "rdq composite": 2.16
+  },
+  "auroc_worse_vs_better": {
+   "keep shortest (length)": 0.957,
+   "PSD (Sojib et al., replicated)": 0.952,
+   "rdq deminf-lite": 0.68,
+   "rdq consistency": 0.66,
+   "rdq hfr": 0.393,
+   "rdq ldlj": 0.945,
+   "rdq dither": 0.5,
+   "rdq composite": 0.695
+  },
+  "spearman_with_tier": {
+   "keep shortest (length)": 0.659,
+   "PSD (Sojib et al., replicated)": 0.645,
+   "rdq deminf-lite": 0.347,
+   "rdq consistency": 0.24,
+   "rdq hfr": -0.175,
+   "rdq ldlj": 0.645,
+   "rdq dither": -0.304,
+   "rdq composite": 0.333
+  },
+  "spearman_with_length": {
+   "keep shortest (length)": 1.0,
+   "PSD (Sojib et al., replicated)": 0.998,
+   "rdq deminf-lite": 0.082,
+   "rdq consistency": 0.03,
+   "rdq hfr": -0.008,
+   "rdq ldlj": 0.956,
+   "rdq dither": -0.358,
+   "rdq composite": 0.046
+  },
+  "rules": {
+   "usable": 299,
+   "findings": [
+    [
+     "episodes.spikes",
+     "warning",
+     1
+    ],
+    [
+     "episodes.too_long",
+     "info",
+     1
+    ],
+    [
+     "schema.names_shape_mismatch",
+     "warning",
+     0
+    ],
+    [
+     "schema.shape_mismatch",
+     "critical",
+     0
+    ]
+   ]
+  },
+  "rules_kept_mean_tier": 2.0,
+  "score_summary": {
+   "frames_scored": 62756,
+   "skipped": [],
+   "context_features": [
+    "observation.state",
+    "observation.environment_state"
+   ],
+   "relative_actions": false,
+   "multimodal_frame_frac": 0.3620833333333333,
+   "near_dup_threshold": 0.9898955283146705,
+   "composite_vs_length_spearman": -0.04585458629267345
+  },
+  "score_seconds": 17.88,
+  "seconds": 22.6,
+  "published_kept_set_mean_tier_can": {
+   "random": 1.99,
+   "DemInf (Hejna et al.)": 2.37,
+   "CUPID (Agia et al.)": 2.32,
+   "PSD (Sojib et al.)": 2.53,
+   "oracle": 2.67
+  }
+ },
+ {
+  "task": "square",
+  "demos": 300,
+  "tiers": {
+   "better": 100,
+   "okay": 100,
+   "worse": 100
+  },
+  "mask_names": [
+   "20_percent",
+   "20_percent_train",
+   "20_percent_valid",
+   "50_percent",
+   "50_percent_train",
+   "50_percent_valid",
+   "better",
+   "better_operator_1",
+   "better_operator_1_train",
+   "better_operator_1_valid",
+   "better_operator_2",
+   "better_operator_2_train",
+   "better_operator_2_valid",
+   "better_train",
+   "better_valid",
+   "okay",
+   "okay_better",
+   "okay_better_train",
+   "okay_better_valid",
+   "okay_operator_1",
+   "okay_operator_1_train",
+   "okay_operator_1_valid",
+   "okay_operator_2",
+   "okay_operator_2_train",
+   "okay_operator_2_valid",
+   "okay_train",
+   "okay_valid",
+   "train",
+   "valid",
+   "worse",
+   "worse_better",
+   "worse_better_train",
+   "worse_better_valid",
+   "worse_okay",
+   "worse_okay_train",
+   "worse_okay_valid",
+   "worse_operator_1",
+   "worse_operator_1_train",
+   "worse_operator_1_valid",
+   "worse_operator_2",
+   "worse_operator_2_train",
+   "worse_operator_2_valid",
+   "worse_train",
+   "worse_valid"
+  ],
+  "median_length_by_tier": {
+   "better": 173.0,
+   "okay": 259.0,
+   "worse": 323.0
+  },
+  "kept_fraction": 0.5,
+  "kept_set_mean_tier": {
+   "random (mean of 1000 draws)": 1.997,
+   "oracle": 2.667,
+   "keep shortest (length)": 2.473,
+   "PSD (Sojib et al., replicated)": 2.473,
+   "rdq deminf-lite": 2.133,
+   "rdq consistency": 2.047,
+   "rdq hfr": 1.88,
+   "rdq ldlj": 2.487,
+   "rdq dither": 2.007,
+   "rdq composite": 2.147
+  },
+  "auroc_worse_vs_better": {
+   "keep shortest (length)": 0.936,
+   "PSD (Sojib et al., replicated)": 0.936,
+   "rdq deminf-lite": 0.653,
+   "rdq consistency": 0.561,
+   "rdq hfr": 0.353,
+   "rdq ldlj": 0.942,
+   "rdq dither": 0.515,
+   "rdq composite": 0.634
+  },
+  "spearman_with_tier": {
+   "keep shortest (length)": 0.639,
+   "PSD (Sojib et al., replicated)": 0.64,
+   "rdq deminf-lite": 0.244,
+   "rdq consistency": 0.088,
+   "rdq hfr": -0.207,
+   "rdq ldlj": 0.619,
+   "rdq dither": 0.078,
+   "rdq composite": 0.202
+  },
+  "spearman_with_length": {
+   "keep shortest (length)": 1.0,
+   "PSD (Sojib et al., replicated)": 0.999,
+   "rdq deminf-lite": 0.144,
+   "rdq consistency": 0.044,
+   "rdq hfr": -0.342,
+   "rdq ldlj": 0.934,
+   "rdq dither": -0.021,
+   "rdq composite": 0.11
+  },
+  "rules": {
+   "usable": 300,
+   "findings": [
+    [
+     "schema.names_shape_mismatch",
+     "warning",
+     0
+    ],
+    [
+     "schema.shape_mismatch",
+     "critical",
+     0
+    ]
+   ]
+  },
+  "rules_kept_mean_tier": 2.0,
+  "score_summary": {
+   "frames_scored": 80731,
+   "skipped": [],
+   "context_features": [
+    "observation.state",
+    "observation.environment_state"
+   ],
+   "relative_actions": false,
+   "multimodal_frame_frac": 0.3162333333333333,
+   "near_dup_threshold": 0.9876023314232281,
+   "composite_vs_length_spearman": -0.11025128841924445
+  },
+  "score_seconds": 18.29,
+  "seconds": 22.9
+ }
+]

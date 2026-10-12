@@ -34,6 +34,8 @@ Fixes from a pre-release review against real Hub dataset schemas.
 
 - The sync check also runs when action and state have different widths, on the channels whose declared names match (at least three). About 10% of Hub datasets have different widths with matching names.
 
+- From the first real-data validation run: angles that wrap at +-pi (Euler angles) are unwrapped before the glitch check, which removed most glitch flags on RoboCOIN dual-arm data; no-motion is judged per channel, so noisy velocity or effort channels in a wide state no longer mark a moving robot as frozen.
+
 **Evidence**
 - Hub summary separates publisher uploads from traced conversions, reports match evidence, and no longer lists dataset ids.
 - Benchmark confidence intervals are computed over seeds.

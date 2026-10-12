@@ -261,3 +261,25 @@ def test_sync_runs_on_named_channels_when_widths_differ(tmp_path):
     lag = [f for f in r["findings"] if f["check"] == "sync.action_state_lag"]
     assert lag and set(lag[0]["episodes"]) >= {3, 11}
     assert not any("sync" in n for n in r["not_checked"])
+
+
+def test_euler_angle_wrap_is_not_a_glitch(tmp_path):
+    eps = syn.make_episodes(20, 150, seed=7)
+    rng = np.random.default_rng(2)
+    for e in eps:  # channel 0 is an Euler angle just below +pi; sensor noise wraps it to -pi for single frames
+        t = np.linspace(0, 6, len(e["state"]))
+        ang = np.pi - 0.03 + 0.02 * np.sin(t) + rng.normal(0, 0.01, len(t))
+        e["state"][:, 0] = (ang + np.pi) % (2 * np.pi) - np.pi
+        e["action"][:, 0] = e["state"][:, 0]
+    r = audit(_write(tmp_path, eps))
+    assert not {"episodes.spikes", "episodes.spikes_systematic"} & _checks(r)
+
+
+def test_noisy_extra_channels_do_not_hide_real_motion(tmp_path):
+    rng = np.random.default_rng(1)
+    eps = syn.make_episodes(20, 150, seed=8)
+    for e in eps:  # state = joints that move + many noisy velocity/effort channels
+        e["state"] = np.hstack([e["state"], rng.normal(0, 50, (len(e["state"]), 30))])
+    root = _write(tmp_path, eps)
+    _edit_info(root, lambda info: info["features"]["observation.state"].update(shape=[36], names=None))
+    assert "episodes.no_motion" not in _checks(audit(root))

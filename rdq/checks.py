@@ -48,7 +48,7 @@ class Thresholds:
     idle_edge_ratio: float = 0.4  # more than 40% of frames idle at start or end
     spike_fraction: float = 0.3  # a glitch moves a channel by 30% of its full range and back
     spike_window: int = 7  # running-median window; removes glitches of up to 3 frames
-    no_motion_ratio: float = 3.0  # range of motion below 3x the median frame-to-frame step = not moving
+    no_motion_ratio: float = 8.0  # a channel moves if its range is 8x its median frame-to-frame step (pure noise: 2-5x)
     spike_systematic_share: float = 0.5  # a channel hit in more episodes than this is reported once, not per episode
     stats_rel_tolerance: float = 0.05  # stats.json may differ from recomputed by 5% of range
     lag_max: int = 15  # frames searched when aligning action with state
@@ -818,6 +818,20 @@ def _motion(arr: np.ndarray) -> float:
     return float(np.sum(np.linalg.norm(np.diff(finite, axis=0), axis=1)))
 
 
+def _unwrap_angles(x: np.ndarray) -> np.ndarray:
+    """Unwrap channels that look like angles wrapping at +-pi (values within +-pi, jumps above pi)."""
+    if len(x) < 2:
+        return x
+    within = np.all(np.abs(x) <= np.pi + 1e-3, axis=0)
+    jumps = np.any(np.abs(np.diff(x, axis=0)) > np.pi, axis=0)
+    cols = np.where(within & jumps)[0]
+    if not len(cols):
+        return x
+    x = x.copy()
+    x[:, cols] = np.unwrap(x[:, cols], axis=0)
+    return x
+
+
 def _medfilt(arr: np.ndarray, window: int) -> np.ndarray:
     """Running median along time, edges padded, same length as the input."""
     from numpy.lib.stride_tricks import sliding_window_view
@@ -950,13 +964,24 @@ def check_no_motion(ds: Dataset, th: Thresholds) -> list[Finding]:
             if len(x) < 6:
                 ratios.append(np.nan)
                 continue
-            extent = _extent(x)
-            jitter = float(np.median(np.linalg.norm(np.diff(x, axis=0), axis=1)))
-            ratios.append(0.0 if extent <= 1e-9 else extent / max(jitter, 1e-12))
+            # Per channel: a stream moves if enough of its channels range further than their own
+            # frame-to-frame noise. (One norm over all channels lets noisy velocity or effort
+            # channels in a wide state vector drown out the joints that do move.)
+            x = _unwrap_angles(x)
+            filt = _medfilt(x, 5) if len(x) >= 5 else x
+            ext = np.ptp(filt, axis=0)
+            jit = np.median(np.abs(np.diff(x, axis=0)), axis=0)
+            live = ext > 1e-9
+            if not live.any():
+                ratios.append(0.0)
+                continue
+            per = ext[live] / np.maximum(jit[live], 1e-12)
+            share = float(np.mean(per >= th.no_motion_ratio))
+            ratios.append(1.0 if share >= 0.1 else 0.0)
         r = np.array(ratios, float)
         if not np.isfinite(r).any():
             continue
-        frozen = [ep.index for ep, v in zip(eps, r) if np.isfinite(v) and v < th.no_motion_ratio]
+        frozen = [ep.index for ep, v in zip(eps, r) if np.isfinite(v) and v < 0.5]
         moving[key] = len(frozen) < 0.5 * np.isfinite(r).sum()
         if not moving[key]:
             out.append(
@@ -1022,7 +1047,9 @@ def check_spikes(ds: Dataset, th: Thresholds) -> list[Finding]:
             continue
         span = np.percentile(values, 99, axis=0) - np.percentile(values, 1, axis=0)
         span = np.where(span < 1e-9, np.inf, span)
-        residuals = {ep.index: np.abs(ep.features[key] - _medfilt(ep.features[key], th.spike_window)) for ep in eps}
+        # Angles that wrap at +-pi (Euler angles, yaw) jump by 2*pi and back; unwrap them first.
+        unwrapped = {ep.index: _unwrap_angles(ep.features[key]) for ep in eps}
+        residuals = {i: np.abs(x - _medfilt(x, th.spike_window)) for i, x in unwrapped.items()}
         # Normal jitter: the median over episodes of each episode's 99th-percentile residual.
         # Pooling all frames would let the glitches themselves set the bar once they make up
         # more than 1% of frames (a few bad episodes with 3-frame dropouts is enough).
