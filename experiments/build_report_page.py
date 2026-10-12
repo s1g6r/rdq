@@ -113,7 +113,7 @@ CHECK_LABELS = {
 }
 
 
-def build(summary: dict, toy: dict) -> str:
+def build(summary: dict, toy: dict, bench: dict | None = None) -> str:
     scan, audit = summary["scan"], summary.get("audit")
     n = scan["datasets_scanned"]
     top_hit, top_tot, top_pct = frac(scan["top100_untouched_default"])
@@ -182,6 +182,32 @@ def build(summary: dict, toy: dict) -> str:
     {hbars(src_rows)}
   </figure>
   <p class="note">A tag on a mirror cannot grant rights its uploader does not hold. Matches are made from a link to the original project on the card or from the repository name (for example <code>droid_1.0.1</code>); name matches are flagged as needing confirmation. Data recorded <em>on</em> a robot brand (for example an AgiBot G1) is not counted as that brand's dataset. Not legal advice.</p>
+</section>"""
+
+    bench_html = ""
+    if bench:
+        bs = bench["summary"]
+        scen_titles = {"structural": "30% recording faults", "skill": "40% imperfect operators", "mixed": "Faults and imperfect operators"}
+        show = [("all data", "All data", "neutral"), ("random", "Random subset", "neutral"), ("keep shortest", "Keep shortest", "neutral"),
+                ("psd (Sojib et al.)", "Spectral metric (PSD)", "neutral"), ("deminf-lite", "DemInf-lite", "warn"),
+                ("rules (rdq check)", "rdq rules", "hl"), ("oracle", "Oracle", "ok")]
+        figs = []
+        for key in ("structural", "skill", "mixed"):
+            if key not in bs:
+                continue
+            rows = [(label, 100 * bs[key]["success"][m]["success"], cls) for m, label, cls in show if m in bs[key]["success"]]
+            figs.append(f'<figure class="fig"><figcaption>{esc(scen_titles[key])} · policy success, {bs[key]["seeds"]} seeds × 400 rollouts</figcaption>{hbars(rows, max_value=100)}</figure>')
+        st, sk = bs.get("structural", {}), bs.get("skill", {})
+        bench_html = f"""
+<section id="curation" class="sec">
+  <div class="col">
+    <p class="eyebrow">Which episodes to keep</p>
+    <h2>Broken recordings cost far more than imperfect operators</h2>
+    <p>We separated two kinds of bad data. <b>Recording faults</b> are a frozen log, actions written late or a teleop glitch. <b>Imperfect operators</b> are shaky hands, hesitation, detours and attempts that stop short. We then compared ways of choosing which episodes to train on: random subsets, keeping the shortest episodes, a published training-free spectral metric, a reimplementation of DemInf, rdq's rules and an oracle that knows the truth.</p>
+  </div>
+  {"".join(figs)}
+  <div class="callout"><p>With 30% of episodes broken by recording faults, training on everything succeeded {100 * st['success']['all data']['success']:.0f}% of the time. Training on what rdq's rules kept succeeded <mark>{100 * st['success']['rules (rdq check)']['success']:.0f}%</mark>, the same as the oracle. Length and smoothness metrics did no better than random.</p></div>
+  <div class="col"><p class="note">Imperfect operators hurt much less: {100 * sk['success']['all data']['success']:.0f}% success with all the data. No training-free score reliably beat using everything; keeping the shortest episodes did as well as any. So rdq drops broken recordings but only <em>ranks</em> episodes by skill signals for a human to review. This is a controlled 2D task; the same comparison on real multi-operator data (RoboMimic) and on a diffusion policy (Push-T) is under way.</p></div>
 </section>"""
 
     audit_html = ""
@@ -385,6 +411,7 @@ footer {{ padding-top: 28px; font: 400 .8rem/1.6 var(--mono); color: var(--muted
   </div>
 </section>
 
+{bench_html}
 <section id="method" class="sec">
   <div class="col">
     <p class="eyebrow">Method &amp; limits</p>
@@ -409,5 +436,6 @@ footer {{ padding-top: 28px; font: 400 .8rem/1.6 var(--mono); color: var(--muted
 if __name__ == "__main__":
     summary = json.loads(Path(sys.argv[1]).read_text())
     toy = json.loads(Path(sys.argv[2]).read_text())
-    Path(sys.argv[3]).write_text(build(summary, toy))
+    bench = json.loads(Path(sys.argv[4]).read_text()) if len(sys.argv) > 4 else None
+    Path(sys.argv[3]).write_text(build(summary, toy, bench))
     print("wrote", sys.argv[3])

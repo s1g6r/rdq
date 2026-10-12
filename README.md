@@ -22,7 +22,7 @@ rdq passport path/to/dataset --repo-id owner/name --spdx passport.spdx.json --da
 LeRobot's `push_to_hub()` defaults to `license="apache-2.0"` and writes a template card. In a scan of the 3,000 most-downloaded LeRobot datasets on the Hub (October 2026):
 
 - **56.5%** (51.9% of downloads) carry `apache-2.0` on an unedited template card. That is most likely the tool's default rather than a licence the owner chose.
-- **127** are mirrors or conversions of public datasets whose terms we checked against the primary source (DROID, BridgeData V2, LIBERO, AgiBot World, EgoDex, EPIC-KITCHENS, HOI4D, Ego4D). They account for 21% of downloads. **89% of them declare a licence that differs from the original.** Most are CC BY 4.0 relabelled as apache-2.0. At least one is a non-commercial, share-alike dataset tagged apache-2.0.
+- **127** are mirrors or conversions of public datasets whose terms we checked against the primary source (DROID, BridgeData V2, LIBERO, AgiBot World, EgoDex, EPIC-KITCHENS, HOI4D, Ego4D). They account for 21% of downloads. **87% of them (111) declare a licence that differs from the original.** Most are CC BY 4.0 relabelled as apache-2.0. At least one is a non-commercial, share-alike dataset tagged apache-2.0.
 
 `rdq` reports a verdict for every dataset and marks how strong each upstream match is: the card links to the source, the repo name matches, or the card only mentions it. The upstream table lives in [`rdq/licenses.py`](rdq/licenses.py). Every entry keeps the statement, its URL and the date it was checked. A tag on a mirror cannot grant rights the uploader doesn't hold. This is a diligence aid, not legal advice.
 
@@ -69,11 +69,11 @@ The composite score is the mean rank of DemInf-lite and consistency. If it corre
 
 `experiments/curation_benchmark.py` is a controlled CPU benchmark: 200 demonstrations at 30 fps, 5 seeds, 400 evaluation rollouts each. It compares selection methods against an oracle, random subsets, keep-the-shortest, the published spectral metric and a loss-based filter.
 
-| Data (200 episodes) | All data | Random subset | Keep shortest | Spectral (PSD) | DemInf-lite | rdq rules | Oracle |
-|---|---|---|---|---|---|---|---|
-| 30% recording faults (desync, frozen log, glitch) | 0.16 | 0.19 | 0.21 | 0.21 | 0.93 | **1.00** | 1.00 |
-| 40% imperfect operators (shaky, hesitant, detours, failed) | 0.88 | 0.74 | 0.89 | 0.88 | 0.70 | 0.88 | 0.99 |
-| Both (15% faults + 20% imperfect operators) | 0.34 | 0.37 | 0.24 | 0.27 | 0.88 | **0.92** | 1.00 |
+| Data (200 episodes) | All data | Random subset | Keep shortest | Spectral (PSD) | DemInf-lite | rdq composite | rdq rules | Oracle |
+|---|---|---|---|---|---|---|---|---|
+| 30% recording faults (desync, frozen log, glitch) | 0.16 | 0.19 | 0.21 | 0.21 | 0.93 | 0.92 | **1.00** | 1.00 |
+| 40% imperfect operators (shaky, hesitant, detours, failed) | 0.88 | 0.74 | 0.89 | 0.88 | 0.70 | 0.84 | 0.88 | 0.99 |
+| Both (15% faults + 20% imperfect operators) | 0.34 | 0.37 | 0.24 | 0.27 | 0.88 | **0.93** | 0.92 | 1.00 |
 
 *Success rates. Full tables, confidence intervals and detection AUROCs are in [`experiments/results/curation_benchmark.md`](experiments/results/curation_benchmark.md).*
 
