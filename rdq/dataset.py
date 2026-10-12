@@ -93,6 +93,7 @@ class Dataset:
     has_episode_stats: bool = False  # per-episode stats (v2.1 episodes_stats.jsonl or v3 stats/ columns)
     skipped_features: dict[str, str] = field(default_factory=dict)  # feature -> why it was not loaded
     not_checked: list[str] = field(default_factory=list)  # checks that could not run, with the reason
+    channel_index: dict[str, list[int]] = field(default_factory=dict)  # kept columns -> declared positions (after dropping dead channels)
 
     @property
     def action_key(self) -> str | None:

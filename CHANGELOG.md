@@ -31,6 +31,8 @@ Fixes from a pre-release review against real Hub dataset schemas.
 - `values.empty_feature`: an action or state with no finite values at all is critical.
 - Licence findings are critical only when the card declares the source (`source_datasets`, `license_link`) or two independent signals agree; a single signal is at most a warning. Mentions in citation context (pretrained encoders, benchmarks, formats) are ignored, and only derivation evidence sets the concluded terms. New statuses `publisher-upload` and verdict "no upstream data licence".
 
+- The sync check also runs when action and state have different widths, on the channels whose declared names match (at least three). About 10% of Hub datasets have different widths with matching names.
+
 **Evidence**
 - Hub summary separates publisher uploads from traced conversions, reports match evidence, and no longer lists dataset ids.
 - Benchmark confidence intervals are computed over seeds.

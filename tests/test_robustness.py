@@ -236,3 +236,28 @@ def test_skipped_action_is_named_as_such(tmp_path):
     _edit_info(root, lambda info: info["features"]["action"].update(dtype="string", shape=[1]))
     r = audit(root)
     assert "schema.action_not_numeric" in _checks(r) and "schema.no_action" not in _checks(r)
+
+
+def test_sync_runs_on_named_channels_when_widths_differ(tmp_path):
+    eps = syn.make_episodes(20, 150, seed=6)
+    for i in (3, 11):
+        syn.delay_action(eps[i], 10)
+    root = _write(tmp_path, eps)
+
+    def add_velocities(df):
+        df["observation.state"] = [np.concatenate([s, np.gradient(np.asarray(s))]) for s in df["observation.state"]]
+        return df
+
+    _edit_data(root, add_velocities)
+
+    def declare(info):
+        ft = info["features"]["observation.state"]
+        names = list(ft["names"]) if isinstance(ft["names"], list) else list(ft["names"].values())[0]
+        ft["names"] = names + [f"{n}.vel" for n in names]
+        ft["shape"] = [2 * len(names)]
+
+    _edit_info(root, declare)
+    r = audit(root)
+    lag = [f for f in r["findings"] if f["check"] == "sync.action_state_lag"]
+    assert lag and set(lag[0]["episodes"]) >= {3, 11}
+    assert not any("sync" in n for n in r["not_checked"])

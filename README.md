@@ -59,7 +59,7 @@ Facts computed from the data are kept separate from statements by the owner. rdq
 | `video.span_mismatch` | warning | A video segment and its data differ in length. |
 | `video.frozen`, `video.black`, `video.decode_error`, `video.blur` | with `--video` | Six frames per episode per camera are decoded to catch stalled, covered or broken cameras. |
 
-Features that are not joint signals (depth maps, point clouds, audio, tactile grids wider than 1,024 values) are listed as not checked rather than loaded. Every report ends with a "Not checked" list, for example when the sync check can't run because action and state have different sizes.
+Features that are not joint signals (depth maps, point clouds, audio, tactile grids wider than 1,024 values) are listed as not checked rather than loaded. Every report ends with a "Not checked" list, for example when the sync check can't run because action and state have different sizes and share fewer than three channel names. (When the sizes differ but the names line up, for example a state that also carries velocities, the sync check compares the matching channels.)
 
 On 120 clean synthetic datasets the checks raise no warnings or critical findings, and CI repeats this on 40 datasets on every commit (`tests/false_alarms.py`). The clean data comes from the same generator the thresholds were tuned on, so this shows the checks are quiet on well-behaved data, not that they are quiet on yours. On 210 real Hub datasets, an earlier version of the checks raised a warning or critical finding on 58%; a re-audit with the current version is pending.
 

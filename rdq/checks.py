@@ -445,7 +445,60 @@ def without_dead_channels(ds: Dataset, dead: dict[str, list[int]]) -> Dataset:
                     feats.pop(key)
         eps[i] = replace(ep, features=feats)
     gone = {k for k, dims in dead.items() if all(k not in e.features for e in eps.values())}
-    return replace(ds, episodes=eps, numeric_keys=[k for k in ds.numeric_keys if k not in gone])
+    index = dict(ds.channel_index)
+    for key, dims in dead.items():
+        width = next((e.features[key].shape[1] for e in ds.episodes.values() if key in e.features), 0)
+        index[key] = [int(d) for d in np.setdiff1d(np.arange(width), dims)]
+    return replace(ds, episodes=eps, numeric_keys=[k for k in ds.numeric_keys if k not in gone], channel_index=index)
+
+
+def action_state_pairs(ds: Dataset) -> tuple[list[int], list[int]] | None:
+    """Columns of action and state that measure the same thing.
+
+    Same width: every column, in order. Different widths (a gripper only in the action,
+    velocities appended to the state, ...): the channels whose declared names match, if at
+    least three do. Otherwise None, and channel-by-channel comparisons are skipped.
+    """
+    a, s = ds.action_key, ds.state_key
+    if not a or not s:
+        return None
+    widths = {(ep.features[a].shape[1], ep.features[s].shape[1]) for ep in ds.episodes.values()
+              if a in ep.features and s in ep.features}
+    if len(widths) != 1:
+        return None
+    wa, ws = next(iter(widths))
+    if wa == ws:
+        return list(range(wa)), list(range(ws))
+    na, ns = _names_list(ds.features.get(a, {})), _names_list(ds.features.get(s, {}))
+    ia = ds.channel_index.get(a, list(range(wa)))
+    is_ = ds.channel_index.get(s, list(range(ws)))
+    if not na or not ns or len(ia) != wa or len(is_) != ws:
+        return None
+    pos_s = {}
+    for col, d in enumerate(is_):
+        if d < len(ns):
+            pos_s.setdefault(str(ns[d]), col)
+    pairs = [(col, pos_s[str(na[d])]) for col, d in enumerate(ia) if d < len(na) and str(na[d]) in pos_s]
+    if len(pairs) < 3:
+        return None
+    return [p[0] for p in pairs], [p[1] for p in pairs]
+
+
+def _sync_episodes(ds: Dataset, th: Thresholds) -> tuple[list, tuple | None]:
+    """(episode, action columns, state columns) for episodes long and finite enough to align."""
+    a, s = ds.action_key, ds.state_key
+    pairs = action_state_pairs(ds)
+    if pairs is None:
+        return [], None
+    ia, is_ = pairs
+    out = []
+    for ep in ds.episodes.values():
+        if a not in ep.features or s not in ep.features or ep.length <= th.lag_max + 10:
+            continue
+        A, S = ep.features[a][:, ia], ep.features[s][:, is_]
+        if np.all(np.isfinite(A)) and np.all(np.isfinite(S)):
+            out.append((ep, A, S))
+    return out, pairs
 
 
 def check_values(ds: Dataset, th: Thresholds) -> list[Finding]:
@@ -926,21 +979,13 @@ def _action_tracks_state(ds: Dataset, th: Thresholds, sample: int = 40) -> bool:
     a, s = ds.action_key, ds.state_key
     if not a or not s:
         return False
-    eps = [
-        ep
-        for ep in ds.episodes.values()
-        if a in ep.features
-        and s in ep.features
-        and ep.features[a].shape == ep.features[s].shape
-        and ep.length > th.lag_max + 10
-        and np.all(np.isfinite(ep.features[a]))
-        and np.all(np.isfinite(ep.features[s]))
-    ][:sample]
+    eps, _ = _sync_episodes(ds, th)
+    eps = eps[:sample]
     if not eps:
         return False
     corrs = []
-    for ep in eps:
-        errors, _ = _lag_errors(ep.features[a], ep.features[s], th.lag_max)
+    for ep, A, S in eps:
+        errors, _ = _lag_errors(A, S, th.lag_max)
         if len(errors) and np.isfinite(errors).any():
             # Lowest alignment error of standardised channels: 0 = identical, ~2 = unrelated.
             corrs.append(1 - float(np.nanmin(errors)) / 2)
@@ -1082,24 +1127,13 @@ def check_action_state_sync(ds: Dataset, th: Thresholds) -> list[Finding]:
     if not a or not s:
         ds.not_checked.append("action/state sync: needs both an action and an observation.state")
         return []
-    eps = [
-        ep
-        for ep in ds.episodes.values()
-        if a in ep.features
-        and s in ep.features
-        and ep.features[a].shape == ep.features[s].shape
-        and ep.length > th.lag_max + 10
-        and np.all(np.isfinite(ep.features[a]))
-        and np.all(np.isfinite(ep.features[s]))
-    ]
+    eps, pairs = _sync_episodes(ds, th)
     if len(eps) < th.min_episodes_for_outliers:
-        widths = {(ep.features[a].shape[1], ep.features[s].shape[1]) for ep in ds.episodes.values()
-                  if a in ep.features and s in ep.features}
-        why = ("action and state have different widths" if widths and all(x != y for x, y in widths)
-               else f"fewer than {th.min_episodes_for_outliers} long, fully finite episodes")
+        why = ("action and state have different widths and fewer than three channel names in common"
+               if pairs is None else f"fewer than {th.min_episodes_for_outliers} long, fully finite episodes")
         ds.not_checked.append(f"action/state sync: {why}")
         return []
-    curves = {ep.index: _lag_errors(ep.features[a], ep.features[s], th.lag_max) for ep in eps}
+    curves = {ep.index: _lag_errors(A, S, th.lag_max) for ep, A, S in eps}
     curves = {i: c for i, c in curves.items() if len(c[0])}
     if len(curves) < th.min_episodes_for_outliers:
         return []
