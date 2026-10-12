@@ -83,16 +83,16 @@ The composite score is the mean rank of DemInf-lite and consistency. If it corre
 
 | Data (200 episodes) | All data | Random subset | Keep shortest | Spectral (PSD) | DemInf-lite | rdq composite | rdq rules | Oracle |
 |---|---|---|---|---|---|---|---|---|
-| 30% recording faults (desync, frozen log, glitch) | 0.16 | 0.19 | 0.21 | 0.21 | 0.93 | 0.92 | **1.00** | 1.00 |
-| 40% imperfect operators (shaky, hesitant, detours, failed) | 0.88 | 0.74 | 0.89 | 0.88 | 0.70 | 0.84 | 0.88 | 0.99 |
-| Both (15% faults + 20% imperfect operators) | 0.34 | 0.37 | 0.24 | 0.27 | 0.88 | **0.93** | 0.92 | 1.00 |
+| 30% recording faults (desync, frozen log, glitch) | 0.16 | 0.19 | 0.21 | 0.21 | 0.89 | 0.92 | **1.00** | 1.00 |
+| 40% imperfect operators (shaky, hesitant, detours, failed) | 0.88 | 0.74 | 0.89 | 0.88 | 0.73 | 0.83 | 0.88 | 0.99 |
+| Both (15% faults + 20% imperfect operators) | 0.34 | 0.37 | 0.24 | 0.27 | 0.87 | 0.93 | 0.92 | 1.00 |
 
-*Success rates. Full tables, confidence intervals and detection AUROCs are in [`experiments/results/curation_benchmark.md`](experiments/results/curation_benchmark.md).*
+*Success rates, mean of 5 seeds. Full tables, 95% confidence intervals over seeds and detection AUROCs are in [`experiments/results/curation_benchmark.md`](experiments/results/curation_benchmark.md). Seed-to-seed variation is large for the soft scores: on "Both", the composite's interval is 0.87–0.99 and the rules' is 0.90–0.94, so the two are not distinguishable.*
 
 What this shows:
 
-- **Recording faults are the expensive problem, and rules fix them.** Thirty percent faulty episodes cut success from 1.00 to 0.16. rdq's rules recovered the oracle exactly and dropped no clean episodes. Length and smoothness metrics did no better than random.
-- **Operator skill is a different problem.** Behaviour cloning was fairly robust to imperfect operators (0.88 with everything), and no training-free score reliably beat training on all the data. Keep-the-shortest was as good as any. rdq therefore reports skill scores for review and does not drop episodes based on them.
+- **Recording faults are the expensive problem, and rules fix them.** Thirty percent faulty episodes cut success from 1.00 to 0.16. rdq's rules recovered the oracle (0.997, interval 0.992–1.000) and dropped no clean episodes. Length and smoothness metrics did no better than random.
+- **Operator skill is a different problem.** Behaviour cloning was fairly robust to imperfect operators (0.88 with everything), and no training-free score reliably beat training on all the data. Keep-the-shortest (0.89) and all data (0.88) were statistically tied, and every soft score did worse. rdq therefore reports skill scores for review and does not drop episodes based on them.
 - **The honest limit:** this is a toy task. The real tests are `experiments/kaggle/` (diffusion policy on Push-T with injected faults) and `experiments/robomimic_mh.py`. The latter runs on RoboMimic's multi-operator data, which has natural quality labels, and is directly comparable with published DemInf, CUPID and spectral numbers.
 
 ## Hub audit
