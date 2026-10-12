@@ -208,6 +208,35 @@ def _cmd_scorecard(args) -> int:
     return 0
 
 
+def _cmd_check_mcap(args) -> int:
+    from .checks import run_checks
+    from .mcap_reader import load_mcap
+    from .report import build_result, format_terminal, write_filter, write_html, write_json
+    from .scoring import score
+
+    try:
+        ds = load_mcap(args.files, args.state_topic, args.action_topic)
+    except DatasetLoadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    findings = run_checks(ds, signal_only=True)
+    order = {"critical": 0, "warning": 1, "info": 2}
+    findings.sort(key=lambda f: (order[f.severity], f.check))
+    result = build_result(ds, findings, score(findings, sorted(ds.episodes)), None)
+    result["dataset"]["path"] = f"{len(args.files)} MCAP file(s)"
+    result["dataset"]["episode_files"] = {str(i): e.meta.get("file") for i, e in ds.episodes.items()}
+    print(format_terminal(result, color=sys.stdout.isatty() and not args.no_color))
+    for w in ds.load_warnings:
+        print(f"  note: {w}")
+    if args.json:
+        write_json(result, args.json)
+    if args.html:
+        write_html(result, args.html)
+    if args.filter:
+        write_filter(result, args.filter)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="rdq", description="Quality and provenance checks for robot-learning datasets")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -236,6 +265,16 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--keep-ranges", help="write idle-trimmed frame ranges per episode (openpi DROID recipe)")
     r.add_argument("--all", action="store_true", help="print every episode")
     r.set_defaults(fn=_cmd_rank)
+
+    m = sub.add_parser("check-mcap", help="audit MCAP recordings (one file per episode) before converting them")
+    m.add_argument("files", nargs="+")
+    m.add_argument("--state-topic", required=True, help="e.g. /joint_states")
+    m.add_argument("--action-topic", help="e.g. /leader/joint_states or /joint_commands")
+    m.add_argument("--json")
+    m.add_argument("--html")
+    m.add_argument("--filter", help="write the usable episode indices (in file order)")
+    m.add_argument("--no-color", action="store_true")
+    m.set_defaults(fn=_cmd_check_mcap)
 
     sc = sub.add_parser("scorecard", help="quality per collector, operator, session or task")
     sc.add_argument("path", help="local dataset folder, or owner/name on the Hugging Face Hub")

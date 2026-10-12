@@ -950,10 +950,17 @@ EPISODE_CHECKS = [
 ]
 
 
-def run_checks(ds: Dataset, th: Thresholds | None = None) -> list[Finding]:
+# Checks that only make sense for LeRobot's on-disk format (metadata files, stats, video index).
+FORMAT_CHECKS = {check_info, check_counts, check_files, check_tasks, check_stats, check_video_alignment}
+
+
+def run_checks(ds: Dataset, th: Thresholds | None = None, signal_only: bool = False) -> list[Finding]:
+    """Run every check. signal_only=True skips the LeRobot-format checks (for MCAP and other sources)."""
     th = th or Thresholds()
     findings: list[Finding] = []
     for check in DATASET_CHECKS + EPISODE_CHECKS:
+        if signal_only and check in FORMAT_CHECKS:
+            continue
         try:
             findings.extend(check(ds, th))
         except Exception as exc:  # one broken check should not hide the others

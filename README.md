@@ -15,6 +15,7 @@ rdq check path/to/dataset --repo-id owner/name --video          # or a local fol
 rdq rank path/to/dataset --keep-top 0.9 --filter keep_ranked.json
 rdq passport path/to/dataset --repo-id owner/name --spdx passport.spdx.json --datasheet DATASHEET.md
 rdq scorecard path/to/dataset --groups collectors.csv     # quality per collector, operator or task
+rdq check-mcap delivery/*.mcap --state-topic /joint_states --action-topic /leader/joint_states   # audit MCAP before converting
 ```
 
 `keep.json` lists the episodes that passed, in the form LeRobot's `--dataset.episodes` accepts.

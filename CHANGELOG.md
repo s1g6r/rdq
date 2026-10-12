@@ -12,6 +12,7 @@
 - The glitch threshold is robust when glitches exceed 1% of frames.
 - Optional camera checks with `--video`: frozen, black, blurry and undecodable footage.
 - `rdq check owner/name` fetches a Hub dataset's tables and card.
+- `rdq check-mcap` audits MCAP recordings (ROS 2 JointState, Float*MultiArray or JSON), one file per episode, with the signal-level checks, so vendor deliveries can be checked before conversion.
 
 **Episode scores**
 - `rdq rank`: DemInf-lite, kNN consistency with minority-strategy detection, smoothness (HFR, LDLJ), the published spectral metric as a baseline, hesitation, gripper cycles, final-state outliers, near-duplicates and openpi-style idle trimming. The composite is the mean rank of DemInf-lite and consistency, with a length-confound warning.
