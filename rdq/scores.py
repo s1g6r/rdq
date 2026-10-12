@@ -569,6 +569,8 @@ def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
         ep_list.append(np.full(keep.sum(), i))
 
     n_scoreable = int(sum(len(z) for z in zs_list))
+    if not zs_list and ctx_keys:
+        summary["skipped"].append("no episode has enough finite, non-idle frames for DemInf-lite and consistency")
     if zs_list and not ctx_keys:
         zs_list = []
     elif zs_list and n_scoreable < MIN_SCORED_FRAMES:
