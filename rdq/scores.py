@@ -430,6 +430,8 @@ def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
     zs_list, za_list, ph_list, ep_list, fr_list = [], [], [], [], []
     finals, embs = [], []
     g_idx = find_gripper(ds, akey)
+    if g_idx is not None and g_idx >= all_a.shape[1]:
+        g_idx = None  # names don't match the data's shape; don't guess
     g_mid = None
     if g_idx is not None:
         g_all = all_a[finite][:, g_idx]

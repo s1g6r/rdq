@@ -1,0 +1,44 @@
+name: benchmarks
+
+# Run by hand from the Actions tab. Downloads public data from the Hugging Face Hub,
+# runs the CPU benchmarks and uploads the results as a build artifact.
+on:
+  workflow_dispatch:
+    inputs:
+      tasks:
+        description: "RoboMimic MH tasks"
+        default: "can square"
+      seeds:
+        description: "Seeds for the synthetic curation benchmark"
+        default: "5"
+
+jobs:
+  robomimic-mh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e . h5py
+      - run: python experiments/robomimic_mh.py --tasks ${{ github.event.inputs.tasks }} --out bench-results
+      - uses: actions/upload-artifact@v4
+        with:
+          name: robomimic-mh
+          path: bench-results/
+
+  curation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - run: python experiments/curation_benchmark.py --episodes 200 --seeds ${{ github.event.inputs.seeds }} --rollouts 400 --out bench-results
+      - uses: actions/upload-artifact@v4
+        with:
+          name: curation-benchmark
+          path: bench-results/
