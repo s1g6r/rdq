@@ -10,6 +10,7 @@ Fixes from a pre-release review against real Hub dataset schemas.
 - New: `counts.episodes_not_in_metadata` / `counts.metadata_episodes_missing`, `values.empty_channel` (a never-finite channel is reported once instead of making every episode critical), `episodes.no_motion` (a dataset that never moves), and `episodes.spikes_systematic` (a channel that "glitches" in most episodes is reported once and no longer empties the usable-episode filter).
 - Idle episodes are compared with episodes of the same task.
 - Reports list what was not checked and why.
+- `--max-frames` reads whole episodes up to the budget, even from a single large file, and reports it as an INFO note instead of a warning.
 
 **Scores**
 - Without `observation.state`, actions are no longer compared with themselves; DemInf-lite and consistency need another observation to condition on.

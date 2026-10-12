@@ -168,6 +168,8 @@ def check_info(ds: Dataset, th: Thresholds) -> list[Finding]:
         )
     for msg in ds.load_warnings:
         out.append(Finding("info.load_warning", WARNING, msg))
+    if getattr(ds, "truncated", None):
+        out.append(Finding("info.partial_read", INFO, ds.truncated + "; counts and stats were not compared with the metadata"))
     skipped = getattr(ds, "skipped_features", None) or {}
     if skipped:
         listed = "; ".join(f"{k} ({why})" for k, why in list(skipped.items())[:8])
@@ -255,7 +257,7 @@ def check_counts(ds: Dataset, th: Thresholds) -> list[Finding]:
     actual_frames = sum(ep.length for ep in ds.episodes.values())
     declared_eps = ds.info.get("total_episodes")
     declared_frames = ds.info.get("total_frames")
-    truncated = any("max_frames" in w for w in ds.load_warnings)
+    truncated = bool(getattr(ds, "truncated", None))
     if not truncated:
         if declared_eps is not None and declared_eps != actual_eps:
             out.append(
@@ -583,7 +585,7 @@ def check_stats(ds: Dataset, th: Thresholds) -> list[Finding]:
     training even when every frame is fine.
     """
     out = []
-    truncated = any("max_frames" in w for w in ds.load_warnings)
+    truncated = bool(getattr(ds, "truncated", None))
     if ds.stats is None:
         if not ds.has_episode_stats:
             out.append(Finding("stats.missing", WARNING, "no normalisation statistics at all (no stats.json or per-episode stats)"))

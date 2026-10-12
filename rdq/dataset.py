@@ -93,7 +93,8 @@ class Dataset:
     has_episode_stats: bool = False  # per-episode stats (v2.1 episodes_stats.jsonl or v3 stats/ columns)
     skipped_features: dict[str, str] = field(default_factory=dict)  # feature -> why it was not loaded
     not_checked: list[str] = field(default_factory=list)  # checks that could not run, with the reason
-    channel_index: dict[str, list[int]] = field(default_factory=dict)  # kept columns -> declared positions (after dropping dead channels)
+    channel_index: dict[str, list[int]] = field(default_factory=dict)
+    truncated: str | None = None  # set when only part of the data was read (--max-frames)  # kept columns -> declared positions (after dropping dead channels)
 
     @property
     def action_key(self) -> str | None:
@@ -282,9 +283,18 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
         frames.append(_read_parquet(path, columns=wanted))
         total += len(frames[-1])
         if max_frames and total >= max_frames:
-            warnings.append(f"stopped reading after {total} frames (max_frames={max_frames})")
             break
     data = pd.concat(frames, ignore_index=True)
+    truncated = None
+    if max_frames and len(data) > max_frames and "episode_index" in data.columns:
+        # Keep whole episodes, in order, up to the frame budget (at least one episode).
+        sizes = data.groupby("episode_index", sort=True).size()
+        keep = sizes.index[(sizes.cumsum() <= max_frames).to_numpy()]
+        if len(keep) == 0:
+            keep = sizes.index[:1]
+        data = data[data["episode_index"].isin(keep)].reset_index(drop=True)
+    if max_frames and (len(data) < sum(pq.ParquetFile(p).metadata.num_rows for p in data_files)):
+        truncated = f"quick look: read {len(data):,} frames ({data['episode_index'].nunique() if 'episode_index' in data.columns else '?'} episodes) because of --max-frames {max_frames}"
 
     missing = [k for k in numeric_keys if k not in data.columns]
     for key in missing:
@@ -359,4 +369,5 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
         orphan_files=orphan_files,
         has_episode_stats=has_episode_stats,
         skipped_features=skipped,
+        truncated=truncated,
     )
