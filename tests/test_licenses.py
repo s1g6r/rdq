@@ -235,3 +235,19 @@ def test_publisher_upload_is_informational():
 def test_stricter_declared_licence_is_not_a_conflict():
     a = assess_card("acme/droid_nc_subset", "", "cc-by-nc-4.0")
     assert a.status == "stricter-than-upstream" and a.severity == "info"
+
+
+def test_passport_keeps_a_publisher_added_restriction(tmp_path):
+    from rdq import synthetic as syn
+    from rdq.passport import build_passport
+    from rdq.report import audit
+
+    root = tmp_path / "ds"
+    syn.write_dataset(root, syn.make_episodes(4, 60), with_video=False)
+    card = "---\nlicense: cc-by-nc-4.0\n---\nA subset of DROID."
+    doc = build_passport(audit(root, readme=card, repo_id="acme/droid_nc_subset"), card, root, "acme/droid_nc_subset")
+    lic = doc["rdq:license"]
+    assert lic["commercialTraining"] is False
+    assert "CC-BY-NC-4.0" in lic["concluded"]
+    assert doc["usageInfo"]["odrl:prohibition"]
+    assert not str(doc["url"]).startswith("file:")

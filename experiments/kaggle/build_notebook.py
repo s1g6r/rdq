@@ -98,7 +98,10 @@ SRC = SCRATCH / "rdq_src"
 if not (SRC / "rdq" / "cli.py").exists():
     SRC.mkdir(parents=True, exist_ok=True)
     with tarfile.open(fileobj=io.BytesIO(base64.b64decode(BUNDLE)), mode="r:gz") as tar:
-        tar.extractall(SRC)
+        try:
+            tar.extractall(SRC, filter="data")
+        except TypeError:  # Python < 3.12 without extraction filters
+            tar.extractall(SRC)
 print("rdq source ready in", SRC)
 """
 

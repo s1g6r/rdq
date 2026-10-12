@@ -6,35 +6,37 @@
 2. **Is anything broken?** It finds desynced streams, frozen logs, glitches, idle padding, duplicates, stale normalisation stats, schema errors and (optionally) bad camera footage.
 3. **Which episodes are worth training on?** It ranks episodes with training-free quality scores from the curation literature, and it says honestly where those scores help and where they don't.
 
-It reads tables, not videos (unless you ask), and runs on a laptop.
+It reads tables, not videos (unless you ask), and runs on a laptop for typical datasets: about 1.4 GB of memory for 600,000 frames. For DROID-scale corpora, audit a sample of episodes.
 
 ```bash
 pip install -e .                       # Python 3.10+
 rdq check owner/name --html report.html --filter keep.json      # a Hub dataset id (fetches tables + card only)
 rdq check path/to/dataset --repo-id owner/name --video          # or a local folder, with camera checks
-rdq rank path/to/dataset --keep-top 0.9 --filter keep_ranked.json
+rdq rank path/to/dataset --json scores.json                     # rank episodes for review
 rdq passport path/to/dataset --repo-id owner/name --spdx passport.spdx.json --datasheet DATASHEET.md
 rdq scorecard path/to/dataset --groups collectors.csv     # quality per collector, operator or task
 rdq check-mcap delivery/*.mcap --state-topic /joint_states --action-topic /leader/joint_states   # audit MCAP before converting
 ```
 
-`keep.json` lists the episodes that passed, in the form LeRobot's `--dataset.episodes` accepts.
+`keep.json` is `{"episodes": [...]}`, the episodes with no critical or warning finding. Pass the list to LeRobot with `--dataset.episodes="$(jq -c .episodes keep.json)"`.
 
 ## Licence and provenance
 
 LeRobot's `push_to_hub()` defaults to `license="apache-2.0"` and writes a template card. In a scan of the 3,000 most-downloaded LeRobot datasets on the Hub (October 2026):
 
 - **56.5%** (51.9% of downloads) carry `apache-2.0` on an unedited template card. That is most likely the tool's default rather than a licence the owner chose.
-- **1,173** (70.8% of downloads) can be traced to one of 65 public robot datasets whose terms we checked against the primary source (26 of them at high confidence). **201 of these (32% of downloads) declare a licence that differs from the original's terms**, 144 of them (21.5% of downloads) against a high-confidence source. Most are CC BY 4.0 data relabelled as apache-2.0 or MIT. At least one is a non-commercial, share-alike dataset tagged apache-2.0.
+- **305** (51.9% of downloads) are conversions or mirrors of one of 65 public robot datasets whose terms we checked against the primary source (26 of them at high confidence). Uploads by an original publisher's own organisation (862: RoboCOIN, Unitree and TacVerse) are counted separately, because their tag is theirs to choose.
+- **201 of those 305 (32% of downloads) declare a licence that differs from the original's terms**, 144 of them (21.5% of downloads) against a high-confidence source. 191 are CC BY 4.0 data relabelled as apache-2.0 or MIT. At least one is a non-commercial, share-alike dataset tagged apache-2.0.
+- How strong the matches are: 188 of the 201 are matched by repository name (such as `droid_lerobot` or `bridge_v2_lerobot`), 12 by a link to the original on the card and 1 by a mention. For the 17 most-downloaded name matches we compared episode counts and robot types with the original release, and all 17 matched.
 - **45 more** (8.4% of downloads) declare a licence on data whose original release states no data licence at all, only a code licence. ALOHA sim, Push-T and xArm are examples.
 
-`rdq` reports a verdict for every dataset and marks how strong each upstream match is: the card links to the source, the repo name matches, or the card only mentions it. The upstream table lives in [`rdq/data/upstream_licences.json`](rdq/data/upstream_licences.json). Every entry keeps the statement, its URL, the date it was checked and a confidence level. For example, an Open X-Embodiment component that only has the umbrella CC BY 4.0 line counts as medium confidence and never produces a critical finding. A tag on a mirror cannot grant rights the uploader doesn't hold. This is a diligence aid, not legal advice.
+`rdq` reports a verdict for every dataset and marks how strong each upstream match is, from strongest to weakest: the card's `source_datasets` names the source, the card links to it in a derivation context (a "Homepage" field, "converted from"), the repo name matches, or the card only mentions or cites it. Each source is judged on its own evidence and confidence, and the most restrictive term wins. A match by a generic repo name alone is never critical. The upstream table lives in [`rdq/data/upstream_licences.json`](rdq/data/upstream_licences.json). Every entry keeps the statement, its URL, the date it was checked and a confidence level. For example, an Open X-Embodiment component that only has the umbrella CC BY 4.0 line counts as medium confidence and never produces a critical finding. A tag on a mirror cannot grant rights the uploader doesn't hold. This is a diligence aid, not legal advice.
 
 ### Data passport
 
 `rdq passport` writes a machine-readable record of a dataset in three forms:
 
-- [Croissant 1.1](https://docs.mlcommons.org/croissant/) JSON-LD with the RAI vocabulary and PROV-O. It validates with `mlcroissant`.
+- [Croissant 1.1](https://docs.mlcommons.org/croissant/) JSON-LD with the RAI vocabulary and PROV-O. It validates with `mlcroissant`, and its record set lets Croissant loaders enumerate frames by episode, frame index and timestamp. Action and state vectors are described in the passport but not yet as Croissant fields.
 - An SPDX 3.0 dataset package, which records the declared and concluded licences separately.
 - A Markdown datasheet.
 
@@ -45,17 +47,21 @@ Facts computed from the data are kept separate from statements by the owner. rdq
 | Check | Severity | Why it matters |
 |---|---|---|
 | `sync.action_state_lag` | warning | Actions shifted against observations. Detected from velocities, so steady motion doesn't hide it. |
-| `episodes.idle`, `episodes.idle_padding` | critical / warning | The robot never really moves, or the recording kept running long after the task. |
-| `episodes.spikes` | warning | Short out-and-back glitches from sensor dropouts. The threshold stays robust when glitches are common. |
+| `episodes.idle`, `episodes.idle_padding` | critical / warning | The robot barely moves compared with other episodes of the same task, or the recording kept running long after the task. |
+| `episodes.spikes` | warning | Short out-and-back glitches from sensor dropouts. A channel that does this in most episodes (fast gripper pulses, quantised encoders) is reported once as `episodes.spikes_systematic` instead of excluding every episode. |
 | `episodes.duplicate` | warning | Exact copies inflate the dataset. |
-| `values.non_finite`, `values.dead_dimension` | critical / info | NaNs, or a channel that never changes. |
+| `values.non_finite`, `values.empty_channel`, `values.dead_dimension` | critical / warning / info | NaNs in some frames, a channel that is never finite (reported once, not per episode), or a channel that never changes. |
+| `episodes.no_motion` | critical | No episode moves at all: a frozen stream or a disconnected arm. |
+| `counts.episodes_not_in_metadata` | critical | Episodes in the data files that LeRobot's metadata doesn't list, or the reverse. |
 | `stats.stale` | warning | `stats.json` doesn't match the data, so normalisation is silently wrong. |
 | `schema.*`, `counts.*`, `time.*`, `files.*` | various | Metadata that disagrees with the data, broken timing, orphaned files. |
 | `tasks.placeholder` | warning | Language-conditioned policies get a useless instruction. |
 | `video.span_mismatch` | warning | A video segment and its data differ in length. |
 | `video.frozen`, `video.black`, `video.decode_error`, `video.blur` | with `--video` | Six frames per episode per camera are decoded to catch stalled, covered or broken cameras. |
 
-On 120 clean synthetic datasets the checks raise no warnings or critical findings. CI runs this test on every commit (`tests/false_alarms.py`).
+Features that are not joint signals (depth maps, point clouds, audio, tactile grids wider than 1,024 values) are listed as not checked rather than loaded. Every report ends with a "Not checked" list, for example when the sync check can't run because action and state have different sizes.
+
+On 120 clean synthetic datasets the checks raise no warnings or critical findings, and CI repeats this on 40 datasets on every commit (`tests/false_alarms.py`). The clean data comes from the same generator the thresholds were tuned on, so this shows the checks are quiet on well-behaved data, not that they are quiet on yours. On 210 real Hub datasets, an earlier version of the checks raised a warning or critical finding on 58%; a re-audit with the current version is pending.
 
 ## Episode quality scores (`rdq rank`)
 
@@ -67,7 +73,9 @@ These scores need no training, are cheap to compute, and come from published met
 - **The spectral metric of [Sojib et al. 2026](https://arxiv.org/abs/2605.01544)**, reproduced as a baseline. By Parseval's theorem it scales with episode length, so rdq always reports length alongside it.
 - **Idle trimming** following the openpi DROID recipe (`--keep-ranges`).
 
-The composite score is the mean rank of DemInf-lite and consistency. If it correlates strongly with episode length, rdq warns you.
+The composite score is the mean rank of DemInf-lite and consistency. If it correlates strongly with episode length, rdq warns you. These two components were chosen after seeing the benchmark below (a first version that also averaged smoothness and hesitation scored 0.82 on the mixed scenario), so the benchmark is not an independent test of the composite; the RoboMimic run is. Without an `observation.state`, DemInf-lite and consistency are only computed when other observations exist to condition on.
+
+`rdq rank --keep-top` writes the best-scoring fraction of episodes. Treat it as experimental: in the benchmark, dropping episodes on soft scores never reliably beat training on all clean data.
 
 ## Evidence
 

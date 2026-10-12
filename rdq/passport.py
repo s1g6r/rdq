@@ -353,8 +353,8 @@ def build_passport(
     }
     lic_url = license_url(concluded_for_croissant if concluded_for_croissant and " AND " not in concluded_for_croissant else None)
     doc["license"] = lic_url or (concluded_for_croissant if concluded_for_croissant else "NOASSERTION")
-    if up.get("commercial_training") is False or up.get("redistribution") is False:
-        doc["usageInfo"] = _usage_info(up)
+    if commercial_training is False or up.get("redistribution") is False:
+        doc["usageInfo"] = _usage_info(up, commercial_training)
     return {k: v for k, v in doc.items() if v not in (None, [], "")}
 
 
@@ -375,9 +375,9 @@ def _license_status(prov: dict, up: dict, answers: dict) -> str:
     return status
 
 
-def _usage_info(up: dict) -> dict:
+def _usage_info(up: dict, commercial_training: bool | None = None) -> dict:
     prohibitions = []
-    if up.get("commercial_training") is False:
+    if up.get("commercial_training") is False or commercial_training is False:
         prohibitions.append({"odrl:action": "odrl:commercialize"})
     if up.get("redistribution") is False:
         prohibitions.append({"odrl:action": "odrl:distribute"})

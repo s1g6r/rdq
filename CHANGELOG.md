@@ -1,9 +1,37 @@
 # Changelog
 
+## 0.2.1 (unreleased)
+
+Fixes from a pre-release review against real Hub dataset schemas.
+
+**Loading and checks**
+- Only numeric joint signals are loaded. Depth, depth video, point clouds, audio and arrays wider than 1,024 values are listed under `schema.features_not_checked` instead of crashing the load or causing false critical findings (about 4% of Hub datasets have such features).
+- An empty `fps` is critical, and reports no longer crash when it is missing.
+- New: `counts.episodes_not_in_metadata` / `counts.metadata_episodes_missing`, `values.empty_channel` (a never-finite channel is reported once instead of making every episode critical), `episodes.no_motion` (a dataset that never moves), and `episodes.spikes_systematic` (a channel that "glitches" in most episodes is reported once and no longer empties the usable-episode filter).
+- Idle episodes are compared with episodes of the same task.
+- Reports list what was not checked and why.
+
+**Scores**
+- Without `observation.state`, actions are no longer compared with themselves; DemInf-lite and consistency need another observation to condition on.
+- Never-finite channels, episodes with an unusual action/state width, and datasets with fewer than 20 scoreable frames no longer crash `rank` or `scorecard`.
+- KSG counts marginal neighbours strictly, as in Kraskov et al.'s algorithm 1.
+- `rdq rank` shows check failures instead of a "minority strategy" note for broken episodes, writes strict JSON, and labels `--keep-top` experimental.
+
+**Licences and passport**
+- The most restrictive upstream term wins across multiple sources, and each source's severity is capped by its own confidence and evidence.
+- Evidence kinds: `card-source`, `card-link` (only in a derivation context), `repo-id`, `card-mention`, `publisher`. Generic repo-name matches are capped at warning; publisher uploads are informational.
+- New status `stricter-than-upstream`; the passport keeps restrictions a publisher added (the concluded licence is the conjunction).
+- Fixed patterns that matched unrelated ids (`cambridge_v2` as BridgeData V2, Unitree Z1 as G1).
+- Passport: a Croissant record set over the frame index columns, no local paths, valid SPDX LicenseRef ids, more HF licence tags mapped to SPDX.
+
+**Evidence**
+- Hub summary separates publisher uploads from traced conversions, reports match evidence, and no longer lists dataset ids.
+- Benchmark confidence intervals are computed over seeds.
+
 ## 0.2.0 (2026-10-12)
 
 **Licence and provenance**
-- Upstream licence knowledge base (`rdq/data/upstream_licences.json`): 65 public robot datasets with terms checked against primary sources, a confidence level, and repository-name patterns validated against the Hub.
+- Upstream licence knowledge base (`rdq/data/upstream_licences.json`): 65 public robot datasets with terms checked against primary sources, and a confidence level.
 - Declared-vs-upstream assessment: `consistent`, `relabelled`, `upstream-conflict`, `restricted-redistribution`, `no-upstream-grant`, `review`, `missing`. Each match records its evidence: card link, repo name or card mention.
 - `rdq passport`: Croissant 1.1 + RAI + PROV-O JSON-LD (validates with `mlcroissant`), an SPDX 3.0 export and a Markdown datasheet. Owner-only facts come from an answers file.
 

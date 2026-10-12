@@ -167,7 +167,7 @@ def match_sources(repo_id: str | None, readme: str | None) -> list[SourceMatch]:
     declared_sources = _front_matter_sources(text)
     out = []
     for src in UPSTREAM_SOURCES:
-        org_anchored = src.id_pattern.startswith("^") and src.id_pattern.rstrip("$").endswith("/")
+        org_anchored = bool(re.match(r"\^[\w.-]+/", src.id_pattern))  # e.g. ^robocoin/ or ^unitreerobotics/g1
         if rid and org_anchored and re.search(src.id_pattern, rid):
             out.append(SourceMatch(src.key, src.name, "publisher"))
         elif any(re.search(src.id_pattern, d) for d in declared_sources) and not org_anchored:
