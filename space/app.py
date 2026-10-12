@@ -4,8 +4,8 @@ Paste a dataset id. The app reads the card and metadata to check the licence and
 provenance (seconds). It can also download the tables, never the videos, to run every
 quality check (up to a size limit). It returns the report and a data passport.
 
-Deploy: create a Gradio Space and copy this folder plus the `rdq` package into it, or
-add `rdq @ git+https://github.com/s1g6r/rdq` to requirements.txt once the repo is public.
+Deploy: create a Gradio Space and upload app.py, requirements.txt and README.md from
+this folder. requirements.txt installs rdq from GitHub.
 """
 
 from __future__ import annotations
