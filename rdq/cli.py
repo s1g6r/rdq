@@ -27,9 +27,29 @@ def _resolve_path(path: str, repo_id: str | None, video: bool) -> tuple[str, str
 
     hf = _hf()
     patterns = ["meta/*", "meta/**", "data/**", "README.md"] + (["videos/**"] if video else [])
-    print(f"fetching {path} from the Hugging Face Hub ({'with' if video else 'without'} videos)…", file=sys.stderr)
-    local = hf.snapshot_download(path, repo_type="dataset", allow_patterns=patterns)
+    print(f"no local folder '{path}', so fetching it from the Hugging Face Hub "
+          f"({'with' if video else 'without'} videos)…", file=sys.stderr)
+    try:
+        local = hf.snapshot_download(path, repo_type="dataset", allow_patterns=patterns)
+    except Exception as exc:  # noqa: BLE001 - hub errors come in many types
+        raise DatasetLoadError(f"'{path}' is not a local folder and could not be fetched from the Hub "
+                               f"({type(exc).__name__}: {str(exc).splitlines()[0][:200]})") from exc
     return local, repo_id or path
+
+
+def _json_safe(o):
+    """NaN/inf are not valid JSON; write them as null."""
+    import math
+
+    if isinstance(o, float):
+        return o if math.isfinite(o) else None
+    if isinstance(o, dict):
+        return {str(k): _json_safe(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_json_safe(v) for v in o]
+    if hasattr(o, "item"):
+        return _json_safe(o.item())
+    return o
 
 
 def _cmd_check(args) -> int:
@@ -141,11 +161,25 @@ def _cmd_rank(args) -> int:
     except DatasetLoadError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
+    from .checks import CRITICAL, WARNING, run_checks
+
     res = score_episodes(ds, ScoreConfig(chunk=args.chunk, seed=args.seed))
     eps = res["episodes"]
     if not eps:
         print(f"error: {res['summary'].get('error', 'nothing to score')}", file=sys.stderr)
         return 2
+    # Recording faults found by the checks take precedence over the soft scores' notes: a
+    # desynced episode must not be presented as a "minority strategy" to keep.
+    rule_flags: dict[int, list[str]] = {}
+    for fnd in run_checks(ds):
+        if fnd.severity in (CRITICAL, WARNING):
+            for i in fnd.episodes:
+                rule_flags.setdefault(int(i), []).append(fnd.check)
+    for i, e in eps.items():
+        e["rule_flags"] = sorted(set(rule_flags.get(int(i), [])))
+        if e["rule_flags"]:
+            e["notes"] = [n for n in e["notes"] if not n.startswith("minority strategy")]
+            e["notes"].insert(0, "check failed: " + ", ".join(e["rule_flags"]))
     key = args.by
     higher_better = key in ("composite", "deminf", "ldlj")
 
@@ -158,6 +192,8 @@ def _cmd_rank(args) -> int:
           f"{'relative' if res['summary'].get('relative_actions') else 'absolute'} actions); ranked by {key}")
     if res["summary"].get("length_confound_warning"):
         print("warning: " + res["summary"]["length_confound_warning"])
+    for note in res["summary"].get("skipped", []):
+        print("note: " + note)
     print(f"{'episode':>8} {'len':>6} {'composite':>9} {'deminf':>8} {'consist':>8} {'hfr':>6} {'dither':>6}  notes")
 
     def f(v, w=8, p=2):
@@ -172,11 +208,17 @@ def _cmd_rank(args) -> int:
         print(f"{i:>8} {e['length']:>6} {f(e['composite'], 9)} {f(e['deminf'])} {f(e['consistency'])} {f(e['hfr'], 6)} "
               f"{f(e['dither'], 6)}  {'; '.join(e['notes'])}")
     if args.json:
-        Path(args.json).write_text(json.dumps(res, indent=1, default=float))
+        Path(args.json).write_text(json.dumps(_json_safe(res), indent=1))
     if args.keep_top is not None:
-        n = max(1, int(round(args.keep_top * len(order))))
-        Path(args.filter or "keep.json").write_text(json.dumps({"episodes": sorted(order[:n])}))
-        print(f"kept the top {n}/{len(order)} by {key} -> {args.filter or 'keep.json'}")
+        scored = [i for i in order if eps[i].get(key) is not None and np.isfinite(eps[i][key])]
+        if not scored:
+            print(f"error: no episode has a {key} score, so --keep-top cannot rank them", file=sys.stderr)
+            return 2
+        n = max(1, int(round(args.keep_top * len(scored))))
+        Path(args.filter or "keep.json").write_text(json.dumps({"episodes": sorted(scored[:n])}))
+        print(f"kept the top {n}/{len(scored)} by {key} -> {args.filter or 'keep.json'} (experimental: in rdq's "
+              "benchmark, dropping episodes on soft scores did not beat training on all clean data; "
+              "see experiments/README.md)")
     if args.keep_ranges:
         Path(args.keep_ranges).write_text(json.dumps({str(i): e["keep_ranges"] for i, e in eps.items()}))
         print(f"idle-trimmed frame ranges -> {args.keep_ranges}")
@@ -260,7 +302,7 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--chunk", type=int, default=4, help="action chunk length for DemInf-lite")
     r.add_argument("--seed", type=int, default=0)
     r.add_argument("--json", help="write all per-episode scores as JSON")
-    r.add_argument("--keep-top", type=float, help="keep this fraction of episodes, best first (writes --filter)")
+    r.add_argument("--keep-top", type=float, help="experimental: keep this fraction of scored episodes, best first (writes --filter)")
     r.add_argument("--filter", help="where --keep-top writes the episode list (default keep.json)")
     r.add_argument("--keep-ranges", help="write idle-trimmed frame ranges per episode (openpi DROID recipe)")
     r.add_argument("--all", action="store_true", help="print every episode")

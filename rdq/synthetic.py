@@ -8,6 +8,7 @@ controlled ways and see whether the score predicts the damage).
 from __future__ import annotations
 
 import json
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -158,14 +159,15 @@ def write_dataset(
     stats = {}
     extra_arrays = [(k, np.concatenate([e["extra"][k] for e in episodes])) for k in (episodes[0].get("extra") or {})]
     for key, arr in [("action", all_action), ("observation.state", all_state)] + extra_arrays:
-        finite = arr[np.all(np.isfinite(arr), axis=1)]
-        stats[key] = {
-            "min": finite.min(0).tolist(),
-            "max": finite.max(0).tolist(),
-            "mean": finite.mean(0).tolist(),
-            "std": finite.std(0).tolist(),
-            "count": [len(finite)],
-        }
+        clean = np.where(np.isfinite(arr), arr, np.nan)
+        with np.errstate(all="ignore"), warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            cols = {
+                "min": np.nanmin(clean, 0), "max": np.nanmax(clean, 0),
+                "mean": np.nanmean(clean, 0), "std": np.nanstd(clean, 0),
+            }
+        stats[key] = {k: np.nan_to_num(v).tolist() for k, v in cols.items()}
+        stats[key]["count"] = [int(np.all(np.isfinite(arr), axis=1).sum())]
     if stats_override:
         for key, entry in stats_override.items():
             stats.setdefault(key, {}).update(entry)

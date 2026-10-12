@@ -298,7 +298,13 @@ def summarise(rows: list[dict], rollouts: int) -> dict:
         table = {}
         for m in methods:
             v = np.array([r["success"][m] for r in rs])
-            lo, hi = wilson(v.mean(), rollouts * len(rs))
+            # Seed-to-seed (training) variance dominates rollout noise, so the interval is a
+            # t-interval over seeds, widened to at least the Wilson interval for the pooled rollouts.
+            from scipy.stats import t as student_t
+
+            half = float(student_t.ppf(0.975, len(v) - 1) * v.std(ddof=1) / np.sqrt(len(v))) if len(v) > 1 else 0.0
+            wlo, whi = wilson(v.mean(), rollouts * len(rs))
+            lo, hi = max(0.0, min(v.mean() - half, wlo)), min(1.0, max(v.mean() + half, whi))
             kept_bad = [r["kept_bad_fraction"][m] for r in rs if r["kept_bad_fraction"][m] is not None]
             table[m] = {"success": round(float(v.mean()), 3), "ci95": [round(lo, 3), round(hi, 3)],
                         "per_seed": [round(x, 3) for x in v], "kept_bad_fraction": round(float(np.mean(kept_bad)), 3)}
@@ -319,7 +325,7 @@ def to_markdown(summary: dict) -> str:
         L += [f"## Scenario: {sc}", "",
               f"{s['episodes']} episodes, {s['seeds']} seeds; subset methods keep {s['keep_n']} episodes (the number of good ones). "
               f"rdq's rules kept {s['rules_kept_mean']} on average. Scoring took {s['score_seconds_mean']} s per dataset.", "",
-              "| Method | Success | 95% CI | Bad episodes kept |", "|---|---|---|---|"]
+              "| Method | Success | 95% CI (over seeds) | Bad episodes kept |", "|---|---|---|---|"]
         for m, v in sorted(s["success"].items(), key=lambda kv: -kv[1]["success"]):
             L.append(f"| {m} | {v['success']:.3f} | {v['ci95'][0]:.3f}–{v['ci95'][1]:.3f} | {v['kept_bad_fraction']:.0%} |")
         L += ["", "Detection AUROC (bad vs expert):", "", "| Score | All | " + " | ".join(next(iter(s["auroc_by_type"].values()))) + " |",

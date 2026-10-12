@@ -96,6 +96,18 @@ def classify_license(license_value) -> str:
     return "other"
 
 
+_MODEL_CONTEXT = re.compile(r"pre-?train|encoder|backbone|representation|embedding|features from|r3m|vc-1|vip\b")
+
+
+def _mentioned_as_data(name: str, text: str) -> bool:
+    """True if the card names a restricted source other than as a pretrained model's training data."""
+    for m in re.finditer(re.escape(name), text):
+        window = text[max(0, m.start() - 80) : m.end() + 40]
+        if not _MODEL_CONTEXT.search(window):
+            return True
+    return False
+
+
 def analyse_card(readme: str | None, card_license=None, repo_id: str | None = None) -> ProvenanceResult:
     meta, body = split_card(readme or "")
     lic = card_license if card_license is not None else meta.get("license")
@@ -116,7 +128,7 @@ def analyse_card(readme: str | None, card_license=None, repo_id: str | None = No
     untouched = template and not description and {"homepage", "paper"} <= set(unfilled)
 
     lower = (readme or "").lower()
-    restricted = sorted({name for name in RESTRICTED_SOURCES if name in lower})
+    restricted = sorted({name for name in RESTRICTED_SOURCES if _mentioned_as_data(name, lower)})
 
     default_unconfirmed = untouched and str(lic or "").lower() == "apache-2.0"
     notes = []
@@ -142,8 +154,12 @@ def analyse_card(readme: str | None, card_license=None, repo_id: str | None = No
         verdict = "no licence"
     elif lic_class == "noncommercial":
         verdict = "non-commercial"
-    elif restricted:
+    elif upstream.status == "relabelled" and upstream.severity == "warning":
+        verdict = "relabelled (attribution owed)"
+    elif restricted or upstream.status == "restricted-redistribution":
         verdict = "restricted source"
+    elif upstream.status in ("upstream-conflict", "no-upstream-grant") and upstream.severity == "warning":
+        verdict = "differs from upstream"
     elif default_unconfirmed:
         verdict = "default licence, unconfirmed"
     elif untouched:

@@ -19,6 +19,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from rdq.hub import info_facts  # noqa: E402
 from rdq.provenance import analyse_card  # noqa: E402
 
+NAMED = False  # set by --names: include dataset ids in the output (internal use only)
+
 
 def load_scan(results: Path) -> list[dict]:
     rows = [json.loads(l) for l in open(results / "scan.jsonl")]
@@ -72,36 +74,63 @@ def summarise_scan(rows: list[dict]) -> dict:
     def up(r):
         return (r.get("provenance") or {}).get("upstream") or {}
 
-    known = [r for r in rows if up(r).get("upstream")]
+    def evidence(r) -> set[str]:
+        return {u["evidence"] for u in up(r).get("upstream") or []}
+
+    rank = {"card-source": 4, "card-link": 3, "repo-id": 2, "card-mention": 1, "publisher": 0}
+
+    def strongest(r) -> str:
+        return max(evidence(r), key=rank.get)
+
+    matched = [r for r in rows if up(r).get("upstream")]
+    # Uploads by the upstream's own organisation are the publisher's data, not a traced mirror.
+    publisher = [r for r in matched if evidence(r) == {"publisher"}]
+    known = [r for r in matched if evidence(r) != {"publisher"}]
     lic_mismatch = [r for r in known if up(r).get("status") in ("relabelled", "upstream-conflict")]
     no_grant = [r for r in known if up(r).get("status") == "no-upstream-grant"]
     mismatch_hc = [r for r in lic_mismatch if all(u.get("confidence") == "high" for u in up(r)["upstream"])]
     from rdq.licenses import UPSTREAM_SOURCES
     nc_conflict = [r for r in known if up(r).get("status") == "upstream-conflict" and up(r).get("severity") == "critical"]
     by_source = collections.Counter(u["name"] for r in known for u in up(r)["upstream"])
+
+    def share(rs):
+        return f"{100 * dl(rs) / downloads_total:.1f}%" if downloads_total else "n/a"
+
     upstream_summary = {
+        "publisher_uploads": pct(len(publisher), n),
+        "publisher_uploads_download_share": share(publisher),
         "known_upstream_datasets": pct(len(known), n),
-        "known_upstream_download_share": f"{100 * dl(known) / downloads_total:.1f}%" if downloads_total else "n/a",
+        "known_upstream_download_share": share(known),
+        "known_by_strongest_evidence": collections.Counter(strongest(r) for r in known).most_common(),
         "declared_differs_from_upstream": pct(len(lic_mismatch), len(known)),
-        "declared_differs_download_share": f"{100 * dl(lic_mismatch) / downloads_total:.1f}%" if downloads_total else "n/a",
+        "declared_differs_download_share": share(lic_mismatch),
+        "declared_differs_by_strongest_evidence": collections.Counter(strongest(r) for r in lic_mismatch).most_common(),
         "declared_differs_high_confidence": pct(len(mismatch_hc), len(known)),
-        "declared_differs_high_confidence_download_share": f"{100 * dl(mismatch_hc) / downloads_total:.1f}%" if downloads_total else "n/a",
+        "declared_differs_high_confidence_download_share": share(mismatch_hc),
+        "declared_differs_status_counts": collections.Counter(up(r)["status"] for r in lic_mismatch).most_common(),
         "no_upstream_grant": pct(len(no_grant), len(known)),
-        "no_upstream_grant_download_share": f"{100 * dl(no_grant) / downloads_total:.1f}%" if downloads_total else "n/a",
+        "no_upstream_grant_download_share": share(no_grant),
+        "critical_conflicts": len(nc_conflict),
+        "critical_conflicts_download_share": share(nc_conflict),
+        "critical_by_strongest_evidence": collections.Counter(strongest(r) for r in nc_conflict).most_common(),
         "knowledge_base_sources": len(UPSTREAM_SOURCES),
         "knowledge_base_high_confidence": sum(1 for s in UPSTREAM_SOURCES if s.confidence == "high"),
-        "status_counts": collections.Counter(up(r).get("status") for r in rows if up(r)).most_common(),
+        "status_counts": collections.Counter(up(r).get("status") for r in known).most_common(),
         "by_source": by_source.most_common(),
-        "critical_conflicts": [
-            {"id": r["id"], "downloads": r.get("downloads"), "declared": up(r)["declared"], "upstream": up(r)["concluded"],
-             "evidence": sorted({u["evidence"] for u in up(r)["upstream"]})}
-            for r in sorted(nc_conflict, key=lambda r: -(r.get("downloads") or 0))
-        ],
-        "top_relabelled": [
-            {"id": r["id"], "downloads": r.get("downloads"), "declared": up(r)["declared"], "upstream": up(r)["concluded"]}
-            for r in sorted(lic_mismatch, key=lambda r: -(r.get("downloads") or 0))[:15]
-        ],
     }
+    if NAMED:
+        # Named lists stay out of the published summary: a repo-name match is a lead, and owners
+        # should hear about it from us before they read it in a report.
+        upstream_summary["critical_conflicts_named"] = [
+            {"id": r["id"], "downloads": r.get("downloads"), "declared": up(r)["declared"], "upstream": up(r)["concluded"],
+             "evidence": sorted(evidence(r))}
+            for r in sorted(nc_conflict, key=lambda r: -(r.get("downloads") or 0))
+        ]
+        upstream_summary["top_differs_named"] = [
+            {"id": r["id"], "downloads": r.get("downloads"), "declared": up(r)["declared"], "upstream": up(r)["concluded"],
+             "status": up(r)["status"], "evidence": sorted(evidence(r))}
+            for r in sorted(lic_mismatch, key=lambda r: -(r.get("downloads") or 0))[:40]
+        ]
     return {
         "datasets_scanned": n,
         "upstream_licences": upstream_summary,
@@ -120,12 +149,12 @@ def summarise_scan(rows: list[dict]) -> dict:
         "downloads_share_untouched_default": f"{100 * dl_default / downloads_total:.1f}%" if downloads_total else "n/a",
         "no_licence": pct(verdicts.get("no licence", 0), n),
         "noncommercial": pct(verdicts.get("non-commercial", 0), n),
-        "restricted_source_mentions": [r["id"] for r in rows if (r.get("provenance") or {}).get("restricted_sources")],
+        "restricted_source_mentions": sum(1 for r in rows if (r.get("provenance") or {}).get("restricted_sources")),
         "no_info_json_at_root": pct(n - len(with_info), n),
         "codebase_versions": versions.most_common(),
         "robot_type_missing_or_unknown": pct(len(no_robot), len(with_info)),
         "names_true_mismatch": pct(len(mismatch), len(with_info)),
-        "names_true_mismatch_examples": [r["id"] for r in mismatch[:15]],
+        **({"names_true_mismatch_examples": [r["id"] for r in mismatch[:15]]} if NAMED else {}),
         "names_single_placeholder": pct(len(placeholder), len(with_info)),
         "names_missing": pct(len(missing_names), len(with_info)),
         "no_action_feature": pct(len(no_action), len(with_info)),
@@ -185,7 +214,9 @@ if __name__ == "__main__":
     p.add_argument("results", type=Path)
     p.add_argument("--out", type=Path)
     p.add_argument("--audit-dir", type=Path, help="folder with audit_index.jsonl (default: RESULTS_DIR)")
+    p.add_argument("--names", action="store_true", help="include dataset ids (internal use; do not publish)")
     a = p.parse_args()
+    NAMED = a.names
     rows = load_scan(a.results)
     summary = {"scan": summarise_scan(rows), "audit": summarise_audit(a.audit_dir or a.results)}
     text = json.dumps(summary, indent=1)

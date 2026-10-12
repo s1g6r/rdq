@@ -80,7 +80,12 @@ def _read_topics(path: Path, topics: list[str]) -> dict[str, tuple[np.ndarray, n
 
 
 def load_mcap(paths: list[str | Path], state_topic: str, action_topic: str | None = None) -> Dataset:
-    paths = sorted(Path(p) for p in paths)
+    import re as _re
+
+    def natural(p: Path):
+        return [int(t) if t.isdigit() else t for t in _re.split(r"(\d+)", p.name)]
+
+    paths = sorted((Path(p) for p in paths), key=natural)
     if not paths:
         raise DatasetLoadError("no MCAP files given")
     topics = [state_topic] + ([action_topic] if action_topic else [])

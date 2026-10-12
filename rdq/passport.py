@@ -50,6 +50,22 @@ HF_TO_SPDX = {
     "gpl-3.0": "GPL-3.0-only",
     "cdla-permissive-2.0": "CDLA-Permissive-2.0",
     "unlicense": "Unlicense",
+    "cc-by-3.0": "CC-BY-3.0",
+    "cc-by-sa-3.0": "CC-BY-SA-3.0",
+    "cc-by-nc-3.0": "CC-BY-NC-3.0",
+    "cc-by-nc-sa-3.0": "CC-BY-NC-SA-3.0",
+    "cc-by-2.0": "CC-BY-2.0",
+    "gpl-2.0": "GPL-2.0-only",
+    "lgpl-3.0": "LGPL-3.0-only",
+    "lgpl-2.1": "LGPL-2.1-only",
+    "agpl-3.0": "AGPL-3.0-only",
+    "afl-3.0": "AFL-3.0",
+    "mpl-2.0": "MPL-2.0",
+    "bsl-1.0": "BSL-1.0",
+    "isc": "ISC",
+    "wtfpl": "WTFPL",
+    "openrail": "LicenseRef-openrail",
+    "odbl": "ODbL-1.0",
 }
 
 # Questions only the data owner can answer. Written out by `rdq passport --init-answers`.
@@ -78,7 +94,24 @@ def spdx_id(tag) -> str | None:
     if tag is None:
         return None
     t = str(tag).strip().lower()
-    return HF_TO_SPDX.get(t, t.upper() if t.startswith("licenseref-") else None) or f"LicenseRef-{t}"
+    if t in HF_TO_SPDX:
+        return HF_TO_SPDX[t]
+    if t.startswith("licenseref-"):
+        t = t[len("licenseref-"):]
+    # SPDX LicenseRef idstrings allow only letters, digits, '.' and '-'.
+    return "LicenseRef-" + (re.sub(r"[^A-Za-z0-9.-]+", "-", t).strip("-") or "unknown")
+
+
+_RESTRICTION_MARKS = {"nc": "-nc", "nd": "-nd", "sa": "-sa"}
+
+
+def _adds_restrictions(declared, concluded: str | None) -> bool:
+    """True if the declared tag carries an NC/ND/SA term the upstream licence lacks."""
+    if not declared or not concluded:
+        return False
+    d = "-" + str(declared).lower().replace("_", "-") + "-"
+    c = "-" + concluded.lower() + "-"
+    return any(f"{m}-" in d and f"{m}-" not in c for m in _RESTRICTION_MARKS.values())
 
 
 def license_url(spdx: str | None) -> str | None:
@@ -192,14 +225,21 @@ def build_passport(
 
     declared_spdx = spdx_id(prov.get("license"))
     concluded = up.get("concluded")
+    declared_adds = _adds_restrictions(prov.get("license"), concluded)
     if up.get("status") == "no-upstream-grant":
         concluded_for_croissant = None  # the original states no data licence, so nothing can be concluded
+    elif concluded and declared_adds and declared_spdx:
+        # A publisher may add restrictions (e.g. NC on a CC BY derivative); both sets of terms apply.
+        concluded_for_croissant = f"{concluded} AND {declared_spdx}"
     elif concluded:
         concluded_for_croissant = concluded  # upstream terms govern whatever the mirror's tag says
     elif prov.get("default_license_unconfirmed") and not answers.get("license_confirmed_by"):
         concluded_for_croissant = None  # NOASSERTION: nobody has confirmed the tag
     else:
         concluded_for_croissant = declared_spdx
+    commercial_training = up.get("commercial_training")
+    if prov.get("license_class") == "noncommercial":
+        commercial_training = False  # the declared terms themselves forbid it
     lic_status = _license_status(prov, up, answers)
 
     missing = [k for k in OWNER_QUESTIONS if k not in answers]
@@ -236,9 +276,10 @@ def build_passport(
         "conformsTo": ["http://mlcommons.org/croissant/1.1", "http://mlcommons.org/croissant/RAI/1.0"],
         "name": name,
         "description": _text(answers.get("description")) or meta.get("pretty_name") or f"LeRobot dataset {name}",
-        "url": url or f"file://{Path(root).resolve()}",
+        "url": url or f"urn:rdq:local:{re.sub(r'[^A-Za-z0-9._-]', '-', name)}",
         "creator": {"@type": "sc:Organization", "name": _text(answers.get("creator")) or (repo_id.split("/")[0] if repo_id else "unknown")},
-        "datePublished": str(date.today()),
+        **({"datePublished": str(answers["date_published"])} if answers.get("date_published") else {}),
+        "dateModified": str(date.today()),
         "version": revision if revision and re.fullmatch(r"\d+\.\d+\.\d+", revision) else "0.0.0",
         "rdq:pinnedRevision": revision,
         "citeAs": _cite_as(readme),
@@ -246,6 +287,7 @@ def build_passport(
         "sdVersion": f"rdq-passport-{PASSPORT_VERSION}",
         "sdLicense": "https://spdx.org/licenses/CC0-1.0.html",
         "distribution": _distribution(ds, Path(root)),
+        "recordSet": _record_sets(Path(root)),
         "rai:dataCollection": _text(answers.get("collection_method")),
         "rai:dataCollectionType": answers.get("collection_type"),
         "rai:dataCollectionTimeframe": answers.get("collection_timeframe"),
@@ -283,7 +325,7 @@ def build_passport(
             "status": lic_status,
             "verdict": prov.get("verdict"),
             "concluded": concluded_for_croissant or "NOASSERTION",
-            "commercialTraining": up.get("commercial_training"),
+            "commercialTraining": commercial_training,
             "redistribution": up.get("redistribution"),
             "restrictions": up.get("restrictions") or [],
             "templateCard": prov.get("template_card"),
@@ -388,6 +430,39 @@ def _distribution(ds: dict, root: Path) -> list[dict]:
             }
         )
     return out
+
+
+_SCALAR_FIELDS = {"episode_index": "sc:Integer", "frame_index": "sc:Integer", "index": "sc:Integer",
+                  "task_index": "sc:Integer", "timestamp": "sc:Float"}
+
+
+def _record_sets(root: Path) -> list[dict]:
+    """A RecordSet over the frame tables' scalar index columns, so Croissant loaders can
+    enumerate frames. Vector features (action, state) are described in rdq:structure."""
+    files = sorted((root / "data").glob("**/*.parquet")) if (root / "data").exists() else []
+    if not files:
+        return []
+    try:
+        import pyarrow.parquet as pq
+
+        names = set(pq.read_schema(files[0]).names)
+    except Exception:  # noqa: BLE001
+        return []
+    fields = [
+        {
+            "@type": "cr:Field",
+            "@id": f"frame_records/{col}",
+            "name": col,
+            "dataType": dtype,
+            "source": {"fileSet": {"@id": "frames"}, "extract": {"column": col}},
+        }
+        for col, dtype in _SCALAR_FIELDS.items()
+        if col in names
+    ]
+    if not fields:
+        return []
+    return [{"@type": "cr:RecordSet", "@id": "frame_records", "name": "frame_records",
+             "description": "One record per frame (index columns only).", "field": fields}]
 
 
 def _context() -> dict:

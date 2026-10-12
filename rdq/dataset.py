@@ -18,6 +18,41 @@ import pyarrow.parquet as pq
 # Columns LeRobot fills in automatically for every frame.
 INDEX_COLUMNS = ("timestamp", "frame_index", "episode_index", "index", "task_index")
 NON_NUMERIC_DTYPES = {"image", "video", "string", "language"}
+# Only these dtypes are loaded as numeric signals; anything else (depth, depth_video, pcd,
+# audio, str, ...) is listed in Dataset.skipped_features with the reason.
+NUMERIC_DTYPES = {
+    "float16", "float32", "float64", "int8", "int16", "int32", "int64",
+    "uint8", "uint16", "uint32", "uint64", "bool",
+}
+# Wider arrays are images, depth maps, point clouds or tactile grids, not joint signals.
+MAX_SIGNAL_WIDTH = 1024
+
+
+def classify_feature(key: str, ft: dict | None) -> str | None:
+    """None if the feature is a numeric signal rdq should load, else the reason it is skipped."""
+    ft = ft or {}
+    dtype = str(ft.get("dtype"))
+    if dtype in NON_NUMERIC_DTYPES or dtype.endswith("video"):
+        return f"{dtype} feature"
+    if dtype not in NUMERIC_DTYPES:
+        return f"dtype '{dtype}' is not a numeric signal"
+    shape = ft.get("shape")
+    if shape is None:
+        return None
+    dims = []
+    for d in shape if isinstance(shape, (list, tuple)) else [shape]:
+        try:
+            dims.append(int(d))
+        except (TypeError, ValueError):
+            return f"shape {list(shape)} has a variable dimension"
+    if any(d < 0 for d in dims):
+        return f"shape {list(shape)} has a variable dimension"
+    if len(dims) >= 3 and sum(d > 1 for d in dims) >= 3:
+        return f"shape {list(shape)} is an image-like array"
+    width = int(np.prod(dims)) if dims else 1
+    if width > MAX_SIGNAL_WIDTH:
+        return f"shape {list(shape)} is too wide for a joint signal ({width} values per frame)"
+    return None
 
 
 class DatasetLoadError(Exception):
@@ -52,6 +87,8 @@ class Dataset:
     data_columns: list[str] = field(default_factory=list)
     orphan_files: list[str] = field(default_factory=list)  # data files no metadata points to
     has_episode_stats: bool = False  # per-episode stats (v2.1 episodes_stats.jsonl or v3 stats/ columns)
+    skipped_features: dict[str, str] = field(default_factory=dict)  # feature -> why it was not loaded
+    not_checked: list[str] = field(default_factory=list)  # checks that could not run, with the reason
 
     @property
     def action_key(self) -> str | None:
@@ -184,11 +221,16 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
     version = _parse_version(info.get("codebase_version"))
     fps = info.get("fps")
 
-    numeric_keys = [
-        k
-        for k, ft in features.items()
-        if k not in INDEX_COLUMNS and (ft or {}).get("dtype") not in NON_NUMERIC_DTYPES
-    ]
+    numeric_keys = []
+    skipped: dict[str, str] = {}
+    for k, ft in features.items():
+        if k in INDEX_COLUMNS:
+            continue
+        reason = classify_feature(k, ft if isinstance(ft, dict) else None)
+        if reason is None:
+            numeric_keys.append(k)
+        elif str((ft or {}).get("dtype")) not in NON_NUMERIC_DTYPES:
+            skipped[k] = reason
     video_keys = [k for k, ft in features.items() if (ft or {}).get("dtype") == "video"]
 
     tasks = _load_tasks(root, warnings)
@@ -252,6 +294,22 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
         for row in episodes_meta.to_dict("records"):
             meta_by_ep[int(row["episode_index"])] = row
 
+    # A column that will not convert to numbers is skipped with a warning, not fatal.
+    bad: set[str] = set()
+
+    def convert(group: pd.DataFrame) -> dict[str, np.ndarray]:
+        out = {}
+        for key in numeric_keys:
+            if key in bad:
+                continue
+            try:
+                out[key] = _to_matrix(group[key].to_numpy())
+            except (ValueError, TypeError) as exc:
+                bad.add(key)
+                skipped[key] = f"values could not be read as numbers ({type(exc).__name__})"
+                warnings.append(f"feature '{key}' could not be read as numbers and was skipped")
+        return out
+
     episodes: dict[int, Episode] = {}
     sort_cols = [c for c in ("episode_index", "frame_index") if c in data.columns]
     for ep_idx, group in data.sort_values(sort_cols, kind="stable").groupby("episode_index", sort=True):
@@ -269,9 +327,15 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
             timestamps=group["timestamp"].to_numpy(np.float64) if "timestamp" in group else None,
             frame_index=group["frame_index"].to_numpy(np.int64) if "frame_index" in group else None,
             task_index=group["task_index"].to_numpy(np.int64) if "task_index" in group else None,
-            features={k: _to_matrix(group[k].to_numpy()) for k in numeric_keys},
+            features=convert(group),
             meta=meta,
         )
+
+    if bad:
+        numeric_keys = [k for k in numeric_keys if k not in bad]
+        for ep in episodes.values():
+            for key in bad:
+                ep.features.pop(key, None)
 
     return Dataset(
         root=root,
@@ -289,4 +353,5 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
         data_columns=sorted(data_columns),
         orphan_files=orphan_files,
         has_episode_stats=has_episode_stats,
+        skipped_features=skipped,
     )

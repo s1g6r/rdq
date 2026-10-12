@@ -185,8 +185,9 @@ def ksg_frame_mi(zs: np.ndarray, za: np.ndarray, batch: int, passes: int, rng: n
             acc = np.zeros(b)
             for k in DIGAMMA_KS:
                 rho = srt[:, k - 1][:, None]
-                ns = (ds <= rho).sum(1)
-                na = (da <= rho).sum(1)
+                # Kraskov et al. (2004) algorithm 1: marginal neighbours strictly inside rho.
+                ns = (ds < rho).sum(1)
+                na = (da < rho).sum(1)
                 acc += digamma(k) + digamma(b) - digamma(ns + 1) - digamma(na + 1)
             total[idx] += acc / len(DIGAMMA_KS)
             counts[idx] += 1
@@ -405,6 +406,18 @@ def near_duplicates(emb: np.ndarray, rng: np.random.Generator, length: int, dims
 # --------------------------------------------------------------------------- main entry
 
 
+MIN_SCORED_FRAMES = 20  # below this, DemInf-lite and consistency are not computed
+MAX_CONTEXT_WIDTH = 64  # wider observations (tactile grids, keypoint clouds) stay out of the kNN context
+
+
+def _modal_width(ds: Dataset, key: str, eps: list[int]) -> int | None:
+    widths = [ds.episodes[i].features[key].shape[1] for i in eps if key in ds.episodes[i].features]
+    if not widths:
+        return None
+    vals, counts = np.unique(widths, return_counts=True)
+    return int(vals[counts.argmax()])
+
+
 def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
     cfg = cfg or ScoreConfig()
     rng = np.random.default_rng(cfg.seed)
@@ -413,28 +426,91 @@ def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
     eps = sorted(ds.episodes)
     if not eps or akey is None:
         return {"episodes": {}, "summary": {"error": "needs an action feature"}}
+    summary: dict = {"frames_scored": 0, "skipped": []}
+    # Smoothness and path metrics use the state; without one they fall back to the action.
     pos_key = skey or akey
 
+    # Episodes whose action or state width differs from the usual one cannot be compared.
+    a_w, s_w = _modal_width(ds, akey, eps), _modal_width(ds, pos_key, eps)
+    odd = [
+        i for i in eps
+        if akey not in ds.episodes[i].features or pos_key not in ds.episodes[i].features
+        or ds.episodes[i].features[akey].shape[1] != a_w or ds.episodes[i].features[pos_key].shape[1] != s_w
+    ]
+    if odd:
+        summary["skipped"].append(
+            f"{len(odd)} episode(s) have a different action/state width from the rest and were not scored: "
+            + ", ".join(map(str, odd[:10])) + (" ..." if len(odd) > 10 else "")
+        )
+    odd_set = set(odd)
+    eps_all = eps
+    eps = [i for i in eps if i not in odd_set]
+    if not eps:
+        return {"episodes": {}, "summary": {**summary, "error": "no episodes with a consistent action/state width"}}
+
     # Context for the kNN scores: the state plus every other numeric observation (e.g. object
-    # poses or goals in environment_state). Smoothness and path metrics use the state alone.
-    ctx_keys = [pos_key] + [k for k in ds.numeric_keys if k.startswith("observation.") and k != pos_key]
+    # poses or goals in environment_state), each with a consistent width across episodes.
+    # Without a state there is nothing to condition on but those other observations; the
+    # action itself must never be part of its own context.
+    extra = []
+    for k in ds.numeric_keys:
+        if not k.startswith("observation.") or k == skey:
+            continue
+        w = _modal_width(ds, k, eps)
+        if w is None or w > MAX_CONTEXT_WIDTH:
+            continue
+        if all(k in ds.episodes[i].features and ds.episodes[i].features[k].shape[1] == w for i in eps):
+            extra.append(k)
+    ctx_keys = ([skey] if skey else []) + extra
+    summary["context_features"] = ctx_keys
+    if skey is None:
+        summary["skipped"].append(
+            "no observation.state: actions are scored as absolute values"
+            + ("" if extra else ", and DemInf-lite and consistency need an observation to condition on, so they were not computed")
+        )
 
     def ctx(ep):
+        if not ctx_keys:
+            return np.zeros((ep.length, 0))
         return np.hstack([ep.features[k] for k in ctx_keys])
 
     all_a = np.concatenate([ds.episodes[i].features[akey] for i in eps])
     all_s = np.concatenate([ds.episodes[i].features[pos_key] for i in eps])
     all_c = np.concatenate([ctx(ds.episodes[i]) for i in eps])
-    finite = np.all(np.isfinite(all_a), 1) & np.all(np.isfinite(all_c), 1)
+    # Channels that are never finite (unused sensors, padding) are dropped rather than
+    # letting them discard every frame.
+    a_cols = np.isfinite(all_a).any(0)
+    s_cols = np.isfinite(all_s).any(0)
+    c_cols = np.isfinite(all_c).any(0) if all_c.shape[1] else np.zeros(0, bool)
+    dropped = int((~a_cols).sum() + (~s_cols).sum() + (~c_cols).sum())
+    if dropped:
+        summary["skipped"].append(f"{dropped} channel(s) contain no finite values and were ignored")
+    if not a_cols.any():
+        return {"episodes": {}, "summary": {**summary, "error": "the action has no finite values"}}
+    if not s_cols.any():
+        s_cols = None  # handled below: fall back to the action for path metrics
+    sel_a = lambda x: x[:, a_cols]  # noqa: E731
+    sel_s = (lambda x: x[:, s_cols]) if s_cols is not None else sel_a
+    sel_c = lambda x: x[:, c_cols]  # noqa: E731
+    if s_cols is None:
+        pos_key, all_s = akey, all_a
+    all_a, all_s, all_c = sel_a(all_a), sel_s(all_s), sel_c(all_c)
+    finite = np.all(np.isfinite(all_a), 1) & np.all(np.isfinite(all_s), 1) & np.all(np.isfinite(all_c), 1)
+    if finite.sum() < 4:
+        return {"episodes": {}, "summary": {**summary, "error": "fewer than 4 frames have finite values"}}
     _, a_c, a_sc = _robust_standardise(all_a[finite])
     # Position-controlled arms record the commanded next position as the action, so the raw
     # action is almost a copy of the state. What the operator decided is the displacement,
     # a - s, so score that instead when action and state live in the same space.
-    relative = all_a.shape[1] == all_s.shape[1] and _same_space(all_a[finite], all_s[finite])
+    relative = (
+        skey is not None and pos_key == skey
+        and all_a.shape[1] == all_s.shape[1] and _same_space(all_a[finite], all_s[finite])
+    )
+    summary["relative_actions"] = bool(relative)
     rel_all = all_a[finite] - all_s[finite] if relative else all_a[finite]
     _, r_c, r_sc = _robust_standardise(rel_all)
     _, s_c, s_sc = _robust_standardise(all_s[finite])
-    _, c_c, c_sc = _robust_standardise(all_c[finite])
+    _, c_c, c_sc = _robust_standardise(all_c[finite]) if all_c.shape[1] else (None, 0.0, 1.0)
 
     out: dict[int, EpisodeScores] = {}
     zs_list, za_list, ph_list, ep_list, fr_list = [], [], [], [], []
@@ -447,12 +523,15 @@ def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
         g_all = all_a[finite][:, g_idx]
         g_mid = float((np.nanpercentile(g_all, 5) + np.nanpercentile(g_all, 95)) / 2)
 
+    for i in odd:
+        out[i] = EpisodeScores(index=i, length=ds.episodes[i].length, idle_frac=0.0,
+                               notes=["not scored: action/state width differs from the other episodes"])
     for i in eps:
         ep = ds.episodes[i]
-        a = ep.features[akey]
-        s = ep.features[pos_key]
-        c = ctx(ep)
-        ok = np.all(np.isfinite(a), 1) & np.all(np.isfinite(c), 1)
+        a = sel_a(ep.features[akey])
+        s = sel_s(ep.features[pos_key])
+        c = sel_c(ctx(ep))
+        ok = np.all(np.isfinite(a), 1) & np.all(np.isfinite(s), 1) & np.all(np.isfinite(c), 1)
         a, s, c = a[ok], s[ok], c[ok]
         es = EpisodeScores(index=i, length=ep.length, idle_frac=0.0)
         out[i] = es
@@ -462,7 +541,7 @@ def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
         an, _, _ = _robust_standardise(a, a_c, a_sc)
         rn, _, _ = _robust_standardise(a - s if relative else a, r_c, r_sc)
         sn, _, _ = _robust_standardise(s, s_c, s_sc)
-        cn, _, _ = _robust_standardise(c, c_c, c_sc)
+        cn = _robust_standardise(c, c_c, c_sc)[0] if c.shape[1] else c
         idle = idle_mask(a, a_sc)
         es.idle_frac = float(idle.mean())
         es.keep_ranges = keep_ranges(idle, fps)
@@ -482,7 +561,14 @@ def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
         ph_list.append((np.arange(len(a)) / max(len(a) - 1, 1))[keep])
         ep_list.append(np.full(keep.sum(), i))
 
-    summary: dict = {"frames_scored": 0, "context_features": ctx_keys, "relative_actions": bool(relative)}
+    n_scoreable = int(sum(len(z) for z in zs_list))
+    if zs_list and not ctx_keys:
+        zs_list = []
+    elif zs_list and n_scoreable < MIN_SCORED_FRAMES:
+        summary["skipped"].append(
+            f"only {n_scoreable} non-idle frames: DemInf-lite and consistency need at least {MIN_SCORED_FRAMES}"
+        )
+        zs_list = []
     if zs_list:
         zs = np.concatenate(zs_list)
         za = np.concatenate(za_list)
@@ -524,9 +610,12 @@ def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
         for pos, other in dup.items():
             out[E_ids[pos]].near_dup_of = E_ids[other]
         summary["near_dup_threshold"] = tau
+        if len(embs) > 4000:
+            summary["skipped"].append("near-duplicate search is only run up to 4,000 episodes")
 
     _composite(out, summary)
     _flag(out)
+    del eps_all
     return {
         "config": cfg.__dict__,
         "summary": summary,

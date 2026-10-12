@@ -14,7 +14,7 @@ def test_mirror_of_cc_by_dataset_is_relabelled():
 
 
 def test_matching_license_is_consistent():
-    a = assess_card("lab/bridge_v2_lerobot", "See https://rail-berkeley.github.io/bridgedata/", "cc-by-4.0")
+    a = assess_card("lab/bridge_v2_lerobot", "Converted from https://rail-berkeley.github.io/bridgedata/", "cc-by-4.0")
     assert a.status == "consistent" and a.severity == "ok"
     assert a.upstream[0]["evidence"] == "card-link"
 
@@ -171,3 +171,67 @@ def test_passport_for_mirror_of_unlicensed_original(tmp_path):
                        repo_id="lerobot/aloha_sim_insertion_human")
     assert p["rdq:license"]["status"] == "no-upstream-grant"
     assert p["license"] == "NOASSERTION"
+
+
+# --------------------------------------------------------------------------- #
+# Regressions from the pre-release review (R7)
+
+
+def _m(key, evidence):
+    from rdq.licenses import _BY_KEY, SourceMatch
+
+    return SourceMatch(key, _BY_KEY[key].name, evidence)
+
+
+def test_noncommercial_source_wins_over_unknown_terms():
+    from rdq.licenses import assess
+
+    a = assess("apache-2.0", [_m("epic_kitchens", "card-link"), _m("berkeley_fanuc_manipulation", "card-link")])
+    assert a.severity == "critical" and a.commercial_training is False
+    a = assess("apache-2.0", [_m("epic_kitchens", "card-link"), _m("rh20t", "card-link")])
+    assert a.severity == "critical" and a.commercial_training is False
+
+
+def test_weak_second_source_does_not_hide_a_strong_conflict():
+    from rdq.licenses import assess
+
+    a = assess("apache-2.0", [_m("epic_kitchens", "card-link"), _m("oxe_language_table", "repo-id")])
+    assert a.status == "upstream-conflict" and a.severity == "critical"
+    joined = " ".join(a.notes)
+    assert "links to EPIC-KITCHENS" in joined and "repo name suggests it is derived from Language-Table" in joined
+
+
+def test_unrelated_repo_ids_are_not_upstream_mirrors():
+    assert "bridge_v2" not in {m.key for m in match_sources("cambridge-robotics/cambridge_v2_pick", "")}
+    assert "unitree_g1_datasets" not in {m.key for m in match_sources("unitreerobotics/Z1_Dual_Dex1_StackBox", "")}
+    # A generic id match is a lead, not a critical finding.
+    for rid in ("acme/epic_kitchen_assistant", "acme/hoi4d_retarget", "acme/egodex_style_handover", "acme/kai0_test"):
+        a = assess_card(rid, "", "apache-2.0")
+        assert a.severity != "critical", rid
+    # An id that marks a conversion still is.
+    assert assess_card("someone/epic_kitchens_lerobot", "", "apache-2.0").severity == "critical"
+
+
+def test_citation_link_is_not_derivation_evidence():
+    a = assess_card("acme/inhouse_pick", "Our episode format follows AgiBot World (https://agibot-world.com).", "apache-2.0")
+    assert a.severity != "critical"
+    assert a.upstream[0]["evidence"] == "card-mention"
+    a = assess_card("acme/inhouse_pick", "Converted from AgiBot World: https://agibot-world.com", "apache-2.0")
+    assert a.severity == "critical" and a.upstream[0]["evidence"] == "card-link"
+
+
+def test_source_datasets_is_the_strongest_evidence():
+    card = "---\nlicense: apache-2.0\nsource_datasets:\n- agibot-world/AgiBotWorld-Alpha\n---\nhello"
+    a = assess_card("acme/pick", card, "apache-2.0")
+    assert a.upstream[0]["evidence"] == "card-source" and a.severity == "critical"
+
+
+def test_publisher_upload_is_informational():
+    a = assess_card("RoboCOIN/some_task", "", "apache-2.0")
+    assert a.severity in ("ok", "info")
+    assert a.upstream and a.upstream[0]["evidence"] == "publisher"
+
+
+def test_stricter_declared_licence_is_not_a_conflict():
+    a = assess_card("acme/droid_nc_subset", "", "cc-by-nc-4.0")
+    assert a.status == "stricter-than-upstream" and a.severity == "info"

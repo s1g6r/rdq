@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import re
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -58,7 +59,9 @@ def build_result(ds: Dataset, findings: list[Finding], sc: Score, prov: Provenan
             "numeric_features": ds.numeric_keys,
             "cameras": ds.video_keys,
             "tasks": len(ds.tasks),
+            "features_not_checked": dict(getattr(ds, "skipped_features", {}) or {}),
         },
+        "not_checked": list(dict.fromkeys(getattr(ds, "not_checked", []) or [])),
         "score": sc.to_dict(),
         "findings": [f.to_dict() for f in findings],
         "provenance": prov.to_dict() if prov else None,
@@ -96,14 +99,26 @@ _COLORS = {CRITICAL: "\033[31m", WARNING: "\033[33m", INFO: "\033[36m"}
 _RESET, _BOLD, _DIM = "\033[0m", "\033[1m", "\033[2m"
 
 
+_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
+
+
+def _clean(text) -> str:
+    """Strip control characters (e.g. ANSI escapes planted in task strings) before printing."""
+    return _CONTROL.sub("", str(text))
+
+
+def _fmt_fps(fps) -> str:
+    return f"{fps:g}" if isinstance(fps, (int, float)) else "?"
+
+
 def format_terminal(result: dict, color: bool = True) -> str:
     def c(text, code):
         return f"{code}{text}{_RESET}" if color else text
 
     d, s = result["dataset"], result["score"]
     lines = [
-        c(f"{d['path']}", _BOLD),
-        f"  {d['episodes']} episodes · {d['frames']:,} frames · {d['fps']:g} fps · "
+        c(_clean(d["path"]), _BOLD),
+        f"  {d['episodes']} episodes · {d['frames']:,} frames · {_fmt_fps(d['fps'])} fps · "
         f"robot: {d['robot_type'] or 'unknown'} · LeRobot v{d['codebase_version']}",
         "",
         c(f"  Score {s['dataset_score']}/100", _BOLD)
@@ -111,7 +126,7 @@ def format_terminal(result: dict, color: bool = True) -> str:
         "",
     ]
     if not result["findings"]:
-        lines.append("  No problems found.")
+        lines.append("  No problems found by the checks that ran.")
     for f in result["findings"]:
         tag = c(f"{f['severity'].upper():8}", _COLORS[f["severity"]])
         eps = f["episodes"]
@@ -119,7 +134,9 @@ def format_terminal(result: dict, color: bool = True) -> str:
         if eps:
             shown = ", ".join(map(str, eps[:8])) + (f" … (+{len(eps) - 8})" if len(eps) > 8 else "")
             where = c(f"\n            episodes {shown}", _DIM)
-        lines.append(f"  {tag} {f['message']}{where}")
+        lines.append(f"  {tag} {_clean(f['message'])}{where}")
+    if result.get("not_checked"):
+        lines += ["", c("  Not checked", _BOLD)] + [f"  · {_clean(n)}" for n in result["not_checked"]]
     prov = result.get("provenance")
     if prov:
         lines += ["", c("  Licence & provenance", _BOLD), f"  licence: {prov['license'] or 'none'} → {prov['verdict']}"]
@@ -127,7 +144,7 @@ def format_terminal(result: dict, color: bool = True) -> str:
         if up.get("upstream"):
             lines.append(f"  upstream: {', '.join(u['name'] for u in up['upstream'])} ({up.get('concluded')}) → {up.get('status')}")
         for note in prov["notes"]:
-            lines.append(f"  · {note}")
+            lines.append(f"  · {_clean(note)}")
     return "\n".join(lines)
 
 
@@ -162,7 +179,10 @@ def render_html(result: dict) -> str:
             f'<li class="finding {f["severity"]}"><span class="sev">{f["severity"]}</span>'
             f'<div><p>{_esc(f["message"])}</p>{eps_html}<code>{_esc(f["check"])}</code></div></li>'
         )
-    findings_html = "\n".join(rows) or '<li class="finding ok"><div><p>No problems found.</p></div></li>'
+    findings_html = "\n".join(rows) or '<li class="finding ok"><div><p>No problems found by the checks that ran.</p></div></li>'
+    not_checked_html = ""
+    if result.get("not_checked"):
+        not_checked_html = "<h3>Not checked</h3><ul>" + "".join(f"<li>{_esc(n)}</li>" for n in result["not_checked"]) + "</ul>"
 
     # One cell per episode, shaded by its score.
     cells = []
@@ -188,7 +208,7 @@ def render_html(result: dict) -> str:
         prov_html = f"""
 <section class="card">
   <h2>Licence &amp; provenance</h2>
-  <div class="prov"><span class="pill {('ok' if prov['verdict'] == 'documented' else 'flag')}">{_esc(prov['verdict'])}</span>
+  <div class="prov"><span class="pill {('ok' if prov['verdict'] == 'documented' and (prov.get('upstream') or {}).get('severity', 'ok') in ('ok', 'info') else 'flag')}">{_esc(prov['verdict'])}</span>
   <span>licence: <b>{_esc(prov['license'] or 'none')}</b></span></div>
   <ul class="notes">{notes}</ul>
 </section>"""
@@ -230,7 +250,7 @@ code {{ font-size:12px; color:var(--muted) }}
 footer {{ color:var(--muted); font-size:12px; margin-top:24px }}
 </style></head><body><main>
 <header><h1>{_esc(name)}</h1>
-<p>{d['episodes']} episodes · {d['frames']:,} frames · {d['fps']:g} fps · robot {_esc(d['robot_type'] or 'unknown')} · LeRobot v{_esc(d['codebase_version'])}</p></header>
+<p>{d['episodes']} episodes · {d['frames']:,} frames · {_fmt_fps(d['fps'])} fps · robot {_esc(d['robot_type'] or 'unknown')} · LeRobot v{_esc(d['codebase_version'])}</p></header>
 <div class="grid">
   <div class="stat"><b>{s['dataset_score']}</b><span>quality score / 100</span></div>
   <div class="stat"><b>{usable_pct:.0f}%</b><span>usable episodes ({len(s['usable_episodes'])} of {total})</span></div>
@@ -239,7 +259,7 @@ footer {{ color:var(--muted); font-size:12px; margin-top:24px }}
 </div>
 <section class="card"><h2>Episodes</h2><div class="cells">{''.join(cells)}</div>
 <div class="legend">Each square is one episode. Green: clean · light green: notes only · amber: warning · red: critical. Hover for details.</div></section>
-<section class="card"><h2>Findings</h2><ul class="findings">{findings_html}</ul></section>
+<section class="card"><h2>Findings</h2><ul class="findings">{findings_html}</ul>{not_checked_html}</section>
 {prov_html}
 <footer>Generated by rdq {_esc(result['tool']['version'])} on {_esc(result['audited_at'])}. Findings are rule-based flags for human review; thresholds are listed in the JSON report.</footer>
 </main></body></html>"""

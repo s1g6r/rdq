@@ -35,7 +35,7 @@
    "statement": "All data is provided under the Creative Commons Attribution 4.0 International License.",
    "checked": "2026-10-12",
    "confidence": "high",
-   "id_pattern": "bridge[_\\-]?(data)?[_\\-]?(v2|orig)|bridgedata|bridgev2",
+   "id_pattern": "(^|[/_\\-.])(bridge[_\\-]?(data)?[_\\-]?(v2|orig)|bridgedata|bridgev2)",
    "link_pattern": "rail-berkeley\\.github\\.io/bridgedata",
    "mention_pattern": "bridgedata v2|bridgedata",
    "notes": ""
@@ -968,7 +968,7 @@
    "statement": "license: apache-2.0",
    "checked": "2026-10-12",
    "confidence": "medium",
-   "id_pattern": "^unitreerobotics/",
+   "id_pattern": "^unitreerobotics/g1[-_]",
    "link_pattern": null,
    "mention_pattern": null,
    "notes": "The rightsholder's own cards, but using the stock LeRobot template tag (possibly a default). Only Unitree's own org matches. Third-party data recorded on G1 robots (e.g. RoboCOIN/Unitree_G1edu_*, aarontung/g1-*, mncai/G1_*) is a different dataset."

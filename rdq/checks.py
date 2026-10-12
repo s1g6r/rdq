@@ -48,6 +48,7 @@ class Thresholds:
     idle_edge_ratio: float = 0.4  # more than 40% of frames idle at start or end
     spike_fraction: float = 0.3  # a glitch moves a channel by 30% of its full range and back
     spike_window: int = 7  # running-median window; removes glitches of up to 3 frames
+    spike_systematic_share: float = 0.5  # a channel hit in more episodes than this is reported once, not per episode
     stats_rel_tolerance: float = 0.05  # stats.json may differ from recomputed by 5% of range
     lag_max: int = 15  # frames searched when aligning action with state
     lag_deviation: int = 4  # frames an episode's lag may differ from the dataset median
@@ -153,6 +154,8 @@ def check_info(ds: Dataset, th: Thresholds) -> list[Finding]:
             out.append(Finding("info.missing_key", CRITICAL, f"meta/info.json is missing '{key}'"))
     if ds.fps is not None and ds.fps <= 0:
         out.append(Finding("info.bad_fps", CRITICAL, f"fps is {ds.fps}, which is impossible"))
+    elif ds.fps is None and "fps" in ds.info:
+        out.append(Finding("info.bad_fps", CRITICAL, "fps is empty, so timestamps cannot be checked or replayed"))
     if not ds.info.get("robot_type"):
         out.append(
             Finding(
@@ -163,6 +166,18 @@ def check_info(ds: Dataset, th: Thresholds) -> list[Finding]:
         )
     for msg in ds.load_warnings:
         out.append(Finding("info.load_warning", WARNING, msg))
+    skipped = getattr(ds, "skipped_features", None) or {}
+    if skipped:
+        listed = "; ".join(f"{k} ({why})" for k, why in list(skipped.items())[:8])
+        more = f" and {len(skipped) - 8} more" if len(skipped) > 8 else ""
+        out.append(
+            Finding(
+                "schema.features_not_checked",
+                INFO,
+                f"{len(skipped)} feature(s) are not joint signals and were not checked: {listed}{more}",
+                details={"features": skipped},
+            )
+        )
     return out
 
 
@@ -263,6 +278,30 @@ def check_counts(ds: Dataset, th: Thresholds) -> list[Finding]:
                     details={"missing": gaps[:50]},
                 )
             )
+    if ds.episodes_meta is not None and "episode_index" in ds.episodes_meta.columns and ds.episodes:
+        meta_ids = {int(x) for x in ds.episodes_meta["episode_index"]}
+        data_ids = set(ds.episodes)
+        not_in_meta = sorted(data_ids - meta_ids)
+        not_in_data = sorted(meta_ids - data_ids)
+        if not_in_meta:
+            out.append(
+                Finding(
+                    "counts.episodes_not_in_metadata",
+                    CRITICAL,
+                    f"{_eps(len(not_in_meta))} in the data files are not listed in the episode metadata, "
+                    "so LeRobot cannot load them",
+                    episodes=not_in_meta,
+                )
+            )
+        if not_in_data and not truncated:
+            out.append(
+                Finding(
+                    "counts.metadata_episodes_missing",
+                    CRITICAL,
+                    f"the episode metadata lists {len(not_in_data)} episode(s) that are not in the data files",
+                    details={"missing": not_in_data[:50]},
+                )
+            )
     if ds.episodes_meta is not None and "length" in ds.episodes_meta.columns:
         bad = []
         for ep in ds.episodes.values():
@@ -348,10 +387,61 @@ def check_tasks(ds: Dataset, th: Thresholds) -> list[Finding]:
     return out
 
 
+def dead_nan_channels(ds: Dataset) -> dict[str, list[int]]:
+    """Channels that are NaN or infinite in every frame of every episode (unused sensors, padding)."""
+    out: dict[str, list[int]] = {}
+    for key in ds.numeric_keys:
+        arrays = [ep.features[key] for ep in ds.episodes.values() if key in ep.features]
+        if not arrays or len({a.shape[1] for a in arrays}) != 1:
+            continue
+        any_finite = np.zeros(arrays[0].shape[1], bool)
+        for a in arrays:
+            any_finite |= np.isfinite(a).any(0)
+        dead = [int(d) for d in np.where(~any_finite)[0]]
+        if dead:
+            out[key] = dead
+    return out
+
+
+def without_dead_channels(ds: Dataset, dead: dict[str, list[int]]) -> Dataset:
+    """A view of the dataset with never-finite channels removed, for the signal checks."""
+    if not dead:
+        return ds
+    from dataclasses import replace
+
+    eps = {}
+    for i, ep in ds.episodes.items():
+        feats = dict(ep.features)
+        for key, dims in dead.items():
+            if key in feats:
+                keep = np.setdiff1d(np.arange(feats[key].shape[1]), dims)
+                if len(keep):
+                    feats[key] = feats[key][:, keep]
+                else:
+                    feats.pop(key)
+        eps[i] = replace(ep, features=feats)
+    gone = {k for k, dims in dead.items() if all(k not in e.features for e in eps.values())}
+    return replace(ds, episodes=eps, numeric_keys=[k for k in ds.numeric_keys if k not in gone])
+
+
 def check_values(ds: Dataset, th: Thresholds) -> list[Finding]:
     out = []
+    dead = dead_nan_channels(ds)
+    for key, dims in dead.items():
+        names = _names_list(ds.features.get(key, {}))
+        labels = [names[d] if names and d < len(names) else f"dim {d}" for d in dims]
+        out.append(
+            Finding(
+                "values.empty_channel",
+                WARNING,
+                f"'{key}' has {len(dims)} channel(s) with no finite value anywhere in the dataset "
+                f"({', '.join(map(str, labels[:6]))}): an unused sensor or padding; drop them before training",
+                details={"feature": key, "dims": dims},
+            )
+        )
+    clean = without_dead_channels(ds, dead)
     nan_eps: dict[str, list[int]] = {}
-    for ep in ds.episodes.values():
+    for ep in clean.episodes.values():
         for key, arr in ep.features.items():
             if not np.all(np.isfinite(arr)):
                 nan_eps.setdefault(key, []).append(ep.index)
@@ -662,23 +752,46 @@ def check_idle(ds: Dataset, th: Thresholds) -> list[Finding]:
         return []
     eps = [ep for ep in ds.episodes.values() if key in ep.features and ep.length > 2]
     if len(eps) < 3:
+        ds.not_checked.append("idle episodes: needs at least 3 episodes to compare")
         return []
     # Spatial extent, not path length: sensor jitter adds path length without moving anywhere.
     motions = np.array([_extent(ep.features[key]) for ep in eps])
     median = float(np.median(motions))
     out = []
-    if median > 0:
-        idle = [ep.index for ep, m in zip(eps, motions) if m < th.idle_motion_ratio * median]
-        if idle:
-            out.append(
-                Finding(
-                    "episodes.idle",
-                    CRITICAL,
-                    f"{_eps(len(idle))} barely move (less than {th.idle_motion_ratio:.0%} of a "
-                    "typical episode); the robot was probably not doing the task",
-                    episodes=idle,
-                )
+    if median <= 1e-9:
+        out.append(
+            Finding(
+                "episodes.no_motion",
+                CRITICAL,
+                f"'{key}' does not move in {'any' if motions.max() <= 1e-9 else 'most'} episode(s): "
+                "the recording captured no robot motion (a frozen stream or a disconnected arm)",
+                episodes=[ep.index for ep, m in zip(eps, motions) if m <= 1e-9],
             )
+        )
+        return out
+    # Compare each episode with others of the same task: some tasks legitimately move less.
+    def task_of(ep):
+        if ep.task_index is None or not len(ep.task_index):
+            return None
+        vals, counts = np.unique(ep.task_index, return_counts=True)
+        return int(vals[counts.argmax()])
+
+    tasks = [task_of(ep) for ep in eps]
+    by_task: dict = {}
+    for t, m in zip(tasks, motions):
+        by_task.setdefault(t, []).append(m)
+    ref = [float(np.median(by_task[t])) if len(by_task[t]) >= 3 else median for t in tasks]
+    idle = [ep.index for ep, m, r in zip(eps, motions, ref) if r > 0 and m < th.idle_motion_ratio * r]
+    if idle:
+        out.append(
+            Finding(
+                "episodes.idle",
+                CRITICAL,
+                f"{_eps(len(idle))} barely move (less than {th.idle_motion_ratio:.0%} of a "
+                "typical episode of the same task); the robot was probably not doing the task",
+                episodes=idle,
+            )
+        )
     # Idle padding at the start or end of an episode.
     all_steps = np.concatenate(
         [np.linalg.norm(np.diff(ep.features[key], axis=0), axis=1) for ep in eps]
@@ -774,11 +887,36 @@ def check_spikes(ds: Dataset, th: Thresholds) -> list[Finding]:
         # more than 1% of frames (a few bad episodes with 3-frame dropouts is enough).
         typical = np.median(np.stack([np.percentile(r, 99, axis=0) for r in residuals.values()]), axis=0)
         limit = np.maximum(th.spike_fraction * span, 6.0 * typical)
-        flagged = {}
+        hits = {idx: np.any(resid > limit, axis=0) for idx, resid in residuals.items()}  # channels hit per episode
+        share = np.mean(np.stack(list(hits.values())), axis=0)
+        # A channel that "glitches" in most episodes is behaving as designed (fast gripper pulses,
+        # quantised encoders, angle wrap) or is broken everywhere; either way it is a property of
+        # the dataset, not of individual episodes, so report it once and keep it out of the filter.
+        systematic = share > th.spike_systematic_share
+        names = _names_list(ds.features.get(key, {}))
+
+        def label(d):
+            return str(names[d]) if names and d < len(names) else f"dim {d}"
+
+        if systematic.any():
+            dims = [int(d) for d in np.where(systematic)[0]]
+            out.append(
+                Finding(
+                    "episodes.spikes_systematic",
+                    INFO,
+                    f"'{key}' channel(s) {', '.join(label(d) for d in dims[:6])} jump out and back within a few "
+                    f"frames in most episodes ({share[dims].max():.0%}); usually fast gripper or quantised "
+                    "signals rather than glitches, but check the sensor if that is not expected",
+                    details={"feature": key, "dims": dims, "episode_share": [round(float(share[d]), 3) for d in dims]},
+                )
+            )
+        flagged, channels = {}, {}
         for idx, resid in residuals.items():
-            n = int(np.sum(np.any(resid > limit, axis=1)))
+            over = (resid > limit) & ~systematic
+            n = int(np.sum(np.any(over, axis=1)))
             if n:
                 flagged[idx] = n
+                channels[idx] = [label(int(d)) for d in np.where(over.any(0))[0]][:4]
         if flagged:
             out.append(
                 Finding(
@@ -787,7 +925,11 @@ def check_spikes(ds: Dataset, th: Thresholds) -> list[Finding]:
                     f"'{key}' has short glitches in {_eps(len(flagged))}: a channel jumps far outside its "
                     "normal motion for a few frames and comes back; usually a sensor glitch or a teleop dropout",
                     episodes=sorted(flagged),
-                    details={"feature": key, "glitch_frames_per_episode": {str(k): v for k, v in list(flagged.items())[:100]}},
+                    details={
+                        "feature": key,
+                        "glitch_frames_per_episode": {str(k): v for k, v in list(flagged.items())[:100]},
+                        "channels_per_episode": {str(k): v for k, v in list(channels.items())[:100]},
+                    },
                 )
             )
     return out
@@ -841,6 +983,7 @@ def check_action_state_sync(ds: Dataset, th: Thresholds) -> list[Finding]:
     """
     a, s = ds.action_key, ds.state_key
     if not a or not s:
+        ds.not_checked.append("action/state sync: needs both an action and an observation.state")
         return []
     eps = [
         ep
@@ -853,6 +996,11 @@ def check_action_state_sync(ds: Dataset, th: Thresholds) -> list[Finding]:
         and np.all(np.isfinite(ep.features[s]))
     ]
     if len(eps) < th.min_episodes_for_outliers:
+        widths = {(ep.features[a].shape[1], ep.features[s].shape[1]) for ep in ds.episodes.values()
+                  if a in ep.features and s in ep.features}
+        why = ("action and state have different widths" if widths and all(x != y for x, y in widths)
+               else f"fewer than {th.min_episodes_for_outliers} long, fully finite episodes")
+        ds.not_checked.append(f"action/state sync: {why}")
         return []
     curves = {ep.index: _lag_errors(ep.features[a], ep.features[s], th.lag_max) for ep in eps}
     curves = {i: c for i, c in curves.items() if len(c[0])}
@@ -861,6 +1009,7 @@ def check_action_state_sync(ds: Dataset, th: Thresholds) -> list[Finding]:
     corrs = np.array([c for _, c in curves.values()])
     if np.nanmedian(corrs) < 0.6:
         # Actions do not track state in this dataset (e.g. velocity control), so lag is meaningless.
+        ds.not_checked.append("action/state sync: actions do not track the state (delta or velocity control?)")
         return []
     m = th.lag_max
     best = {i: int(np.argmin(err)) - m for i, (err, _) in curves.items()}  # lag in frames
@@ -911,6 +1060,7 @@ def check_trajectory_outliers(ds: Dataset, th: Thresholds) -> list[Finding]:
         if key in ep.features and ep.length > 2 and np.all(np.isfinite(ep.features[key]))
     ]
     if len(eps) < th.min_episodes_for_outliers or len({ep.features[key].shape[1] for ep in eps}) != 1:
+        ds.not_checked.append(f"trajectory outliers: needs at least {th.min_episodes_for_outliers} fully finite episodes of one width")
         return []
     speed = np.array([np.log1p(_motion(ep.features[key]) / ep.length) for ep in eps])
     extent = np.array([np.log1p(_extent(ep.features[key])) for ep in eps])
@@ -958,13 +1108,21 @@ def run_checks(ds: Dataset, th: Thresholds | None = None, signal_only: bool = Fa
     """Run every check. signal_only=True skips the LeRobot-format checks (for MCAP and other sources)."""
     th = th or Thresholds()
     findings: list[Finding] = []
+    ds.not_checked.clear()
+    # Signal checks run on a view without never-finite channels, so one unused sensor does not
+    # exclude every episode from them (check_values reports those channels once).
+    clean = without_dead_channels(ds, dead_nan_channels(ds))
+    raw_checks = {check_info, check_feature_shapes, check_counts, check_files, check_tasks, check_values, check_stats,
+                  check_video_alignment}
     for check in DATASET_CHECKS + EPISODE_CHECKS:
         if signal_only and check in FORMAT_CHECKS:
             continue
         try:
-            findings.extend(check(ds, th))
+            findings.extend(check(ds if check in raw_checks else clean, th))
         except Exception as exc:  # one broken check should not hide the others
             findings.append(
                 Finding(f"internal.{check.__name__}", INFO, f"check could not run: {type(exc).__name__}: {exc}")
             )
+    if len(ds.episodes) == 1:
+        ds.not_checked.append("cross-episode checks (idle, duplicates, outliers, sync): only one episode")
     return findings
