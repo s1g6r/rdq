@@ -286,7 +286,7 @@
    "checked": "2026-10-12",
    "confidence": "high",
    "id_pattern": "(^|[/_-])fmb([-_]|$)",
-   "link_pattern": null,
+   "link_pattern": "functional-manipulation-benchmark\\.github\\.io",
    "mention_pattern": null,
    "notes": "Explicit data licence on the official project site; agrees with the OXE umbrella."
   },
@@ -437,7 +437,7 @@
    "checked": "2026-10-12",
    "confidence": "high",
    "id_pattern": "jaco[-_]?play",
-   "link_pattern": null,
+   "link_pattern": "github\\.com/clvrai/clvr_jaco_play_dataset",
    "mention_pattern": null,
    "notes": "README statement plus a CC BY 4.0 LICENSE file in the official repo. Agrees with the OXE umbrella."
   },
@@ -792,7 +792,7 @@
    "checked": "2026-10-12",
    "confidence": "medium",
    "id_pattern": "(^|/)aloha[-_]mobile[-_]",
-   "link_pattern": null,
+   "link_pattern": "mobile-aloha\\.github\\.io",
    "mention_pattern": null,
    "notes": "Data licence not stated on the project page or in MarkFzp/mobile-aloha (MIT LICENSE for code)."
   },
@@ -894,7 +894,7 @@
    "checked": "2026-10-12",
    "confidence": "high",
    "id_pattern": "robocasa",
-   "link_pattern": null,
+   "link_pattern": "github\\.com/robocasa/robocasa|robocasa\\.ai",
    "mention_pattern": null,
    "notes": "Official README: code MIT, assets and datasets CC BY 4.0. The ember-lab-berkeley cards call themselves a 'Mirror of RoboCasa365' and claim 'MIT, inherited from upstream RoboCasa365', which mixes up the code licence and the data licence."
   },
@@ -931,7 +931,7 @@
    "checked": "2026-10-12",
    "confidence": "high",
    "id_pattern": "abc[-_]?130k",
-   "link_pattern": null,
+   "link_pattern": "huggingface\\.co/datasets/xdof/abc-130k",
    "mention_pattern": null,
    "notes": "Official XDOF card. The upstream is gated (contact-sharing click-through), but the mirrors are ungated. That is not a licence conflict."
   },
@@ -950,7 +950,7 @@
    "checked": "2026-10-12",
    "confidence": "medium",
    "id_pattern": "(^|/)l2d([-_]v\\d+)?$",
-   "link_pattern": null,
+   "link_pattern": "huggingface\\.co/datasets/yaak-ai/l2d",
    "mention_pattern": null,
    "notes": "The original authors' card, but the tag sits in the stock LeRobot template, and apache-2.0 is the push_to_hub default. No LICENSE file, and neither the blog post nor yaak.ai states terms. Street-scene video may raise GDPR issues that are separate from copyright. yaak-ai/lerobot-driving-school is NOT L2D (a 10-episode 2023 ActionGPT sample, same org) and is deliberately not matched."
   },
@@ -1010,7 +1010,7 @@
    "checked": "2026-10-12",
    "confidence": "high",
    "id_pattern": "rh20t",
-   "link_pattern": null,
+   "link_pattern": "rh20t\\.github\\.io",
    "mention_pattern": null,
    "notes": "Split by scene: RH20T-C (scene_0001-0005) is CC BY-SA 4.0 and allows commercial use; RH20T-NC (scene_0006-0010) is CC BY-NC 4.0 (the page's link points to the BY-NC-SA deed). The robot-lev mirrors keep this per-episode split. rh20t_api code is MIT."
   },
@@ -1109,7 +1109,7 @@
    "checked": "2026-10-12",
    "confidence": "high",
    "id_pattern": "(^|[/_-])mimicgen",
-   "link_pattern": null,
+   "link_pattern": "github\\.com/nvlabs/mimicgen|mimicgen\\.github\\.io",
    "mention_pattern": null,
    "notes": "The README changelog says that on 04/04/2024 the 'Dataset license changed to CC-BY 4.0, which is less restrictive'. Copies taken before then may carry the older terms. Code: NVIDIA Source Code License."
   },
@@ -1186,7 +1186,7 @@
    "checked": "2026-10-12",
    "confidence": "high",
    "id_pattern": "hiw[-_]?500",
-   "link_pattern": null,
+   "link_pattern": "huggingface\\.co/datasets/bitrobot/hiw-500",
    "mention_pattern": null,
    "notes": "Official card; the LeRobot conversion BitRobot/HIW-500-LeRobot comes from the same org and carries the same text."
   },
@@ -1205,7 +1205,7 @@
    "checked": "2026-10-12",
    "confidence": "high",
    "id_pattern": "(^|/)habit$",
-   "link_pattern": null,
+   "link_pattern": "huggingface\\.co/datasets/configinc/habit",
    "mention_pattern": null,
    "notes": "Official card by the authors (Config, KAIST), with a YAML tag plus a 'License: CC BY 4.0' badge. The project page states no licence."
   },
@@ -1225,7 +1225,7 @@
    "checked": "2026-10-12",
    "confidence": "high",
    "id_pattern": "^tacverse/",
-   "link_pattern": null,
+   "link_pattern": "huggingface\\.co/datasets/tacverse/",
    "mention_pattern": null,
    "notes": "The landing card adds that derivative datasets must use the same CC BY-SA 4.0 terms."
   }
