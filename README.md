@@ -6,6 +6,8 @@
 2. **Is anything broken?** It finds desynced streams, frozen logs, glitches, idle padding, duplicates, stale normalisation stats, schema errors and (optionally) bad camera footage.
 3. **Which episodes are worth training on?** It ranks episodes with training-free quality scores from the curation literature, and it says honestly where those scores help and where they don't.
 
+**Try the licence check in your browser, no install:** [huggingface.co/spaces/rs1g6r/rdq](https://huggingface.co/spaces/rs1g6r/rdq)
+
 It reads tables, not videos (unless you ask), and runs on a laptop for typical datasets: about 1.4 GB of memory for 600,000 frames. For DROID-scale corpora, audit a sample of episodes.
 
 ```bash
@@ -124,7 +126,7 @@ python experiments/analyze_hub.py results --out summary.json
 
 ## Hugging Face Space
 
-`space/app.py` is a Gradio app. You paste a dataset id and get the licence and provenance verdict in seconds, plus optional full checks, a report and a passport.
+[huggingface.co/spaces/rs1g6r/rdq](https://huggingface.co/spaces/rs1g6r/rdq) runs the licence and provenance check in the browser with Pyodide (`space_static/`, built by `python space_static/build.py`). `space/app.py` is a Gradio version that also runs the full quality checks and writes a passport, for hosts with compute.
 
 ## Licence
 
