@@ -162,8 +162,10 @@ def analyse_card(readme: str | None, card_license=None, repo_id: str | None = No
         verdict = "relabelled (attribution owed)"
     elif restricted or upstream.status == "restricted-redistribution":
         verdict = "restricted source"
-    elif upstream.status in ("upstream-conflict", "no-upstream-grant") and upstream.severity == "warning":
+    elif upstream.status == "upstream-conflict" and upstream.severity == "warning":
         verdict = "differs from upstream"
+    elif upstream.status == "no-upstream-grant" and upstream.severity == "warning":
+        verdict = "no upstream data licence"
     elif default_unconfirmed:
         verdict = "default licence, unconfirmed"
     elif untouched:

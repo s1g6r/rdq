@@ -443,7 +443,6 @@ def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
             + ", ".join(map(str, odd[:10])) + (" ..." if len(odd) > 10 else "")
         )
     odd_set = set(odd)
-    eps_all = eps
     eps = [i for i in eps if i not in odd_set]
     if not eps:
         return {"episodes": {}, "summary": {**summary, "error": "no episodes with a consistent action/state width"}}
@@ -482,7 +481,7 @@ def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
     a_cols = np.isfinite(all_a).any(0)
     s_cols = np.isfinite(all_s).any(0)
     c_cols = np.isfinite(all_c).any(0) if all_c.shape[1] else np.zeros(0, bool)
-    dropped = int((~a_cols).sum() + (~s_cols).sum() + (~c_cols).sum())
+    dropped = int((~a_cols).sum() + (~c_cols).sum() + (0 if skey in ctx_keys else (~s_cols).sum()))
     if dropped:
         summary["skipped"].append(f"{dropped} channel(s) contain no finite values and were ignored")
     if not a_cols.any():
@@ -495,6 +494,12 @@ def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
     if s_cols is None:
         pos_key, all_s = akey, all_a
     all_a, all_s, all_c = sel_a(all_a), sel_s(all_s), sel_c(all_c)
+    if ctx_keys and all_c.shape[1] == 0:
+        summary["skipped"].append("the observations to condition on contain no finite values, so DemInf-lite and "
+                                  "consistency were not computed")
+        ctx_keys = []
+        c_cols = np.zeros(0, bool)
+    summary["context_features"] = [k for k in ctx_keys]
     finite = np.all(np.isfinite(all_a), 1) & np.all(np.isfinite(all_s), 1) & np.all(np.isfinite(all_c), 1)
     if finite.sum() < 4:
         return {"episodes": {}, "summary": {**summary, "error": "fewer than 4 frames have finite values"}}
@@ -516,8 +521,10 @@ def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
     zs_list, za_list, ph_list, ep_list, fr_list = [], [], [], [], []
     finals, embs = [], []
     g_idx = find_gripper(ds, akey)
-    if g_idx is not None and g_idx >= all_a.shape[1]:
+    if g_idx is not None and g_idx >= len(a_cols):
         g_idx = None  # names don't match the data's shape; don't guess
+    elif g_idx is not None:
+        g_idx = int(a_cols[:g_idx].sum()) if a_cols[g_idx] else None  # position after dropping dead channels
     g_mid = None
     if g_idx is not None:
         g_all = all_a[finite][:, g_idx]
@@ -615,7 +622,6 @@ def score_episodes(ds: Dataset, cfg: ScoreConfig | None = None) -> dict:
 
     _composite(out, summary)
     _flag(out)
-    del eps_all
     return {
         "config": cfg.__dict__,
         "summary": summary,

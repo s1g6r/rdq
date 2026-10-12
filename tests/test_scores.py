@@ -76,8 +76,9 @@ def test_rank_cli(tmp_path, capsys):
 
     kept = json.loads(out.read_text())["episodes"]
     scores = json.loads((tmp_path / "s.json").read_text())  # strict JSON: no NaN
-    scored = [i for i, e in scores["episodes"].items() if e["composite"] is not None]
+    scored = [i for i, e in scores["episodes"].items() if e["composite"] is not None and not e["rule_flags"]]
     assert len(kept) == round(0.9 * len(scored))
+    assert not any(scores["episodes"][str(i)]["rule_flags"] for i in kept)
     assert "ranked by composite" in capsys.readouterr().out
 
 

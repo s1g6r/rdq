@@ -91,15 +91,16 @@ OWNER_QUESTIONS: dict[str, str] = {
 
 
 def spdx_id(tag) -> str | None:
-    if tag is None:
+    if tag is None or not str(tag).strip():
         return None
-    t = str(tag).strip().lower()
+    raw = str(tag).strip()
+    t = raw.lower()
     if t in HF_TO_SPDX:
         return HF_TO_SPDX[t]
-    if t.startswith("licenseref-"):
-        t = t[len("licenseref-"):]
-    # SPDX LicenseRef idstrings allow only letters, digits, '.' and '-'.
-    return "LicenseRef-" + (re.sub(r"[^A-Za-z0-9.-]+", "-", t).strip("-") or "unknown")
+    body = raw[len("licenseref-"):] if t.startswith("licenseref-") else raw
+    # SPDX LicenseRef idstrings allow only letters, digits, '.' and '-'; keep '+' distinguishable.
+    body = re.sub(r"[^A-Za-z0-9.+-]+", "-", body).replace("+", "-plus").strip("-")
+    return "LicenseRef-" + (body or "unknown")
 
 
 _RESTRICTION_MARKS = {"nc": "-nc", "nd": "-nd", "sa": "-sa"}

@@ -20,10 +20,15 @@ def test_matching_license_is_consistent():
 
 
 def test_noncommercial_upstream_relabelled_permissive_is_critical():
+    # A repo name alone is a lead: the conflict is reported, but not as critical.
     a = assess_card("someone/agibot_alpha_v30", TEMPLATE_CARD, "apache-2.0")
-    assert a.status == "upstream-conflict" and a.severity == "critical"
+    assert a.status == "upstream-conflict" and a.severity == "warning"
     assert a.commercial_training is False
-    p = analyse_card("---\nlicense: apache-2.0\n---\n" + TEMPLATE_CARD, repo_id="someone/agibot_alpha_v30")
+    # The card declaring the source makes it critical.
+    card = "---\nlicense: apache-2.0\nsource_datasets:\n- agibot-world/AgiBotWorld-Alpha\n---\n" + TEMPLATE_CARD
+    a = assess_card("someone/agibot_alpha_v30", card, "apache-2.0")
+    assert a.severity == "critical"
+    p = analyse_card(card, repo_id="someone/agibot_alpha_v30")
     assert p.verdict == "licence conflicts with upstream"
 
 
@@ -36,8 +41,10 @@ def test_robot_name_is_not_a_dataset_source():
 
 def test_no_redistribution_source():
     a = assess_card("user/ego4d_lerobot", "", "mit")
-    assert a.status == "upstream-conflict" and a.severity == "critical"
+    assert a.status == "upstream-conflict" and a.severity == "warning"  # repo name only
     assert a.redistribution is False
+    a = assess_card("user/ego4d_lerobot", "Converted from Ego4D (https://ego4d-data.org).", "mit")
+    assert a.severity == "critical"
 
 
 def test_unknown_upstream_and_missing():
@@ -180,7 +187,7 @@ def test_passport_for_mirror_of_unlicensed_original(tmp_path):
 def _m(key, evidence):
     from rdq.licenses import _BY_KEY, SourceMatch
 
-    return SourceMatch(key, _BY_KEY[key].name, evidence)
+    return SourceMatch(key, _BY_KEY[key].name, evidence, corroborated=True)
 
 
 def test_noncommercial_source_wins_over_unknown_terms():
@@ -208,16 +215,30 @@ def test_unrelated_repo_ids_are_not_upstream_mirrors():
     for rid in ("acme/epic_kitchen_assistant", "acme/hoi4d_retarget", "acme/egodex_style_handover", "acme/kai0_test"):
         a = assess_card(rid, "", "apache-2.0")
         assert a.severity != "critical", rid
-    # An id that marks a conversion still is.
-    assert assess_card("someone/epic_kitchens_lerobot", "", "apache-2.0").severity == "critical"
+    # Nor is a name that merely mentions LeRobot; a derivation link plus the name is.
+    assert assess_card("someone/epic_kitchens_lerobot", "", "apache-2.0").severity == "warning"
+    card = "LeRobot conversion of EPIC-KITCHENS (https://epic-kitchens.github.io)."
+    assert assess_card("someone/epic_kitchens_lerobot", card, "apache-2.0").severity == "critical"
 
 
 def test_citation_link_is_not_derivation_evidence():
     a = assess_card("acme/inhouse_pick", "Our episode format follows AgiBot World (https://agibot-world.com).", "apache-2.0")
     assert a.severity != "critical"
-    assert a.upstream[0]["evidence"] == "card-mention"
+    assert not a.upstream or a.upstream[0]["evidence"] == "card-mention"
     a = assess_card("acme/inhouse_pick", "Converted from AgiBot World: https://agibot-world.com", "apache-2.0")
-    assert a.severity == "critical" and a.upstream[0]["evidence"] == "card-link"
+    assert a.severity == "warning" and a.upstream[0]["evidence"] == "card-link"  # one signal
+    a = assess_card("acme/agibot_world_subset", "Converted from AgiBot World: https://agibot-world.com", "apache-2.0")
+    assert a.severity == "critical"
+    # "open source" and LeRobot's template Homepage label next to a cited link are not derivation evidence
+    a = assess_card("acme/kitchen", "Our open source teleop data, in the style of EPIC-KITCHENS (https://epic-kitchens.github.io).", "apache-2.0")
+    assert a.severity != "critical"
+
+
+def test_model_pretraining_mention_is_not_an_upstream():
+    a = assess_card("acme/pick", "Policies use an R3M encoder pretrained on Ego4D.", "apache-2.0")
+    assert a.status == "no-known-upstream"
+    a = assess_card("acme/hands", "Our own hand poses, compared against EgoDex.", "mit")
+    assert a.status == "no-known-upstream"
 
 
 def test_source_datasets_is_the_strongest_evidence():
@@ -228,8 +249,10 @@ def test_source_datasets_is_the_strongest_evidence():
 
 def test_publisher_upload_is_informational():
     a = assess_card("RoboCOIN/some_task", "", "apache-2.0")
-    assert a.severity in ("ok", "info")
+    assert a.severity in ("ok", "info") and a.status == "publisher-upload"
     assert a.upstream and a.upstream[0]["evidence"] == "publisher"
+    a = assess_card("RoboCOIN/some_task", "", "mit")
+    assert a.status == "publisher-upload" and a.severity == "info" and a.concluded is None
 
 
 def test_stricter_declared_licence_is_not_a_conflict():
@@ -251,3 +274,7 @@ def test_passport_keeps_a_publisher_added_restriction(tmp_path):
     assert "CC-BY-NC-4.0" in lic["concluded"]
     assert doc["usageInfo"]["odrl:prohibition"]
     assert not str(doc["url"]).startswith("file:")
+
+
+def test_share_alike_added_to_cc_by_is_stricter():
+    assert assess_card("acme/droid_sa_subset", "", "cc-by-sa-4.0").status == "stricter-than-upstream"

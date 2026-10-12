@@ -48,6 +48,7 @@ class Thresholds:
     idle_edge_ratio: float = 0.4  # more than 40% of frames idle at start or end
     spike_fraction: float = 0.3  # a glitch moves a channel by 30% of its full range and back
     spike_window: int = 7  # running-median window; removes glitches of up to 3 frames
+    no_motion_ratio: float = 3.0  # range of motion below 3x the median frame-to-frame step = not moving
     spike_systematic_share: float = 0.5  # a channel hit in more episodes than this is reported once, not per episode
     stats_rel_tolerance: float = 0.05  # stats.json may differ from recomputed by 5% of range
     lag_max: int = 15  # frames searched when aligning action with state
@@ -152,8 +153,9 @@ def check_info(ds: Dataset, th: Thresholds) -> list[Finding]:
     for key in ("codebase_version", "fps", "features"):
         if key not in ds.info:
             out.append(Finding("info.missing_key", CRITICAL, f"meta/info.json is missing '{key}'"))
-    if ds.fps is not None and ds.fps <= 0:
-        out.append(Finding("info.bad_fps", CRITICAL, f"fps is {ds.fps}, which is impossible"))
+    raw_fps = ds.info.get("fps")
+    if isinstance(raw_fps, (int, float)) and raw_fps <= 0:
+        out.append(Finding("info.bad_fps", CRITICAL, f"fps is {raw_fps}, which is impossible"))
     elif ds.fps is None and "fps" in ds.info:
         out.append(Finding("info.bad_fps", CRITICAL, "fps is empty, so timestamps cannot be checked or replayed"))
     if not ds.info.get("robot_type"):
@@ -232,9 +234,17 @@ def check_feature_shapes(ds: Dataset, th: Thresholds) -> list[Finding]:
                     details={"action": da, "state": dsd},
                 )
             )
-    if not a:
+    skipped = getattr(ds, "skipped_features", None) or {}
+    if not a and "action" in skipped:
+        out.append(Finding("schema.action_not_numeric", CRITICAL,
+                           f"'action' is declared but is not a numeric signal ({skipped['action']}), so a policy cannot learn from it"))
+    elif not a:
         out.append(Finding("schema.no_action", CRITICAL, "no 'action' feature, so a policy cannot learn from it"))
-    if not s:
+    state_skipped = [k for k in skipped if k.startswith("observation.state")]
+    if not s and state_skipped:
+        out.append(Finding("schema.state_not_numeric", WARNING,
+                           f"'{state_skipped[0]}' is declared but is not a numeric signal ({skipped[state_skipped[0]]})"))
+    elif not s:
         out.append(Finding("schema.no_state", WARNING, "no observation.state feature"))
     return out
 
@@ -403,6 +413,20 @@ def dead_nan_channels(ds: Dataset) -> dict[str, list[int]]:
     return out
 
 
+def _paired_dead(ds: Dataset, dead: dict[str, list[int]]) -> dict[str, list[int]]:
+    """Action and state of the same width are compared channel by channel (sync, relative
+    actions), so a channel dead in either is dropped from both to keep them aligned."""
+    a, s = ds.action_key, ds.state_key
+    if not a or not s or not (dead.get(a) or dead.get(s)):
+        return dead
+    widths = {(ep.features[a].shape[1], ep.features[s].shape[1]) for ep in ds.episodes.values()
+              if a in ep.features and s in ep.features}
+    if len(widths) != 1 or len({w for pair in widths for w in pair}) != 1:
+        return dead
+    both = sorted(set(dead.get(a, [])) | set(dead.get(s, [])))
+    return {**dead, a: both, s: both}
+
+
 def without_dead_channels(ds: Dataset, dead: dict[str, list[int]]) -> Dataset:
     """A view of the dataset with never-finite channels removed, for the signal checks."""
     if not dead:
@@ -430,6 +454,17 @@ def check_values(ds: Dataset, th: Thresholds) -> list[Finding]:
     for key, dims in dead.items():
         names = _names_list(ds.features.get(key, {}))
         labels = [names[d] if names and d < len(names) else f"dim {d}" for d in dims]
+        width = next((ep.features[key].shape[1] for ep in ds.episodes.values() if key in ep.features), 0)
+        if len(dims) == width and key in (ds.action_key, ds.state_key):
+            out.append(
+                Finding(
+                    "values.empty_feature",
+                    CRITICAL,
+                    f"'{key}' has no finite value anywhere in the dataset, so a policy has nothing to learn from or condition on",
+                    details={"feature": key},
+                )
+            )
+            continue
         out.append(
             Finding(
                 "values.empty_channel",
@@ -465,10 +500,13 @@ def check_values(ds: Dataset, th: Thresholds) -> list[Finding]:
         if len(widths) != 1:
             continue
         stacked = np.concatenate(arrays)
-        stacked = stacked[np.all(np.isfinite(stacked), axis=1)]
-        if len(stacked) < 2:
+        live = np.isfinite(stacked).any(0)  # never-finite channels are reported above
+        with np.errstate(all="ignore"):
+            spread = np.nanmax(np.where(np.isfinite(stacked), stacked, np.nan)[:, live], axis=0) - \
+                np.nanmin(np.where(np.isfinite(stacked), stacked, np.nan)[:, live], axis=0)
+        if len(stacked) < 2 or not live.any():
             continue
-        constant = [int(d) for d in np.where(np.ptp(stacked, axis=0) < 1e-9)[0]]
+        constant = [int(d) for d, sp in zip(np.where(live)[0], spread) if sp < 1e-9]
         if constant:
             names = _names_list(ds.features.get(key, {}))
             labels = [names[d] if names and d < len(names) else f"dim {d}" for d in constant]
@@ -508,14 +546,21 @@ def check_stats(ds: Dataset, th: Thresholds) -> list[Finding]:
         if len({a.shape[1] for a in arrays}) != 1:
             continue
         data = np.concatenate(arrays)
-        data = data[np.all(np.isfinite(data), axis=1)]
-        if not len(data):
+        data = np.where(np.isfinite(data), data, np.nan)
+        live = ~np.all(np.isnan(data), axis=0)
+        if not len(data) or not live.any():
             continue
         entry = ds.stats[key]
-        span = np.ptp(data, axis=0)
-        span = np.where(span < 1e-9, 1.0, span)
+        import warnings as _w
+
+        with _w.catch_warnings():
+            _w.simplefilter("ignore", RuntimeWarning)
+            # Column-wise, ignoring non-finite values, as NaN-aware tools compute them.
+            recomputed = {"min": np.nanmin(data, 0), "max": np.nanmax(data, 0), "mean": np.nanmean(data, 0),
+                          "std": np.nanstd(data, 0)}
+        span = recomputed["max"] - recomputed["min"]
+        span = np.where(~np.isfinite(span) | (span < 1e-9), 1.0, span)
         problems = {}
-        recomputed = {"min": data.min(0), "max": data.max(0), "mean": data.mean(0), "std": data.std(0)}
         for stat, value in recomputed.items():
             if stat not in entry:
                 continue
@@ -524,7 +569,8 @@ def check_stats(ds: Dataset, th: Thresholds) -> list[Finding]:
                 problems[stat] = f"stored {stored.shape[0]} values, data has {value.shape[0]}"
                 continue
             rel = np.abs(stored - value) / span
-            if np.nanmax(rel) > th.stats_rel_tolerance:
+            rel = np.where(live, rel, np.nan)  # never-finite channels are reported by check_values
+            if np.isfinite(rel).any() and np.nanmax(rel) > th.stats_rel_tolerance:
                 problems[stat] = f"off by up to {np.nanmax(rel):.0%} of the value range"
         if problems:
             out.append(
@@ -759,16 +805,7 @@ def check_idle(ds: Dataset, th: Thresholds) -> list[Finding]:
     median = float(np.median(motions))
     out = []
     if median <= 1e-9:
-        out.append(
-            Finding(
-                "episodes.no_motion",
-                CRITICAL,
-                f"'{key}' does not move in {'any' if motions.max() <= 1e-9 else 'most'} episode(s): "
-                "the recording captured no robot motion (a frozen stream or a disconnected arm)",
-                episodes=[ep.index for ep, m in zip(eps, motions) if m <= 1e-9],
-            )
-        )
-        return out
+        return out  # nothing moves at all: check_no_motion reports it
     # Compare each episode with others of the same task: some tasks legitimately move less.
     def task_of(ep):
         if ep.task_index is None or not len(ep.task_index):
@@ -780,7 +817,15 @@ def check_idle(ds: Dataset, th: Thresholds) -> list[Finding]:
     by_task: dict = {}
     for t, m in zip(tasks, motions):
         by_task.setdefault(t, []).append(m)
-    ref = [float(np.median(by_task[t])) if len(by_task[t]) >= 3 else median for t in tasks]
+    task_med = {t: float(np.median(v)) for t, v in by_task.items() if len(v) >= 3}
+    ref_of = {}
+    for t, med in task_med.items():
+        others = [m for u, m in task_med.items() if u != t]
+        other_med = float(np.median(others)) if others else median
+        # A whole task that barely moves compared with the other tasks is suspicious too
+        # (for example a session recorded with the follower arm unplugged).
+        ref_of[t] = other_med if med < th.idle_motion_ratio * other_med else med
+    ref = [ref_of.get(t, median) for t in tasks]
     idle = [ep.index for ep, m, r in zip(eps, motions, ref) if r > 0 and m < th.idle_motion_ratio * r]
     if idle:
         out.append(
@@ -820,6 +865,55 @@ def check_idle(ds: Dataset, th: Thresholds) -> list[Finding]:
                 episodes=padded,
             )
         )
+    return out
+
+
+def check_no_motion(ds: Dataset, th: Thresholds) -> list[Finding]:
+    """Streams that never move: the range of motion is no larger than frame-to-frame jitter.
+
+    Scale-free, so sensor noise on a frozen stream does not count as motion. Checked for the
+    action and the state separately: a frozen state with moving actions means the follower
+    arm was not recorded (or not connected).
+    """
+    out = []
+    moving = {}
+    # Delta or velocity actions look like noise by design, so actions are only judged when
+    # they are absolute positions (or when there is no state to judge instead).
+    keys = [ds.state_key]
+    if ds.action_key and (not ds.state_key or _action_tracks_state(ds, th)):
+        keys.append(ds.action_key)
+    for key in keys:
+        if not key:
+            continue
+        eps = [ep for ep in ds.episodes.values() if key in ep.features and ep.length > 5]
+        if not eps:
+            continue
+        ratios = []
+        for ep in eps:
+            x = ep.features[key]
+            x = x[np.all(np.isfinite(x), axis=1)]
+            if len(x) < 6:
+                ratios.append(np.nan)
+                continue
+            extent = _extent(x)
+            jitter = float(np.median(np.linalg.norm(np.diff(x, axis=0), axis=1)))
+            ratios.append(0.0 if extent <= 1e-9 else extent / max(jitter, 1e-12))
+        r = np.array(ratios, float)
+        if not np.isfinite(r).any():
+            continue
+        frozen = [ep.index for ep, v in zip(eps, r) if np.isfinite(v) and v < th.no_motion_ratio]
+        moving[key] = len(frozen) < 0.5 * np.isfinite(r).sum()
+        if not moving[key]:
+            out.append(
+                Finding(
+                    "episodes.no_motion",
+                    CRITICAL,
+                    f"'{key}' does not move in {_eps(len(frozen))}: its range of motion is no larger than its "
+                    "frame-to-frame noise (a frozen stream or a disconnected arm)",
+                    episodes=frozen,
+                    details={"feature": key},
+                )
+            )
     return out
 
 
@@ -885,14 +979,16 @@ def check_spikes(ds: Dataset, th: Thresholds) -> list[Finding]:
         # Normal jitter: the median over episodes of each episode's 99th-percentile residual.
         # Pooling all frames would let the glitches themselves set the bar once they make up
         # more than 1% of frames (a few bad episodes with 3-frame dropouts is enough).
-        typical = np.median(np.stack([np.percentile(r, 99, axis=0) for r in residuals.values()]), axis=0)
+        # The 90th percentile (scaled to where the 99th would be for Gaussian jitter, x1.6) stays
+        # clear of glitch frames even when most episodes contain a few of them.
+        typical = 1.6 * np.median(np.stack([np.percentile(r, 90, axis=0) for r in residuals.values()]), axis=0)
         limit = np.maximum(th.spike_fraction * span, 6.0 * typical)
         hits = {idx: np.any(resid > limit, axis=0) for idx, resid in residuals.items()}  # channels hit per episode
         share = np.mean(np.stack(list(hits.values())), axis=0)
         # A channel that "glitches" in most episodes is behaving as designed (fast gripper pulses,
         # quantised encoders, angle wrap) or is broken everywhere; either way it is a property of
         # the dataset, not of individual episodes, so report it once and keep it out of the filter.
-        systematic = share > th.spike_systematic_share
+        systematic = share > th.spike_systematic_share if len(eps) >= 8 else np.zeros_like(share, bool)
         names = _names_list(ds.features.get(key, {}))
 
         def label(d):
@@ -903,10 +999,11 @@ def check_spikes(ds: Dataset, th: Thresholds) -> list[Finding]:
             out.append(
                 Finding(
                     "episodes.spikes_systematic",
-                    INFO,
+                    WARNING,
                     f"'{key}' channel(s) {', '.join(label(d) for d in dims[:6])} jump out and back within a few "
-                    f"frames in most episodes ({share[dims].max():.0%}); usually fast gripper or quantised "
-                    "signals rather than glitches, but check the sensor if that is not expected",
+                    f"frames in most episodes ({share[dims].max():.0%}). That is either how this signal behaves "
+                    "(fast gripper pulses, quantised encoders) or a sensor fault in every session; check which before "
+                    "training. Episodes are not excluded for it",
                     details={"feature": key, "dims": dims, "episode_share": [round(float(share[d]), 3) for d in dims]},
                 )
             )
@@ -1006,7 +1103,10 @@ def check_action_state_sync(ds: Dataset, th: Thresholds) -> list[Finding]:
     curves = {i: c for i, c in curves.items() if len(c[0])}
     if len(curves) < th.min_episodes_for_outliers:
         return []
-    corrs = np.array([c for _, c in curves.values()])
+    corrs = np.array([c for _, c in curves.values()], float)
+    if not np.isfinite(corrs).any():
+        ds.not_checked.append("action/state sync: the state does not vary, so lag cannot be measured")
+        return []
     if np.nanmedian(corrs) < 0.6:
         # Actions do not track state in this dataset (e.g. velocity control), so lag is meaningless.
         ds.not_checked.append("action/state sync: actions do not track the state (delta or velocity control?)")
@@ -1093,6 +1193,7 @@ DATASET_CHECKS = [
 EPISODE_CHECKS = [
     check_timestamps,
     check_lengths,
+    check_no_motion,
     check_idle,
     check_spikes,
     check_action_state_sync,
@@ -1111,7 +1212,7 @@ def run_checks(ds: Dataset, th: Thresholds | None = None, signal_only: bool = Fa
     ds.not_checked.clear()
     # Signal checks run on a view without never-finite channels, so one unused sensor does not
     # exclude every episode from them (check_values reports those channels once).
-    clean = without_dead_channels(ds, dead_nan_channels(ds))
+    clean = without_dead_channels(ds, _paired_dead(ds, dead_nan_channels(ds)))
     raw_checks = {check_info, check_feature_shapes, check_counts, check_files, check_tasks, check_values, check_stats,
                   check_video_alignment}
     for check in DATASET_CHECKS + EPISODE_CHECKS:

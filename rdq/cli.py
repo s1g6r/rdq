@@ -197,7 +197,8 @@ def _cmd_rank(args) -> int:
         return v if v is not None and np.isfinite(v) else (-np.inf if higher_better else np.inf)
 
     order = sorted(eps, key=lambda i: val(eps[i]), reverse=higher_better)
-    print(f"{len(eps)} episodes scored ({res['summary'].get('frames_scored', 0)} frames, "
+    n_scored = sum(1 for e in eps.values() if e.get("composite") is not None or e.get("hfr") is not None)
+    print(f"{n_scored} of {len(eps)} episodes scored ({res['summary'].get('frames_scored', 0)} frames, "
           f"{'relative' if res['summary'].get('relative_actions') else 'absolute'} actions); ranked by {key}")
     if res["summary"].get("length_confound_warning"):
         print("warning: " + res["summary"]["length_confound_warning"])
@@ -219,7 +220,8 @@ def _cmd_rank(args) -> int:
     if args.json:
         Path(args.json).write_text(json.dumps(_json_safe(res), indent=1))
     if args.keep_top is not None:
-        scored = [i for i in order if eps[i].get(key) is not None and np.isfinite(eps[i][key])]
+        # Episodes with a failed check are never kept on the strength of a soft score.
+        scored = [i for i in order if eps[i].get(key) is not None and np.isfinite(eps[i][key]) and not eps[i]["rule_flags"]]
         if not scored:
             print(f"error: no episode has a {key} score, so --keep-top cannot rank them", file=sys.stderr)
             return 2
@@ -241,7 +243,7 @@ def _cmd_scorecard(args) -> int:
     from .scores import score_episodes
 
     try:
-        path, repo_id = _resolve_path(args.path, None, False)
+        path, repo_id = _resolve_path(args.path, None, False, args.max_mb)
         ds = load_dataset(path)
         result = audit(path, repo_id=repo_id)
     except DatasetLoadError as exc:
@@ -332,6 +334,7 @@ def main(argv: list[str] | None = None) -> int:
     sc.add_argument("path", help="local dataset folder, or owner/name on the Hugging Face Hub")
     sc.add_argument("--group-by", default="task", help="episodes-metadata column to group by (default: task)")
     sc.add_argument("--groups", help="CSV with episode_index,group columns (overrides --group-by)")
+    sc.add_argument("--max-mb", type=float, default=2000, help="refuse to fetch a Hub dataset larger than this")
     sc.add_argument("--no-scores", action="store_true", help="skip the literature-based scores (faster)")
     sc.add_argument("--json", help="write the scorecard as JSON")
     sc.set_defaults(fn=_cmd_scorecard)

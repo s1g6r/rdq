@@ -39,6 +39,10 @@ def classify_feature(key: str, ft: dict | None) -> str | None:
     shape = ft.get("shape")
     if shape is None:
         return None
+    if key == "action" or key.startswith("observation.state"):
+        # The policy's own input and output are always loaded, whatever their declared shape:
+        # the shape checks then report variable or unusual widths from the data itself.
+        return None
     dims = []
     for d in shape if isinstance(shape, (list, tuple)) else [shape]:
         try:
@@ -229,7 +233,7 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
         reason = classify_feature(k, ft if isinstance(ft, dict) else None)
         if reason is None:
             numeric_keys.append(k)
-        elif str((ft or {}).get("dtype")) not in NON_NUMERIC_DTYPES:
+        elif str((ft or {}).get("dtype")) not in NON_NUMERIC_DTYPES or k == "action" or k.startswith("observation.state"):
             skipped[k] = reason
     video_keys = [k for k, ft in features.items() if (ft or {}).get("dtype") == "video"]
 

@@ -94,6 +94,7 @@ class SourceMatch:
     key: str
     name: str
     evidence: str  # card-source | card-link | repo-id | card-mention | publisher (see match_sources)
+    corroborated: bool = False  # two independent signals agree, or the card declares the source
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -104,7 +105,7 @@ class LicenseAssessment:
     """Declared licence versus what the known upstream sources allow."""
 
     declared: str | None
-    status: str  # consistent | relabelled | upstream-conflict | restricted-redistribution | stricter-than-upstream | review | no-upstream-grant | no-known-upstream | missing
+    status: str  # consistent | relabelled | upstream-conflict | restricted-redistribution | stricter-than-upstream | publisher-upload | review | no-upstream-grant | no-known-upstream | missing
     severity: str  # critical | warning | info | ok
     concluded: str | None  # most restrictive upstream licence, if any upstream is known
     commercial_training: bool | None
@@ -119,28 +120,38 @@ class LicenseAssessment:
 
 # Words near an upstream link that say the data came from there (rather than citing it).
 _DERIVATION = re.compile(
-    r"homepage|source|original|convert|derived|derivative|subset|mirror|ported|port of|re-?upload|"
-    r"repackag|reformat|processed version|taken from|comes from|part of|downloaded from|copy of"
+    r"\bconver(t|ted|ting|sion)s?\b|\bre-?conver|\bderived\b|\bderivative\b|\bsubset of\b|\bmirror of\b|"
+    r"\bported\b|\bport of\b|\bre-?upload|\brepackag|\breformat|\brepublish|\bre-?render|"
+    r"\bprocessed (version|copy)\b|\btaken from\b|\bcomes from\b|\bdownloaded from\b|\bcopy of\b|"
+    r"\b(release|version|subset|split|sample) of\b|\boriginal (dataset|data|release)\b|\bsource dataset|→|->"
 )
-# Repo-id fragments that mark a conversion or mirror of someone else's dataset.
-_CONVERSION_ID = re.compile(r"lerobot|[_\-.]v(2\.?1|3\.?0)\b|v30|v21|convert|mirror|subset|ported|reupload")
-_EVIDENCE_RANK = {"card-source": 4, "card-link": 3, "repo-id": 2, "card-mention": 1, "publisher": 0}
+# Words around a mention that say the upstream is only cited: a pretrained model, a comparison,
+# a benchmark or a format, not the source of the data.
+_CITATION_CONTEXT = re.compile(
+    r"pre-?train|encoder|backbone|representation|embedding|features from|\br3m\b|vc-1|\bvip\b|"
+    r"\bcompar|in the style of|similar to|inspired by|evaluated on|\bbenchmark|\bbaseline|follows the|"
+    r"\bformat\b|like the|unlike"
+)
 
 
-def _front_matter_sources(text: str) -> list[str]:
-    """source_datasets listed in the card's YAML front matter (lower-cased)."""
+def _front_matter(text: str) -> dict:
     if not text.startswith("---"):
-        return []
+        return {}
     end = text.find("\n---", 3)
     if end < 0:
-        return []
+        return {}
     try:
         import yaml
 
         meta = yaml.safe_load(text[3:end]) or {}
     except Exception:  # noqa: BLE001 - a broken card is reported elsewhere
-        return []
-    src = meta.get("source_datasets") if isinstance(meta, dict) else None
+        return {}
+    return meta if isinstance(meta, dict) else {}
+
+
+def _front_matter_sources(text: str) -> list[str]:
+    """source_datasets listed in the card's YAML front matter (lower-cased)."""
+    src = _front_matter(text).get("source_datasets")
     if isinstance(src, str):
         src = [src]
     return [str(x).lower() for x in src or []]
@@ -148,8 +159,21 @@ def _front_matter_sources(text: str) -> list[str]:
 
 def _link_is_derivation(pattern: str, text: str) -> bool:
     for m in re.finditer(pattern, text):
-        window = text[max(0, m.start() - 150) : m.end() + 150]
+        line_start = text.rfind("\n", 0, m.start()) + 1
+        line = text[line_start : text.find("\n", m.end()) if "\n" in text[m.end():] else len(text)]
+        if re.search(r"homepage\W{0,6}[:|]", line):  # the card's own Homepage field points there
+            return True
+        window = text[max(0, m.start() - 120) : m.end() + 120]
         if _DERIVATION.search(window):
+            return True
+    return False
+
+
+def _mentioned_as_source(pattern: str, text: str) -> bool:
+    """A name mention counts only if at least one occurrence is not in a citation context."""
+    for m in re.finditer(pattern, text):
+        window = text[max(0, m.start() - 80) : m.end() + 40]
+        if not _CITATION_CONTEXT.search(window):
             return True
     return False
 
@@ -157,30 +181,40 @@ def _link_is_derivation(pattern: str, text: str) -> bool:
 def match_sources(repo_id: str | None, readme: str | None) -> list[SourceMatch]:
     """Known upstream datasets this repo is probably a mirror, conversion or subset of.
 
-    Evidence, strongest first: the card's ``source_datasets`` names it (card-source); the card
-    links to it in a derivation context such as "Homepage" or "converted from" (card-link);
-    the repo name matches (repo-id); the card only names or cites it (card-mention). A repo
-    owned by the upstream's own organisation is the publisher's upload (publisher).
+    Evidence, strongest first: the card's ``source_datasets`` (or ``license_link``) names it
+    (card-source); the card links to it in a derivation context such as its Homepage field or
+    "converted from" (card-link); the repo name matches (repo-id); the card only names it
+    (card-mention, ignored when it is cited as a model's training data, a benchmark or a
+    format). A repo owned by the upstream's own organisation is the publisher's upload
+    (publisher). A match is *corroborated* when two independent signals agree, or when the
+    card itself declares the source.
     """
     rid = (repo_id or "").lower()
     text = (readme or "").lower()
     declared_sources = _front_matter_sources(text)
+    license_link = str(_front_matter(text).get("license_link") or "").lower()
     out = []
     for src in UPSTREAM_SOURCES:
         org_anchored = bool(re.match(r"\^[\w.-]+/", src.id_pattern))  # e.g. ^robocoin/ or ^unitreerobotics/g1
-        if rid and org_anchored and re.search(src.id_pattern, rid):
-            out.append(SourceMatch(src.key, src.name, "publisher"))
-        elif any(re.search(src.id_pattern, d) for d in declared_sources) and not org_anchored:
-            out.append(SourceMatch(src.key, src.name, "card-source"))
-        elif src.link_pattern and re.search(src.link_pattern, text):
-            ev = "card-link" if _link_is_derivation(src.link_pattern, text) else "card-mention"
-            if ev == "card-mention" and rid and re.search(src.id_pattern, rid):
-                ev = "repo-id"
-            out.append(SourceMatch(src.key, src.name, ev))
-        elif rid and re.search(src.id_pattern, rid):
-            out.append(SourceMatch(src.key, src.name, "repo-id"))
-        elif src.mention_pattern and re.search(src.mention_pattern, text):
-            out.append(SourceMatch(src.key, src.name, "card-mention"))
+        by_id = bool(rid) and bool(re.search(src.id_pattern, rid))
+        if by_id and org_anchored:
+            out.append(SourceMatch(src.key, src.name, "publisher", True))
+            continue
+        if org_anchored:
+            by_id = False
+        declared = any(re.search(src.id_pattern, d) for d in declared_sources) or bool(
+            src.link_pattern and license_link and re.search(src.link_pattern, license_link))
+        linked = bool(src.link_pattern and re.search(src.link_pattern, text))
+        link_derives = linked and _link_is_derivation(src.link_pattern, text)
+        mentioned = bool(src.mention_pattern and _mentioned_as_source(src.mention_pattern, text))
+        if declared:
+            out.append(SourceMatch(src.key, src.name, "card-source", True))
+        elif link_derives:
+            out.append(SourceMatch(src.key, src.name, "card-link", by_id))
+        elif by_id:
+            out.append(SourceMatch(src.key, src.name, "repo-id", linked or mentioned))
+        elif mentioned or (linked and _mentioned_as_source(src.link_pattern, text)):
+            out.append(SourceMatch(src.key, src.name, "card-mention", False))
     return out
 
 
@@ -200,7 +234,7 @@ def _same_license(declared: str, spdx: str) -> bool:
 _SEVERITY_RANK = {"ok": 0, "info": 1, "warning": 2, "critical": 3}
 _STATUS_RANK = {
     "upstream-conflict": 6, "restricted-redistribution": 5, "relabelled": 4, "review": 3,
-    "missing": 2, "stricter-than-upstream": 1, "consistent": 0,
+    "missing": 2, "stricter-than-upstream": 1, "consistent": 0, "publisher-upload": 0,
 }
 _BASIS = {
     "card-source": "the card's source_datasets names",
@@ -225,6 +259,15 @@ def _is_nc(tag: str) -> bool:
     return bool(re.search(r"(^|-)nc(-|$)", tag))
 
 
+def _adds_terms(tag: str, upstream: str) -> bool:
+    """A Creative Commons tag that keeps the upstream's terms and adds NC, ND or SA."""
+    t, u = tag.lower().replace("_", "-"), upstream.lower()
+    if not (t.startswith("cc-by") and u.startswith("cc-by")):
+        return False
+    terms = lambda x: {m for m in ("nc", "nd", "sa") if re.search(rf"(^|-){m}(-|$)", x)}  # noqa: E731
+    return terms(u) < terms(t)
+
+
 def _assess_one(tag: str | None, s: UpstreamSource, evidence: str, rid: str) -> tuple[str, str, str]:
     """(status, severity, note) for one matched source, before any cap."""
     basis = f"{_BASIS[evidence]} {s.name}"
@@ -242,9 +285,9 @@ def _assess_one(tag: str | None, s: UpstreamSource, evidence: str, rid: str) -> 
         return "upstream-conflict", "critical", f"{basis}, whose terms do not allow redistributing the data or adapted copies"
     if _same_license(tag, s.license):
         return "consistent", "ok", ""
-    if _is_nc(tag) and s.commercial_training is True:
+    if _adds_terms(tag, s.license):
         return "stricter-than-upstream", "info", (
-            f"declared {tag} is more restrictive than {s.name} ({s.license}); the stricter declared terms apply to this copy")
+            f"declared {tag} adds restrictions to {s.name} ({s.license}); both sets of terms apply to this copy")
     if tag in _PERMISSIVE_TAGS and s.license.startswith("CC-BY-") and "NC" not in s.license:
         return "relabelled", "warning", (
             f"declared {tag}, but {basis}, released under {s.license}; attribution and a notice of changes are "
@@ -252,19 +295,21 @@ def _assess_one(tag: str | None, s: UpstreamSource, evidence: str, rid: str) -> 
     return "upstream-conflict", "warning", f"declared {tag} differs from upstream {s.license} ({basis})"
 
 
-def _cap(severity: str, s: UpstreamSource, evidence: str, rid: str) -> str:
-    """Limit severity by how sure we are of the upstream terms and of the match itself."""
+def _cap(severity: str, s: UpstreamSource, m: SourceMatch) -> str:
+    """Limit severity by how sure we are of the upstream terms and of the match itself.
+
+    A single weak signal (a repo name alone, a link alone, a mention) is never critical;
+    the card's own source_datasets, or two independent signals that agree, can be.
+    """
     cap = "critical"
     if s.confidence == "medium":
         cap = "warning"
     elif s.confidence == "low":
         cap = "info"
-    if evidence == "card-mention":
-        cap = min(cap, "warning", key=_SEVERITY_RANK.get)
-    elif evidence == "repo-id" and not _CONVERSION_ID.search(rid):
-        cap = min(cap, "warning", key=_SEVERITY_RANK.get)
-    elif evidence == "publisher":
+    if m.evidence == "publisher":
         cap = min(cap, "info", key=_SEVERITY_RANK.get)
+    elif m.evidence == "card-mention" or not m.corroborated:
+        cap = min(cap, "warning", key=_SEVERITY_RANK.get)
     return min(severity, cap, key=_SEVERITY_RANK.get)
 
 
@@ -284,8 +329,22 @@ def assess(declared, matches: list[SourceMatch], repo_id: str | None = None) -> 
 
     def describe(src, m):
         return {"key": src.key, "name": src.name, "license": src.license, "evidence": m.evidence,
-                "statement_url": src.statement_url, "statement": src.statement, "checked": src.checked,
-                "confidence": src.confidence}
+                "corroborated": m.corroborated, "statement_url": src.statement_url, "statement": src.statement,
+                "checked": src.checked, "confidence": src.confidence}
+
+    if all(m.evidence == "publisher" for m in matches):
+        same = tag is not None and all(_same_license(tag, s.license) for s in sources if s.license != NOT_STATED)
+        return LicenseAssessment(
+            declared=tag,
+            status="publisher-upload",
+            severity="ok" if same else ("warning" if tag is None else "info"),
+            concluded=None,
+            commercial_training=None,
+            redistribution=None,
+            upstream=[describe(s, m) for s, m in zip(sources, matches)],
+            notes=[] if same else [f"uploaded by the publisher of {', '.join(s.name for s in sources)}, whose tag on this "
+                                   f"upload governs; it differs from their published terms ({', '.join(s.license for s in sources)})"],
+        )
 
     if all(s.license == NOT_STATED for s in sources):
         names = ", ".join(s.name for s in sources)
@@ -306,17 +365,20 @@ def assess(declared, matches: list[SourceMatch], repo_id: str | None = None) -> 
     pairs = [(s, m) for s, m in zip(sources, matches) if s.license != NOT_STATED]
     sources = [s for s, _ in pairs]
     matches = [m for _, m in pairs]
-    restrictions = sorted({r for s in sources for r in s.restrictions})
-    commercial = _tri(s.commercial_training for s in sources)
-    redistribution = _tri(s.redistribution for s in sources)
-    lics = sorted({s.license for s in sources})
-    concluded = lics[0] if len(lics) == 1 else " AND ".join(lics)
+    # Only matches that say the data came from the upstream decide the concluded terms; a mere
+    # mention (or the publisher's own upload) leaves the declared licence in force.
+    strong = [s for s, m in pairs if m.evidence in ("card-source", "card-link", "repo-id")]
+    restrictions = sorted({r for s in strong for r in s.restrictions})
+    commercial = _tri(s.commercial_training for s in strong) if strong else None
+    redistribution = _tri(s.redistribution for s in strong) if strong else None
+    lics = sorted({s.license for s in strong})
+    concluded = (lics[0] if len(lics) == 1 else " AND ".join(lics)) if lics else None
 
     # Judge each source on its own evidence and confidence; the worst one decides.
     per = []
     for s, m in pairs:
         status_s, sev_s, note_s = _assess_one(tag, s, m.evidence, rid)
-        per.append((status_s, _cap(sev_s, s, m.evidence, rid), note_s, s, m))
+        per.append((status_s, _cap(sev_s, s, m), note_s, s, m))
     worst = max(per, key=lambda p: (_SEVERITY_RANK[p[1]], _STATUS_RANK[p[0]]))
     status, severity = worst[0], worst[1]
     notes = [p[2] for p in sorted(per, key=lambda p: -_SEVERITY_RANK[p[1]]) if p[2]]
@@ -333,8 +395,11 @@ def assess(declared, matches: list[SourceMatch], repo_id: str | None = None) -> 
         notes.append("match is by repo name only; confirm the source before relying on it")
     elif evidence == {"card-mention"}:
         notes.append("the card only names the upstream; it may be cited for comparison rather than as a source")
-    elif evidence == {"publisher"}:
-        notes.append("uploaded by the dataset's own publisher, whose tag on this upload governs")
+    if any(m.evidence in ("card-link", "repo-id") and not m.corroborated for m in matches) and severity == "warning" \
+            and any(p[0] == "upstream-conflict" and _SEVERITY_RANK[_assess_one(tag, p[3], p[4].evidence, rid)[1]] == 3
+                    for p in per):
+        notes.append("this would be critical if a second signal confirmed the source (source_datasets on the card, "
+                     "or both a derivation link and the repo name)")
     return LicenseAssessment(
         declared=tag,
         status=status,

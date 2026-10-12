@@ -173,3 +173,66 @@ def test_control_characters_are_stripped_from_the_terminal(tmp_path):
     root = _write(tmp_path, tasks=["\x1b[2J\x1b[31mpwned"])
     out = format_terminal(audit(root), color=False)
     assert "\x1b" not in out
+
+
+# --------------------------------------------------------------------------- #
+# Regressions from the second review (R8)
+
+
+def test_dead_state_channel_keeps_the_sync_check(tmp_path):
+    eps = syn.make_episodes(20, 150, seed=4)
+    for i in (2, 9, 15):
+        syn.delay_action(eps[i], 10)
+    for e in eps:
+        e["state"][:, 3] = np.nan
+    r = audit(_write(tmp_path, eps))
+    lag = [f for f in r["findings"] if f["check"] == "sync.action_state_lag"]
+    assert lag and set(lag[0]["episodes"]) >= {2, 9, 15}
+
+
+def test_a_task_whose_recordings_are_all_frozen(tmp_path):
+    eps = syn.make_episodes(30, 120, seed=5)
+    for i, e in enumerate(eps):
+        e["task_index"] = i % 3
+        if i % 3 == 2:
+            e["action"][:] = e["action"][0]
+            e["state"][:] = e["state"][0]
+    r = audit(_write(tmp_path, eps, tasks=["a", "b", "c"]))
+    idle = [f for f in r["findings"] if f["check"] == "episodes.idle"]
+    assert idle and set(idle[0]["episodes"]) == {i for i in range(30) if i % 3 == 2}
+
+
+def test_glitches_in_a_small_dataset_still_exclude_episodes(tmp_path):
+    eps = syn.make_episodes(3, 150)
+    for e in eps[:2]:
+        syn.add_glitch(e)
+    r = audit(_write(tmp_path, eps))
+    assert "episodes.spikes" in _checks(r) and "episodes.spikes_systematic" not in _checks(r)
+
+
+def test_frozen_state_with_sensor_noise_is_critical(tmp_path):
+    rng = np.random.default_rng(0)
+    eps = syn.make_episodes(20, 150)
+    for e in eps:
+        e["state"] = e["state"][:1] * 0 + rng.normal(0, 0.05, e["state"].shape)
+    r = audit(_write(tmp_path, eps))
+    assert "episodes.no_motion" in _checks(r)
+
+
+def test_all_nan_state_gives_no_fake_ranking(tmp_path):
+    eps = syn.make_episodes(20, 150)
+    for e in eps:
+        e["state"][:] = np.nan
+    root = _write(tmp_path, eps)
+    r = audit(root)
+    assert "values.empty_feature" in _checks(r)
+    s = score_episodes(load_dataset(root))
+    assert all(e["deminf"] is None for e in s["episodes"].values())
+
+
+def test_skipped_action_is_named_as_such(tmp_path):
+    root = _write(tmp_path)
+    _edit_data(root, lambda df: df.assign(action=["key_w"] * len(df)))
+    _edit_info(root, lambda info: info["features"]["action"].update(dtype="string", shape=[1]))
+    r = audit(root)
+    assert "schema.action_not_numeric" in _checks(r) and "schema.no_action" not in _checks(r)
