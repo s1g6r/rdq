@@ -52,6 +52,7 @@ Licence statuses:
 - `review`: a custom licence (`other`) on data with a known upstream. Check that the custom terms carry the upstream restrictions.
 - `stricter-than-upstream`: the declared tag adds a restriction the upstream lacks (for example non-commercial on CC BY data). Both sets of terms apply, and the concluded licence is their conjunction.
 - `no-upstream-grant`: the original release states no data licence (only a code licence), so the declared tag cannot be traced to a grant from the data's authors.
+- `publisher-upload`: the repo belongs to the upstream's own organisation; its tag governs.
 - `missing`: no licence declared.
 - `unknown`: no licence assessment was available.
 
@@ -67,13 +68,13 @@ Licence statuses:
 
 `rdq/licenses.py` records the terms of public robot datasets. A source is added only after its licence has been checked against a primary source, and each entry keeps the statement, URL and check date. It covers 65 sources (see [upstream_licences_sources.md](upstream_licences_sources.md)); 26 have an explicit data licence from the original authors (high confidence), and the others rest on an umbrella statement or an uncertain mapping, which caps how severe a finding can be. Matches have five kinds of evidence, strongest first:
 
-- `card-source`: the card's `source_datasets` names the upstream.
+- `card-source`: the card's `source_datasets` (or its `license_link`) names the upstream.
 - `card-link`: the card links to the upstream project in a derivation context, such as a "Homepage" field or "converted from". A link that only cites the project counts as a mention.
-- `repo-id`: the repo name matches, for example `droid_1.0.1`. This needs confirming. A generic name match is never critical unless the name also marks a conversion (`lerobot`, `v30`, `subset`, ...).
-- `card-mention`: the card names or cites the upstream, possibly only for comparison. This never makes a finding critical.
+- `repo-id`: the repo name matches, for example `droid_1.0.1`. This needs confirming.
+- `card-mention`: the card names the upstream, possibly only for comparison. A mention next to words like "pretrained", "benchmark", "compared" or "format" is not counted at all.
 - `publisher`: the repo belongs to the upstream's own organisation, so its tag is the publisher's choice. This is informational only.
 
-Each matched source is judged on its own evidence and confidence, and the most severe result is reported; when sources disagree, the most restrictive term (non-commercial, no redistribution) wins.
+Each matched source is judged on its own evidence and confidence, and the most severe result is reported; when sources disagree, the most restrictive term (non-commercial, no redistribution) wins. A finding can only be critical when the card declares the source or two independent signals agree (a derivation link and the repo name, or the repo name and a mention); one signal on its own is at most a warning. The concluded licence is taken only from card-source, card-link and repo-id matches; a mention leaves the declared licence in force.
 
 Data recorded *on* a robot is not the same as data from that robot maker's dataset. For example, `RoboCOIN/AgiBot-g1_*` is not AgiBot World, and rdq does not match it as such.
 

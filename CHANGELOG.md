@@ -24,6 +24,13 @@ Fixes from a pre-release review against real Hub dataset schemas.
 - Fixed patterns that matched unrelated ids (`cambridge_v2` as BridgeData V2, Unitree Z1 as G1).
 - Passport: a Croissant record set over the frame index columns, no local paths, valid SPDX LicenseRef ids, more HF licence tags mapped to SPDX.
 
+**After a second review**
+- A never-finite channel is dropped from action and state together, so the sync check keeps running.
+- `episodes.no_motion` is scale-free and looks at the state (and absolute-position actions), so a frozen stream with sensor noise is caught; a whole task that barely moves compared with the other tasks is flagged as idle.
+- `episodes.spikes_systematic` needs 8 or more episodes and is a dataset-level warning.
+- `values.empty_feature`: an action or state with no finite values at all is critical.
+- Licence findings are critical only when the card declares the source (`source_datasets`, `license_link`) or two independent signals agree; a single signal is at most a warning. Mentions in citation context (pretrained encoders, benchmarks, formats) are ignored, and only derivation evidence sets the concluded terms. New statuses `publisher-upload` and verdict "no upstream data licence".
+
 **Evidence**
 - Hub summary separates publisher uploads from traced conversions, reports match evidence, and no longer lists dataset ids.
 - Benchmark confidence intervals are computed over seeds.
