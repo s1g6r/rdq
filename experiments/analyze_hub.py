@@ -29,7 +29,7 @@ def load_scan(results: Path) -> list[dict]:
         info_text = (d / "info.json").read_text() if (d / "info.json").exists() else None
         r["_raw"] = d.exists()
         if d.exists():
-            r["provenance"] = analyse_card(readme, card_license=r.get("card_license")).to_dict()
+            r["provenance"] = analyse_card(readme, card_license=r.get("card_license"), repo_id=r["id"]).to_dict()
             try:
                 r["info"] = info_facts(json.loads(info_text)) if info_text else None
             except json.JSONDecodeError:
@@ -66,8 +66,36 @@ def summarise_scan(rows: list[dict]) -> dict:
             by_author_default[a][0] += 1
     distinct_authors = len(authors)
     authors_any_default = sum(1 for a, (d, t) in by_author_default.items() if d > 0)
+    def dl(rs):
+        return sum(r.get("downloads") or 0 for r in rs)
+
+    def up(r):
+        return (r.get("provenance") or {}).get("upstream") or {}
+
+    known = [r for r in rows if up(r).get("upstream")]
+    mismatch = [r for r in known if up(r).get("status") in ("relabelled", "upstream-conflict")]
+    nc_conflict = [r for r in known if up(r).get("status") == "upstream-conflict" and up(r).get("severity") == "critical"]
+    by_source = collections.Counter(u["name"] for r in known for u in up(r)["upstream"])
+    upstream_summary = {
+        "known_upstream_datasets": pct(len(known), n),
+        "known_upstream_download_share": f"{100 * dl(known) / downloads_total:.1f}%" if downloads_total else "n/a",
+        "declared_differs_from_upstream": pct(len(mismatch), len(known)),
+        "declared_differs_download_share": f"{100 * dl(mismatch) / downloads_total:.1f}%" if downloads_total else "n/a",
+        "status_counts": collections.Counter(up(r).get("status") for r in rows if up(r)).most_common(),
+        "by_source": by_source.most_common(),
+        "critical_conflicts": [
+            {"id": r["id"], "downloads": r.get("downloads"), "declared": up(r)["declared"], "upstream": up(r)["concluded"],
+             "evidence": sorted({u["evidence"] for u in up(r)["upstream"]})}
+            for r in sorted(nc_conflict, key=lambda r: -(r.get("downloads") or 0))
+        ],
+        "top_relabelled": [
+            {"id": r["id"], "downloads": r.get("downloads"), "declared": up(r)["declared"], "upstream": up(r)["concluded"]}
+            for r in sorted(mismatch, key=lambda r: -(r.get("downloads") or 0))[:15]
+        ],
+    }
     return {
         "datasets_scanned": n,
+        "upstream_licences": upstream_summary,
         "distinct_owners": distinct_authors,
         "top_owners": authors.most_common(10),
         "owners_with_any_untouched_default": pct(authors_any_default, distinct_authors),

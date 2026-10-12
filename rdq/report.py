@@ -16,7 +16,7 @@ from .scoring import Score, score
 SEVERITY_ORDER = {CRITICAL: 0, WARNING: 1, INFO: 2}
 
 
-def audit(path: str | Path, max_frames: int | None = None, readme: str | None = None) -> dict:
+def audit(path: str | Path, max_frames: int | None = None, readme: str | None = None, repo_id: str | None = None) -> dict:
     """Run every check on a local dataset folder and return a JSON-ready dict."""
     path = Path(path)
     ds = load_dataset(path, max_frames=max_frames)
@@ -25,7 +25,7 @@ def audit(path: str | Path, max_frames: int | None = None, readme: str | None = 
     sc = score(findings, sorted(ds.episodes))
     if readme is None and (path / "README.md").exists():
         readme = (path / "README.md").read_text(errors="replace")
-    prov = analyse_card(readme) if readme is not None else None
+    prov = analyse_card(readme, repo_id=repo_id) if readme is not None else None
     return build_result(ds, findings, sc, prov)
 
 

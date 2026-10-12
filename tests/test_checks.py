@@ -181,6 +181,9 @@ def test_noncommercial_and_restricted():
     assert analyse_card("---\nlicense: cc-by-nc-4.0\n---\nhi").verdict == "non-commercial"
     r = analyse_card("---\nlicense: mit\n---\nConverted from EPIC-KITCHENS videos.")
     assert r.verdict == "restricted source"
+    assert r.upstream["status"] == "upstream-conflict" and r.upstream["severity"] == "warning"
+    r = analyse_card("---\nlicense: cc-by-nc-4.0\n---\nFrames from EPIC-KITCHENS.")
+    assert r.verdict == "non-commercial" and r.upstream["status"] == "consistent"
     assert analyse_card("no front matter").verdict == "no licence"
 
 

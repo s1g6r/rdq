@@ -163,7 +163,7 @@ def scan(limit: int, out_dir: str | Path, sort: str = "downloads", pause: float 
                 if raw_info is not None:
                     (raw_dir / "info.json").write_text(raw_info)
                 row["has_readme"] = readme is not None
-                row["provenance"] = analyse_card(readme, card_license=entry.get("card_license")).to_dict()
+                row["provenance"] = analyse_card(readme, card_license=entry.get("card_license"), repo_id=entry["id"]).to_dict()
                 if raw_info:
                     try:
                         row["info"] = info_facts(json.loads(raw_info))
@@ -323,7 +323,7 @@ def _audit_one(repo_id, work, reports, out_dir, max_mb, keep_data, run_audit, wr
                     local_dir=str(local),
                     allow_patterns=["meta/*", "meta/**", "data/**", "README.md"],
                 )
-                result = run_audit(local)
+                result = run_audit(local, repo_id=repo_id)
                 result["dataset"]["path"] = repo_id
                 report_path = reports / f"{repo_id.replace('/', '__')}.json"
                 write_json(result, report_path)

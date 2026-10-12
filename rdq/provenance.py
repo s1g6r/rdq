@@ -14,6 +14,8 @@ from dataclasses import asdict, dataclass, field
 
 import yaml
 
+from .licenses import assess_card
+
 TEMPLATE_MARKER = "This dataset was created using [LeRobot]"
 UNFILLED = "[More Information Needed]"
 
@@ -36,8 +38,10 @@ PERMISSIVE_LICENSES = {
 RESTRICTED_SOURCES = {
     "epic-kitchens": "non-commercial licence",
     "epic kitchens": "non-commercial licence",
-    "ego4d": "requires a signed licence agreement",
-    "egodex": "non-commercial licence",
+    "ego4d": "signed agreement that forbids redistribution",
+    "egodex": "non-commercial, no-derivatives licence",
+    "agibot world": "non-commercial, share-alike licence",
+    "agibotworld": "non-commercial, share-alike licence",
     "hoi4d": "non-commercial licence",
     "aria everyday": "non-commercial research licence",
     "aria digital twin": "non-commercial research licence",
@@ -56,6 +60,9 @@ class ProvenanceResult:
     restricted_sources: list[str]
     verdict: str  # short label used in reports
     notes: list[str] = field(default_factory=list)
+    license_link: str | None = None
+    source_datasets: list[str] = field(default_factory=list)
+    upstream: dict | None = None  # licenses.LicenseAssessment as a dict
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -89,7 +96,7 @@ def classify_license(license_value) -> str:
     return "other"
 
 
-def analyse_card(readme: str | None, card_license=None) -> ProvenanceResult:
+def analyse_card(readme: str | None, card_license=None, repo_id: str | None = None) -> ProvenanceResult:
     meta, body = split_card(readme or "")
     lic = card_license if card_license is not None else meta.get("license")
     if isinstance(lic, list):
@@ -123,7 +130,15 @@ def analyse_card(readme: str | None, card_license=None) -> ProvenanceResult:
     for name in restricted:
         notes.append(f"card mentions {name}, whose data has a {RESTRICTED_SOURCES[name]}")
 
-    if lic_class == "missing":
+    upstream = assess_card(repo_id, readme, lic)
+    notes.extend(upstream.notes)
+    src = meta.get("source_datasets") or []
+    if isinstance(src, str):
+        src = [src]
+
+    if upstream.status == "upstream-conflict" and upstream.severity == "critical":
+        verdict = "licence conflicts with upstream"
+    elif lic_class == "missing":
         verdict = "no licence"
     elif lic_class == "noncommercial":
         verdict = "non-commercial"
@@ -146,4 +161,7 @@ def analyse_card(readme: str | None, card_license=None) -> ProvenanceResult:
         restricted_sources=restricted,
         verdict=verdict,
         notes=notes,
+        license_link=str(meta["license_link"]) if meta.get("license_link") else None,
+        source_datasets=[str(x) for x in src],
+        upstream=upstream.to_dict(),
     )
