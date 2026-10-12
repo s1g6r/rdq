@@ -14,7 +14,7 @@ from dataclasses import asdict, dataclass, field
 
 import yaml
 
-from .licenses import assess_card
+from .licenses import assess_card, most_restrictive
 
 TEMPLATE_MARKER = "This dataset was created using [LeRobot]"
 UNFILLED = "[More Information Needed]"
@@ -85,7 +85,7 @@ def classify_license(license_value) -> str:
     if not license_value:
         return "missing"
     if isinstance(license_value, list):
-        license_value = license_value[0] if license_value else None
+        license_value = most_restrictive(license_value)
         if not license_value:
             return "missing"
     lic = str(license_value).strip().lower()
@@ -114,7 +114,7 @@ def analyse_card(readme: str | None, card_license=None, repo_id: str | None = No
     meta, body = split_card(readme or "")
     lic = card_license if card_license is not None else meta.get("license")
     if isinstance(lic, list):
-        lic = lic[0] if lic else None
+        lic = most_restrictive(lic)
     lic_class = classify_license(lic)
 
     template = TEMPLATE_MARKER in body

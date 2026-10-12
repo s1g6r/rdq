@@ -278,3 +278,8 @@ def test_passport_keeps_a_publisher_added_restriction(tmp_path):
 
 def test_share_alike_added_to_cc_by_is_stricter():
     assert assess_card("acme/droid_sa_subset", "", "cc-by-sa-4.0").status == "stricter-than-upstream"
+
+
+def test_list_valued_licence_uses_the_most_restrictive_tag():
+    p = analyse_card("---\nlicense:\n- mit\n- cc-by-nc-4.0\n---\nhello")
+    assert p.license == "cc-by-nc-4.0" and p.verdict == "non-commercial"

@@ -218,9 +218,23 @@ def match_sources(repo_id: str | None, readme: str | None) -> list[SourceMatch]:
     return out
 
 
+def most_restrictive(tags) -> str | None:
+    """From a list-valued licence field, the tag whose terms bind most (NC, then ND, then SA)."""
+    tags = [str(t).strip() for t in tags or [] if t is not None and str(t).strip()]
+    if not tags:
+        return None
+
+    def rank(t: str) -> int:
+        t = t.lower()
+        return (4 if re.search(r"(^|-)nc(-|$)", t) else 0) + (2 if re.search(r"(^|-)nd(-|$)", t) else 0) + \
+            (1 if re.search(r"(^|-)sa(-|$)", t) else 0)
+
+    return max(tags, key=rank)
+
+
 def normalise_tag(lic) -> str | None:
     if isinstance(lic, list):
-        lic = lic[0] if lic else None
+        lic = most_restrictive(lic)
     if lic is None:
         return None
     s = str(lic).strip().lower()
