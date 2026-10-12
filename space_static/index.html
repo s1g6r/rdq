@@ -1922,13 +1922,13 @@ async function boot() {
     py = await loadPyodide();
     await py.loadPackage("pyyaml");
     for (const el of document.querySelectorAll(".rdq-file")) {
-      const path = el.dataset.path;
+      const path = "/home/pyodide/" + el.dataset.path;  // FS.mkdirTree needs an absolute path
       py.FS.mkdirTree(path.split("/").slice(0, -1).join("/"));
       py.FS.writeFile(path, el.textContent);
     }
     py.runPython(`
 import json, sys
-sys.path.insert(0, ".")
+sys.path.insert(0, "/home/pyodide")
 from rdq.provenance import analyse_card
 def run(readme, repo_id):
     return json.dumps(analyse_card(readme, repo_id=repo_id).to_dict())
@@ -1938,7 +1938,7 @@ def run(readme, repo_id):
     const id = new URLSearchParams(location.search).get("id");
     if (id) { $("#q").value = id; check(id); }
   } catch (e) {
-    $("#status").textContent = "The checker failed to load: " + e;
+    $("#status").textContent = "The checker failed to load: " + (e && e.message ? e.message : e);
   }
 }
 function parseId(s) {
@@ -1964,7 +1964,7 @@ async function check(raw) {
     $("#status").textContent = "";
     history.replaceState(null, "", "?id=" + encodeURIComponent(id));
   } catch (e) {
-    $("#status").textContent = "Something went wrong: " + e;
+    $("#status").textContent = "Something went wrong: " + (e && e.message ? e.message : e);
   } finally { $("#go").disabled = false; }
 }
 function render(id, p) {
