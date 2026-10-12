@@ -870,8 +870,9 @@ def check_action_state_sync(ds: Dataset, th: Thresholds) -> list[Finding]:
         k = best[i]
         if abs(k - typical) <= th.lag_deviation:
             continue
-        # Only flag when the shifted alignment is clearly better, not a flat error curve.
-        if err[typical + m] > 2.0 * err[k + m] + 1e-9:
+        # Only flag when the shifted alignment is clearly better than the typical one, not a
+        # flat error curve. Velocity errors have a noise floor, so 30% better is already clear.
+        if err[typical + m] > 1.3 * err[k + m] + 1e-9:
             shifted.append(i)
     results = {i: (best[i], curves[i][1]) for i in curves}
     uncorrelated = [i for i, (k, r) in results.items() if r < 0.3]

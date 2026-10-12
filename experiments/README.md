@@ -1,71 +1,47 @@
 # Experiments
 
-The claim to test is: **training on the episodes rdq marks usable produces better policies than training on everything, and better than training on a random subset of the same size.**
+The question is whether rdq's verdicts lead to better policies. Every experiment compares rdq against controls that would explain a gain without rdq: a random subset of the same size, keep-the-shortest (length is a well-known confound in curation metrics), the published spectral metric, a loss-based filter and an oracle.
 
-The random-subset control is what makes this a test of rdq. Without it, any gain could just come from training on less data.
-
-## 1. Toy experiment (done, CPU only)
-
-`toy_reach.py` uses a 2D position-controlled robot reaching random goals.
-
-- Expert demos are written in LeRobot v3.0 format.
-- A fraction of episodes get realistic faults: idle (the log froze), desync (actions written 8 frames late), glitch (3-frame teleop dropout) and wrong goal (a failed attempt).
-- rdq has no way to detect a wrong-goal episode. It is included on purpose, as an honest limit.
-- The policy is a numpy MLP trained by behaviour cloning, evaluated on 400 rollouts per seed with 3 seeds.
-
-```bash
-python experiments/toy_reach.py --episodes 200 --rates 0 0.1 0.2 0.3 0.4 --seeds 3 --rollouts 400
-```
-
-Results are in `results/toy_results.json`. Success rate averaged over 3 seeds × 400 rollouts:
-
-| Corrupted episodes | Raw | Random subset (same size) | rdq-filtered | Dataset score |
+| Experiment | Data | Noise | Needs | Status |
 |---|---|---|---|---|
-| 0% | 1.00 | 1.00 | 1.00 | 100 |
-| 10% | 0.77 | 0.81 | 0.98 | 96 |
-| 20% | 0.49 | 0.48 | 0.94 | 93 |
-| 30% | 0.24 | 0.27 | 0.92 | 90 |
-| 40% | 0.22 | 0.21 | 0.84 | 87 |
+| `toy_reach.py` | 2D reaching, 10 fps | injected faults | CPU, minutes | done ([results](results/toy_results.json)) |
+| `curation_benchmark.py` | 2D reaching, 30 fps | injected faults **and** imperfect operators | CPU, ~15 min | done ([results](results/curation_benchmark.md)) |
+| `robomimic_mh.py` | RoboMimic Can and Square, multi-human | **natural**: six operators labelled better, okay or worse | CPU, minutes; downloads ~230 MB | ready, needs internet to the Hub |
+| `kaggle/rdq_pusht_experiment.ipynb` | LeRobot Push-T (keypoints) | injected faults | one GPU, 4–6 h | run in progress on Kaggle |
 
-Detection:
+## 1. Toy reaching (`toy_reach.py`)
 
-- Idle, desync and glitch: 150/150 each.
-- Wrong goal: 0/150, as expected.
-- Clean episodes wrongly dropped: 10/2,400 (0.4%). These are demos whose goal was already within reach, so they barely move.
-- Correlation between the dataset score and raw-training success across all 15 runs: 0.97.
+This is the first mechanism test: 200 expert demos, a share of them corrupted (idle, 8-frame desync, 3-frame glitch, wrong goal), and behaviour cloning trained on raw, rdq-filtered and random subsets. At 30% corruption the success rates were raw 0.24, random 0.27 and filtered 0.92. The wrong-goal episodes look like normal motion and were never caught, which is an honest limit of rule-based checks.
 
-**What this shows and doesn't.** The mechanism works: the faults rdq detects really do damage behaviour cloning, and removing exactly those episodes recovers most of the performance. But this is a toy task, a toy policy and faults we designed ourselves. The 0.97 correlation is inflated because corruption rate drives both the score and the success. Nothing here proves the effect on real robot data.
+## 2. Curation benchmark (`curation_benchmark.py`)
 
-## 2. Real experiment (next, needs one GPU)
+This is the version reviewers would ask for. Three scenarios are each run with 5 seeds and 400 rollouts:
 
-**Setup.**
+- **structural**: 30% recording faults.
+- **skill**: 40% imperfect operators (shaky hands, hesitation with pauses and back-and-forth, detours, failed attempts that stop short).
+- **mixed**: 15% faults plus 20% imperfect operators.
 
-- Policy: SmolVLA (`lerobot/smolvla_base`, 450M parameters), fine-tuned with LeRobot.
-- Data: a LIBERO dataset in LeRobot v3.0 format, with simulation evaluation through `lerobot-eval --env.type=libero`.
+Every subset method keeps the number of good episodes. Rules choose their own size and are compared with a random subset of that size. Detection AUROC per fault type is reported next to success.
 
-**Protocol.**
+The main result: recording faults are devastating (0.16 success with all data) and rdq's rules recover the oracle exactly. Operator skill hurts much less (0.88 with all data), and no training-free score reliably improves on using all the data. Length alone is as good as any of them. See [results/curation_benchmark.md](results/curation_benchmark.md).
 
-1. Take a clean LIBERO training set, for example the libero_spatial portion.
-2. `python experiments/corrupt.py CLEAN CORRUPT --rate 0.3 --seed 0`. Ground truth goes to `corruption.json`.
-3. `rdq check CORRUPT --filter keep.json`, then record detection against the ground truth.
-4. Train three SmolVLA policies, identical except for `--dataset.episodes`:
-   - raw: all episodes
-   - filtered: the episodes in `keep.json`
-   - random: a random subset the same size as `keep.json`
-5. Evaluate each on libero_spatial: 10 tasks × 50 episodes = 500 rollouts per policy. Report success with Wilson 95% intervals, and test filtered vs. random with a paired two-proportion test.
-6. Repeat with a second seed if the budget allows.
+## 3. RoboMimic MH (`robomimic_mh.py`)
 
-**Commands** (one A100 or L4; the dataset repo name is filled in from the hub scan):
+This benchmark has no injected faults. Each method keeps 50% of the 300 demonstrations, and the score is the mean operator tier of what it kept (better = 3, okay = 2, worse = 1), following Sojib et al. (2026), Table I. The published Can-MH numbers at 50% are random 1.99, DemInf 2.37, CUPID 2.32, PSD 2.53 and oracle 2.67. The script reports rdq's scores, the replicated PSD and keep-the-shortest on the same footing.
 
 ```bash
-pip install "lerobot[smolvla,libero]"
-lerobot-train --policy.path=lerobot/smolvla_base --dataset.repo_id=LOCAL/libero_corrupt \
-  --dataset.root=CORRUPT --dataset.episodes="[$(jq -r '.episodes|join(",")' keep.json)]" \
-  --steps=20000 --batch_size=32 --output_dir=runs/filtered --job_name=filtered
-lerobot-eval --policy.path=runs/filtered/checkpoints/last/pretrained_model \
-  --env.type=libero --env.task=libero_spatial --eval.n_episodes=50 --eval.batch_size=10
+pip install -e . h5py
+python experiments/robomimic_mh.py --tasks can square --out experiments/results
 ```
 
-**Budget.** A SmolVLA fine-tune of about 20k steps takes a few GPU-hours. Three policies plus evaluation comes to roughly 10–15 GPU-hours, about $15–40 on a rented A100 or L4. Check current prices before renting.
+You can also run it from the repo's **Actions → benchmarks** workflow, which has internet access.
 
-**Kill criterion.** If filtered is not clearly better than random on real data, rdq is a linter, not a product. In that case, pivot toward provenance/licence auditing or evaluation statistics, which reuse this code.
+## 4. Push-T on a GPU (`kaggle/`)
+
+The setup is LeRobot diffusion policy on `lerobot/pusht_keypoints` (206 human demos). 30% of episodes are corrupted with the same three recording faults, and three policies (raw, rdq-filtered, random of the same size) are each evaluated on 200 simulator episodes. `build_notebook.py` embeds the current rdq source in a single notebook. `smoke_test.py` runs every cell on CPU against a synthetic Push-T-shaped dataset.
+
+**Read the result honestly.** An independent replication of heuristic curation on Push-T (LorenzoDolfi/robot-data-quality) found that heuristics did worse than a random subset (24% vs 27%), and both did worse than the full dataset (41%). Diffusion policy is known to be fairly robust to noisy demos, and removing 30% of 206 demos also removes coverage. A null result here would be informative, not embarrassing.
+
+## Kill criterion
+
+If rdq's selection doesn't beat a same-size random subset on real data, its value is in licence and provenance and in catching broken recordings, not in curation. The roadmap already reflects that.
