@@ -4,103 +4,64 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>rdq: robot dataset licence check</title>
-<script type="module" crossorigin src="https://cdn.jsdelivr.net/npm/@gradio/lite@5.45.0/dist/lite.js"></script>
-<link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/npm/@gradio/lite@5.45.0/dist/lite.css" />
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.3/full/pyodide.js"></script>
+<style>
+  :root { --bg:#fbfaf8; --fg:#1d1f23; --muted:#62666e; --line:#e3e1dc; --card:#fff; --accent:#3b4cca;
+          --crit:#b42318; --warn:#b54708; --info:#175cd3; --ok:#067647; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141518; --fg:#ececec; --muted:#a2a6ad; --line:#2b2d33; --card:#1c1d21;
+          --accent:#8c98ff; --crit:#f97066; --warn:#fdb022; --info:#84adff; --ok:#47cd89; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:40px 16px 64px; }
+  h1 { font-size:28px; line-height:1.2; margin:0 0 8px; letter-spacing:-0.01em; }
+  p.lede { color:var(--muted); margin:0 0 24px; }
+  form { display:flex; gap:8px; flex-wrap:wrap; }
+  input { flex:1 1 280px; min-width:0; font:inherit; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); }
+  button { font:inherit; font-weight:600; padding:10px 18px; border:0; border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:wait; }
+  .examples { margin:10px 0 0; font-size:14px; color:var(--muted); }
+  .examples a { color:var(--accent); cursor:pointer; margin-right:12px; text-decoration:underline; }
+  #status { margin:20px 0 0; color:var(--muted); font-size:14px; min-height:1.4em; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-top:16px; }
+  .card h2 { font-size:18px; margin:0 0 12px; word-break:break-all; }
+  .row { display:flex; gap:8px; margin:4px 0; flex-wrap:wrap; }
+  .k { color:var(--muted); min-width:170px; }
+  .pill { display:inline-block; padding:1px 10px; border-radius:999px; font-size:13px; font-weight:600; border:1px solid currentColor; }
+  .critical { color:var(--crit); } .warning { color:var(--warn); } .info { color:var(--info); } .ok { color:var(--ok); }
+  ul { padding-left:20px; margin:8px 0 0; } li { margin:4px 0; }
+  a { color:var(--accent); }
+  footer { margin-top:32px; font-size:13px; color:var(--muted); }
+</style>
 </head>
 <body>
-<gradio-lite>
-<gradio-requirements>
-pyyaml
-</gradio-requirements>
-<gradio-file name="app.py" entrypoint>
-&quot;&quot;&quot;rdq licence and provenance check, running entirely in the browser (Gradio-Lite).
+<main>
+  <h1>Can you train on this robot dataset?</h1>
+  <p class="lede">Paste a LeRobot dataset from the Hugging Face Hub. rdq compares its declared licence with the terms of the original
+    dataset it was converted from (65 public robot datasets, each checked against its primary source). Everything runs in your browser.</p>
+  <form id="f">
+    <input id="q" placeholder="e.g. lerobot/droid_1.0.1 or a dataset URL" autocomplete="off" aria-label="Dataset id" />
+    <button id="go" type="submit" disabled>Check</button>
+  </form>
+  <div class="examples">Try:
+    <a data-id="IPEC-COMMUNITY/droid_lerobot">IPEC-COMMUNITY/droid_lerobot</a>
+    <a data-id="lerobot/pusht">lerobot/pusht</a>
+    <a data-id="lerobot/svla_so101_pickplace">lerobot/svla_so101_pickplace</a>
+  </div>
+  <div id="status">Loading the checker…</div>
+  <div id="out"></div>
+  <footer>A licence tag on a copy can't grant rights its uploader doesn't hold. This is a diligence aid, not legal advice.
+    Full quality checks (desync, frozen logs, glitches, duplicates) and data passports:
+    <a href="https://github.com/s1g6r/rdq">github.com/s1g6r/rdq</a></footer>
+</main>
+<script type="text/plain" class="rdq-file" data-path="rdq/__init__.py">"""rdq: quality and provenance checks for robot-learning datasets (LeRobot format)."""
 
-Paste a LeRobot dataset id. The page fetches the dataset card from the Hugging Face Hub
-and compares its declared licence with the terms of the public dataset it was converted
-from, using rdq&#x27;s knowledge base. Full quality checks need the command line:
-pip install git+https://github.com/s1g6r/rdq
-&quot;&quot;&quot;
-
-import json
-import re
-
-import gradio as gr
-from pyodide.http import pyfetch
-
-from rdq.provenance import analyse_card
-
-REPO = &quot;https://github.com/s1g6r/rdq&quot;
-SEV = {&quot;critical&quot;: &quot;🔴 critical&quot;, &quot;warning&quot;: &quot;🟠 warning&quot;, &quot;info&quot;: &quot;🔵 info&quot;, &quot;ok&quot;: &quot;🟢 ok&quot;}
-
-
-async def fetch_card(repo_id: str):
-    url = f&quot;https://huggingface.co/datasets/{repo_id}/resolve/main/README.md&quot;
-    resp = await pyfetch(url)
-    if resp.status == 404:
-        return None, &quot;no dataset card (README.md) found&quot;
-    if not resp.ok:
-        return None, f&quot;the Hub answered {resp.status}&quot;
-    return await resp.string(), None
-
-
-async def check(repo_id: str) -&gt; str:
-    repo_id = (repo_id or &quot;&quot;).strip().strip(&quot;/&quot;)
-    m = re.search(r&quot;huggingface\.co/datasets/([^/\s]+/[^/\s?#]+)&quot;, repo_id)
-    if m:
-        repo_id = m.group(1)
-    if not re.fullmatch(r&quot;[\w.-]+/[\w.-]+&quot;, repo_id):
-        return &quot;Enter a dataset id like `lerobot/droid_1.0.1`.&quot;
-    try:
-        readme, err = await fetch_card(repo_id)
-    except Exception as exc:  # noqa: BLE001
-        return f&quot;Could not reach the Hub: {type(exc).__name__}&quot;
-    if err:
-        return f&quot;### `{repo_id}`\n\nCould not read the card: {err}. Private and gated datasets can&#x27;t be checked here.&quot;
-    p = analyse_card(readme, repo_id=repo_id)
-    up = p.upstream or {}
-    lines = [f&quot;### `{repo_id}`&quot;, &quot;&quot;, f&quot;**Declared licence:** {p.license or &#x27;none&#x27;}&quot;, f&quot;**Verdict:** {p.verdict}&quot;]
-    if up.get(&quot;upstream&quot;):
-        lines.append(f&quot;**Compared with the original:** {up.get(&#x27;status&#x27;)} ({SEV.get(up.get(&#x27;severity&#x27;), up.get(&#x27;severity&#x27;))})&quot;)
-        lines.append(&quot;&quot;)
-        for u in up[&quot;upstream&quot;]:
-            lines.append(f&quot;- **{u[&#x27;name&#x27;]}**: {u[&#x27;license&#x27;]} (matched by {u[&#x27;evidence&#x27;]}, {u[&#x27;confidence&#x27;]} confidence). &quot;
-                         f&quot;Source: [{u[&#x27;statement_url&#x27;]}]({u[&#x27;statement_url&#x27;]}), checked {u[&#x27;checked&#x27;]}&quot;)
-    if p.notes:
-        lines += [&quot;&quot;, &quot;**Notes**&quot;] + [f&quot;- {n}&quot; for n in p.notes]
-    lines += [&quot;&quot;, &quot;---&quot;,
-              &quot;A licence tag on a copy can&#x27;t grant rights its uploader doesn&#x27;t hold. This is a diligence aid, not legal advice. &quot;
-              f&quot;For full quality checks (desync, frozen logs, glitches, duplicates) and a data passport, run rdq locally: {REPO}&quot;]
-    return &quot;\n&quot;.join(lines)
-
-
-with gr.Blocks(title=&quot;rdq: check a robot dataset&#x27;s licence&quot;) as demo:
-    gr.Markdown(&quot;# rdq: can you train on this robot dataset?\n&quot;
-                &quot;Paste a LeRobot dataset id from the Hugging Face Hub. rdq checks its declared licence against the &quot;
-                &quot;terms of the original dataset it was converted from (65 public datasets checked against their primary &quot;
-                &quot;sources). Runs in your browser; the first load takes a few seconds.&quot;)
-    with gr.Row():
-        box = gr.Textbox(label=&quot;Dataset id&quot;, placeholder=&quot;lerobot/droid_1.0.1&quot;, scale=4)
-        btn = gr.Button(&quot;Check&quot;, variant=&quot;primary&quot;)
-    out = gr.Markdown()
-    gr.Examples([&quot;lerobot/droid_1.0.1&quot;, &quot;lerobot/pusht&quot;, &quot;lerobot/svla_so101_pickplace&quot;], inputs=box)
-    btn.click(check, box, out)
-    box.submit(check, box, out)
-
-demo.launch()
-
-</gradio-file>
-<gradio-file name="rdq/__init__.py">
-&quot;&quot;&quot;rdq: quality and provenance checks for robot-learning datasets (LeRobot format).&quot;&quot;&quot;
-
-__version__ = &quot;0.2.1&quot;
-
-</gradio-file>
-<gradio-file name="rdq/licenses.py">
-&quot;&quot;&quot;Upstream licence knowledge base and declared-vs-upstream conflict detection.
+__version__ = "0.2.1"
+</script>
+<script type="text/plain" class="rdq-file" data-path="rdq/licenses.py">"""Upstream licence knowledge base and declared-vs-upstream conflict detection.
 
 A licence tag on a Hugging Face mirror is not a grant: an uploader cannot relicense
 data they do not own. Many LeRobot conversions of well-known datasets carry the
-upload tool&#x27;s default `apache-2.0` while the original release says something else
+upload tool's default `apache-2.0` while the original release says something else
 (CC BY 4.0 with attribution and change-notice duties, or a non-commercial licence).
 
 This module records the upstream terms of public robot datasets whose licence we
@@ -110,7 +71,7 @@ terms. Entries are deliberately few: an entry is only added once its terms are
 verified, with the statement URL and the date it was checked.
 
 This is a heuristic aid for diligence, not legal advice.
-&quot;&quot;&quot;
+"""
 
 from __future__ import annotations
 
@@ -118,20 +79,20 @@ import re
 from dataclasses import asdict, dataclass, field
 
 # Restriction vocabulary used across rdq outputs.
-ATTRIBUTION = &quot;attribution&quot;
-CHANGE_NOTICE = &quot;indicate-modifications&quot;
-NONCOMMERCIAL = &quot;non-commercial&quot;
-SHAREALIKE = &quot;share-alike&quot;
-NODERIVS = &quot;no-derivatives&quot;
-NO_REDISTRIBUTION = &quot;no-redistribution&quot;
-AGREEMENT = &quot;signed-agreement&quot;
+ATTRIBUTION = "attribution"
+CHANGE_NOTICE = "indicate-modifications"
+NONCOMMERCIAL = "non-commercial"
+SHAREALIKE = "share-alike"
+NODERIVS = "no-derivatives"
+NO_REDISTRIBUTION = "no-redistribution"
+AGREEMENT = "signed-agreement"
 
 
 @dataclass(frozen=True)
 class UpstreamSource:
     key: str
     name: str
-    license: str  # SPDX id where one exists, else &quot;LicenseRef-&lt;name&gt;&quot;
+    license: str  # SPDX id where one exists, else "LicenseRef-<name>"
     commercial_training: bool | None  # None = unclear
     redistribution: bool | None
     restrictions: tuple[str, ...]
@@ -139,39 +100,39 @@ class UpstreamSource:
     statement: str  # short quote or paraphrase of the upstream statement
     checked: str  # ISO date the statement was checked
     id_pattern: str  # regex on the lower-cased repo id
-    link_pattern: str | None = None  # regex for the upstream&#x27;s URL in the card (strong evidence)
-    mention_pattern: str | None = None  # regex for the upstream&#x27;s name in the card (weak evidence)
-    confidence: str = &quot;high&quot;  # high: explicit data licence; medium: umbrella/indirect; low: uncertain mapping
-    notes: str = &quot;&quot;
+    link_pattern: str | None = None  # regex for the upstream's URL in the card (strong evidence)
+    mention_pattern: str | None = None  # regex for the upstream's name in the card (weak evidence)
+    confidence: str = "high"  # high: explicit data licence; medium: umbrella/indirect; low: uncertain mapping
+    notes: str = ""
 
 
-NOT_STATED = &quot;not stated&quot;
+NOT_STATED = "not stated"
 
 
-def _load_sources() -&gt; tuple[UpstreamSource, ...]:
-    &quot;&quot;&quot;Read the packaged knowledge base (rdq/data/upstream_licences.json).&quot;&quot;&quot;
+def _load_sources() -> tuple[UpstreamSource, ...]:
+    """Read the packaged knowledge base (rdq/data/upstream_licences.json)."""
     import json
     from importlib.resources import files
 
-    data = json.loads(files(&quot;rdq&quot;).joinpath(&quot;data/upstream_licences.json&quot;).read_text())
+    data = json.loads(files("rdq").joinpath("data/upstream_licences.json").read_text())
     out = []
-    for e in data[&quot;sources&quot;]:
+    for e in data["sources"]:
         out.append(
             UpstreamSource(
-                key=e[&quot;key&quot;],
-                name=e[&quot;name&quot;],
-                license=e[&quot;license&quot;],
-                commercial_training=e.get(&quot;commercial_training&quot;),
-                redistribution=e.get(&quot;redistribution&quot;),
-                restrictions=tuple(e.get(&quot;restrictions&quot;) or ()),
-                statement_url=e[&quot;statement_url&quot;],
-                statement=e[&quot;statement&quot;],
-                checked=e.get(&quot;checked&quot;, &quot;&quot;),
-                id_pattern=e[&quot;id_pattern&quot;],
-                link_pattern=e.get(&quot;link_pattern&quot;),
-                mention_pattern=e.get(&quot;mention_pattern&quot;),
-                confidence=e.get(&quot;confidence&quot;, &quot;high&quot;),
-                notes=e.get(&quot;notes&quot;, &quot;&quot;),
+                key=e["key"],
+                name=e["name"],
+                license=e["license"],
+                commercial_training=e.get("commercial_training"),
+                redistribution=e.get("redistribution"),
+                restrictions=tuple(e.get("restrictions") or ()),
+                statement_url=e["statement_url"],
+                statement=e["statement"],
+                checked=e.get("checked", ""),
+                id_pattern=e["id_pattern"],
+                link_pattern=e.get("link_pattern"),
+                mention_pattern=e.get("mention_pattern"),
+                confidence=e.get("confidence", "high"),
+                notes=e.get("notes", ""),
             )
         )
     return tuple(out)
@@ -184,7 +145,7 @@ _BY_KEY = {s.key: s for s in UPSTREAM_SOURCES}
 
 # Declared tags that grant broad permissive rights. A CC BY upstream relabelled as one of
 # these loses its attribution and change-notice duties on paper (not in law).
-_PERMISSIVE_TAGS = {&quot;apache-2.0&quot;, &quot;mit&quot;, &quot;bsd-2-clause&quot;, &quot;bsd-3-clause&quot;, &quot;cc0-1.0&quot;, &quot;pddl&quot;, &quot;odc-by&quot;, &quot;unlicense&quot;}
+_PERMISSIVE_TAGS = {"apache-2.0", "mit", "bsd-2-clause", "bsd-3-clause", "cc0-1.0", "pddl", "odc-by", "unlicense"}
 
 
 @dataclass
@@ -194,13 +155,13 @@ class SourceMatch:
     evidence: str  # card-source | card-link | repo-id | card-mention | publisher (see match_sources)
     corroborated: bool = False  # two independent signals agree, or the card declares the source
 
-    def to_dict(self) -&gt; dict:
+    def to_dict(self) -> dict:
         return asdict(self)
 
 
 @dataclass
 class LicenseAssessment:
-    &quot;&quot;&quot;Declared licence versus what the known upstream sources allow.&quot;&quot;&quot;
+    """Declared licence versus what the known upstream sources allow."""
 
     declared: str | None
     status: str  # consistent | relabelled | upstream-conflict | restricted-redistribution | stricter-than-upstream | publisher-upload | review | no-upstream-grant | no-known-upstream | missing
@@ -212,31 +173,31 @@ class LicenseAssessment:
     upstream: list[dict] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
-    def to_dict(self) -&gt; dict:
+    def to_dict(self) -> dict:
         return asdict(self)
 
 
 # Words near an upstream link that say the data came from there (rather than citing it).
 _DERIVATION = re.compile(
-    r&quot;\bconver(t|ted|ting|sion)s?\b|\bre-?conver|\bderived\b|\bderivative\b|\bsubset of\b|\bmirror of\b|&quot;
-    r&quot;\bported\b|\bport of\b|\bre-?upload|\brepackag|\breformat|\brepublish|\bre-?render|&quot;
-    r&quot;\bprocessed (version|copy)\b|\btaken from\b|\bcomes from\b|\bdownloaded from\b|\bcopy of\b|&quot;
-    r&quot;\b(release|version|subset|split|sample) of\b|\boriginal (dataset|data|release)\b|\bsource dataset|→|-&gt;&quot;
+    r"\bconver(t|ted|ting|sion)s?\b|\bre-?conver|\bderived\b|\bderivative\b|\bsubset of\b|\bmirror of\b|"
+    r"\bported\b|\bport of\b|\bre-?upload|\brepackag|\breformat|\brepublish|\bre-?render|"
+    r"\bprocessed (version|copy)\b|\btaken from\b|\bcomes from\b|\bdownloaded from\b|\bcopy of\b|"
+    r"\b(release|version|subset|split|sample) of\b|\boriginal (dataset|data|release)\b|\bsource dataset|→|->"
 )
 # Words around a mention that say the upstream is only cited: a pretrained model, a comparison,
 # a benchmark or a format, not the source of the data.
 _CITATION_CONTEXT = re.compile(
-    r&quot;pre-?train|encoder|backbone|representation|embedding|features from|\br3m\b|vc-1|\bvip\b|&quot;
-    r&quot;\bcompar|in the style of|similar to|inspired by|evaluated on|\bbenchmark|\bbaseline|follows the|&quot;
-    r&quot;\bformat\b|like the|unlike&quot;
+    r"pre-?train|encoder|backbone|representation|embedding|features from|\br3m\b|vc-1|\bvip\b|"
+    r"\bcompar|in the style of|similar to|inspired by|evaluated on|\bbenchmark|\bbaseline|follows the|"
+    r"\bformat\b|like the|unlike"
 )
 
 
-def _front_matter(text: str) -&gt; dict:
-    if not text.startswith(&quot;---&quot;):
+def _front_matter(text: str) -> dict:
+    if not text.startswith("---"):
         return {}
-    end = text.find(&quot;\n---&quot;, 3)
-    if end &lt; 0:
+    end = text.find("\n---", 3)
+    if end < 0:
         return {}
     try:
         import yaml
@@ -247,19 +208,19 @@ def _front_matter(text: str) -&gt; dict:
     return meta if isinstance(meta, dict) else {}
 
 
-def _front_matter_sources(text: str) -&gt; list[str]:
-    &quot;&quot;&quot;source_datasets listed in the card&#x27;s YAML front matter (lower-cased).&quot;&quot;&quot;
-    src = _front_matter(text).get(&quot;source_datasets&quot;)
+def _front_matter_sources(text: str) -> list[str]:
+    """source_datasets listed in the card's YAML front matter (lower-cased)."""
+    src = _front_matter(text).get("source_datasets")
     if isinstance(src, str):
         src = [src]
     return [str(x).lower() for x in src or []]
 
 
-def _link_is_derivation(pattern: str, text: str) -&gt; bool:
+def _link_is_derivation(pattern: str, text: str) -> bool:
     for m in re.finditer(pattern, text):
-        line_start = text.rfind(&quot;\n&quot;, 0, m.start()) + 1
-        line = text[line_start : text.find(&quot;\n&quot;, m.end()) if &quot;\n&quot; in text[m.end():] else len(text)]
-        if re.search(r&quot;homepage\W{0,6}[:|]&quot;, line):  # the card&#x27;s own Homepage field points there
+        line_start = text.rfind("\n", 0, m.start()) + 1
+        line = text[line_start : text.find("\n", m.end()) if "\n" in text[m.end():] else len(text)]
+        if re.search(r"homepage\W{0,6}[:|]", line):  # the card's own Homepage field points there
             return True
         window = text[max(0, m.start() - 120) : m.end() + 120]
         if _DERIVATION.search(window):
@@ -267,8 +228,8 @@ def _link_is_derivation(pattern: str, text: str) -&gt; bool:
     return False
 
 
-def _mentioned_as_source(pattern: str, text: str) -&gt; bool:
-    &quot;&quot;&quot;A name mention counts only if at least one occurrence is not in a citation context.&quot;&quot;&quot;
+def _mentioned_as_source(pattern: str, text: str) -> bool:
+    """A name mention counts only if at least one occurrence is not in a citation context."""
     for m in re.finditer(pattern, text):
         window = text[max(0, m.start() - 80) : m.end() + 40]
         if not _CITATION_CONTEXT.search(window):
@@ -276,27 +237,27 @@ def _mentioned_as_source(pattern: str, text: str) -&gt; bool:
     return False
 
 
-def match_sources(repo_id: str | None, readme: str | None) -&gt; list[SourceMatch]:
-    &quot;&quot;&quot;Known upstream datasets this repo is probably a mirror, conversion or subset of.
+def match_sources(repo_id: str | None, readme: str | None) -> list[SourceMatch]:
+    """Known upstream datasets this repo is probably a mirror, conversion or subset of.
 
-    Evidence, strongest first: the card&#x27;s ``source_datasets`` (or ``license_link``) names it
+    Evidence, strongest first: the card's ``source_datasets`` (or ``license_link``) names it
     (card-source); the card links to it in a derivation context such as its Homepage field or
-    &quot;converted from&quot; (card-link); the repo name matches (repo-id); the card only names it
-    (card-mention, ignored when it is cited as a model&#x27;s training data, a benchmark or a
-    format). A repo owned by the upstream&#x27;s own organisation is the publisher&#x27;s upload
+    "converted from" (card-link); the repo name matches (repo-id); the card only names it
+    (card-mention, ignored when it is cited as a model's training data, a benchmark or a
+    format). A repo owned by the upstream's own organisation is the publisher's upload
     (publisher). A match is *corroborated* when two independent signals agree, or when the
     card itself declares the source.
-    &quot;&quot;&quot;
-    rid = (repo_id or &quot;&quot;).lower()
-    text = (readme or &quot;&quot;).lower()
+    """
+    rid = (repo_id or "").lower()
+    text = (readme or "").lower()
     declared_sources = _front_matter_sources(text)
-    license_link = str(_front_matter(text).get(&quot;license_link&quot;) or &quot;&quot;).lower()
+    license_link = str(_front_matter(text).get("license_link") or "").lower()
     out = []
     for src in UPSTREAM_SOURCES:
-        org_anchored = bool(re.match(r&quot;\^[\w.-]+/&quot;, src.id_pattern))  # e.g. ^robocoin/ or ^unitreerobotics/g1
+        org_anchored = bool(re.match(r"\^[\w.-]+/", src.id_pattern))  # e.g. ^robocoin/ or ^unitreerobotics/g1
         by_id = bool(rid) and bool(re.search(src.id_pattern, rid))
         if by_id and org_anchored:
-            out.append(SourceMatch(src.key, src.name, &quot;publisher&quot;, True))
+            out.append(SourceMatch(src.key, src.name, "publisher", True))
             continue
         if org_anchored:
             by_id = False
@@ -306,31 +267,31 @@ def match_sources(repo_id: str | None, readme: str | None) -&gt; list[SourceMatc
         link_derives = linked and _link_is_derivation(src.link_pattern, text)
         mentioned = bool(src.mention_pattern and _mentioned_as_source(src.mention_pattern, text))
         if declared:
-            out.append(SourceMatch(src.key, src.name, &quot;card-source&quot;, True))
+            out.append(SourceMatch(src.key, src.name, "card-source", True))
         elif link_derives:
-            out.append(SourceMatch(src.key, src.name, &quot;card-link&quot;, by_id))
+            out.append(SourceMatch(src.key, src.name, "card-link", by_id))
         elif by_id:
-            out.append(SourceMatch(src.key, src.name, &quot;repo-id&quot;, linked or mentioned))
+            out.append(SourceMatch(src.key, src.name, "repo-id", linked or mentioned))
         elif mentioned or (linked and _mentioned_as_source(src.link_pattern, text)):
-            out.append(SourceMatch(src.key, src.name, &quot;card-mention&quot;, False))
+            out.append(SourceMatch(src.key, src.name, "card-mention", False))
     return out
 
 
-def most_restrictive(tags) -&gt; str | None:
-    &quot;&quot;&quot;From a list-valued licence field, the tag whose terms bind most (NC, then ND, then SA).&quot;&quot;&quot;
+def most_restrictive(tags) -> str | None:
+    """From a list-valued licence field, the tag whose terms bind most (NC, then ND, then SA)."""
     tags = [str(t).strip() for t in tags or [] if t is not None and str(t).strip()]
     if not tags:
         return None
 
-    def rank(t: str) -&gt; int:
+    def rank(t: str) -> int:
         t = t.lower()
-        return (4 if re.search(r&quot;(^|-)nc(-|$)&quot;, t) else 0) + (2 if re.search(r&quot;(^|-)nd(-|$)&quot;, t) else 0) + \
-            (1 if re.search(r&quot;(^|-)sa(-|$)&quot;, t) else 0)
+        return (4 if re.search(r"(^|-)nc(-|$)", t) else 0) + (2 if re.search(r"(^|-)nd(-|$)", t) else 0) + \
+            (1 if re.search(r"(^|-)sa(-|$)", t) else 0)
 
     return max(tags, key=rank)
 
 
-def normalise_tag(lic) -&gt; str | None:
+def normalise_tag(lic) -> str | None:
     if isinstance(lic, list):
         lic = most_restrictive(lic)
     if lic is None:
@@ -339,26 +300,26 @@ def normalise_tag(lic) -&gt; str | None:
     return s or None
 
 
-def _same_license(declared: str, spdx: str) -&gt; bool:
-    return declared.replace(&quot;_&quot;, &quot;-&quot;) == spdx.lower()
+def _same_license(declared: str, spdx: str) -> bool:
+    return declared.replace("_", "-") == spdx.lower()
 
 
-_SEVERITY_RANK = {&quot;ok&quot;: 0, &quot;info&quot;: 1, &quot;warning&quot;: 2, &quot;critical&quot;: 3}
+_SEVERITY_RANK = {"ok": 0, "info": 1, "warning": 2, "critical": 3}
 _STATUS_RANK = {
-    &quot;upstream-conflict&quot;: 6, &quot;restricted-redistribution&quot;: 5, &quot;relabelled&quot;: 4, &quot;review&quot;: 3,
-    &quot;missing&quot;: 2, &quot;stricter-than-upstream&quot;: 1, &quot;consistent&quot;: 0, &quot;publisher-upload&quot;: 0,
+    "upstream-conflict": 6, "restricted-redistribution": 5, "relabelled": 4, "review": 3,
+    "missing": 2, "stricter-than-upstream": 1, "consistent": 0, "publisher-upload": 0,
 }
 _BASIS = {
-    &quot;card-source&quot;: &quot;the card&#x27;s source_datasets names&quot;,
-    &quot;card-link&quot;: &quot;the card links to&quot;,
-    &quot;repo-id&quot;: &quot;the repo name suggests it is derived from&quot;,
-    &quot;card-mention&quot;: &quot;the card mentions&quot;,
-    &quot;publisher&quot;: &quot;it is uploaded by the publisher of&quot;,
+    "card-source": "the card's source_datasets names",
+    "card-link": "the card links to",
+    "repo-id": "the repo name suggests it is derived from",
+    "card-mention": "the card mentions",
+    "publisher": "it is uploaded by the publisher of",
 }
 
 
-def _tri(values) -&gt; bool | None:
-    &quot;&quot;&quot;Most restrictive combination: any False wins, then any unknown, else True.&quot;&quot;&quot;
+def _tri(values) -> bool | None:
+    """Most restrictive combination: any False wins, then any unknown, else True."""
     values = list(values)
     if any(v is False for v in values):
         return False
@@ -367,72 +328,72 @@ def _tri(values) -&gt; bool | None:
     return True
 
 
-def _is_nc(tag: str) -&gt; bool:
-    return bool(re.search(r&quot;(^|-)nc(-|$)&quot;, tag))
+def _is_nc(tag: str) -> bool:
+    return bool(re.search(r"(^|-)nc(-|$)", tag))
 
 
-def _adds_terms(tag: str, upstream: str) -&gt; bool:
-    &quot;&quot;&quot;A Creative Commons tag that keeps the upstream&#x27;s terms and adds NC, ND or SA.&quot;&quot;&quot;
-    t, u = tag.lower().replace(&quot;_&quot;, &quot;-&quot;), upstream.lower()
-    if not (t.startswith(&quot;cc-by&quot;) and u.startswith(&quot;cc-by&quot;)):
+def _adds_terms(tag: str, upstream: str) -> bool:
+    """A Creative Commons tag that keeps the upstream's terms and adds NC, ND or SA."""
+    t, u = tag.lower().replace("_", "-"), upstream.lower()
+    if not (t.startswith("cc-by") and u.startswith("cc-by")):
         return False
-    terms = lambda x: {m for m in (&quot;nc&quot;, &quot;nd&quot;, &quot;sa&quot;) if re.search(rf&quot;(^|-){m}(-|$)&quot;, x)}  # noqa: E731
-    return terms(u) &lt; terms(t)
+    terms = lambda x: {m for m in ("nc", "nd", "sa") if re.search(rf"(^|-){m}(-|$)", x)}  # noqa: E731
+    return terms(u) < terms(t)
 
 
-def _assess_one(tag: str | None, s: UpstreamSource, evidence: str, rid: str) -&gt; tuple[str, str, str]:
-    &quot;&quot;&quot;(status, severity, note) for one matched source, before any cap.&quot;&quot;&quot;
-    basis = f&quot;{_BASIS[evidence]} {s.name}&quot;
+def _assess_one(tag: str | None, s: UpstreamSource, evidence: str, rid: str) -> tuple[str, str, str]:
+    """(status, severity, note) for one matched source, before any cap."""
+    basis = f"{_BASIS[evidence]} {s.name}"
     if tag is None:
-        return &quot;missing&quot;, &quot;warning&quot;, f&quot;no licence declared; {basis} ({s.license})&quot;
-    if tag in (&quot;other&quot;, &quot;unknown&quot;):
-        return &quot;review&quot;, &quot;warning&quot;, f&quot;custom licence; {basis} ({s.license}), so check the custom terms carry its restrictions&quot;
+        return "missing", "warning", f"no licence declared; {basis} ({s.license})"
+    if tag in ("other", "unknown"):
+        return "review", "warning", f"custom licence; {basis} ({s.license}), so check the custom terms carry its restrictions"
     if s.commercial_training is False and not _is_nc(tag):
-        return &quot;upstream-conflict&quot;, &quot;critical&quot;, (
-            f&quot;declared {tag}, but {basis}, which is {s.license}: commercial training is not permitted upstream, &quot;
-            &quot;and a mirror&#x27;s tag cannot grant rights its uploader does not hold&quot;)
+        return "upstream-conflict", "critical", (
+            f"declared {tag}, but {basis}, which is {s.license}: commercial training is not permitted upstream, "
+            "and a mirror's tag cannot grant rights its uploader does not hold")
     if s.redistribution is False:
         if _same_license(tag, s.license):
-            return &quot;restricted-redistribution&quot;, &quot;warning&quot;, f&quot;{basis}, whose terms do not allow redistributing the data or adapted copies&quot;
-        return &quot;upstream-conflict&quot;, &quot;critical&quot;, f&quot;{basis}, whose terms do not allow redistributing the data or adapted copies&quot;
+            return "restricted-redistribution", "warning", f"{basis}, whose terms do not allow redistributing the data or adapted copies"
+        return "upstream-conflict", "critical", f"{basis}, whose terms do not allow redistributing the data or adapted copies"
     if _same_license(tag, s.license):
-        return &quot;consistent&quot;, &quot;ok&quot;, &quot;&quot;
+        return "consistent", "ok", ""
     if _adds_terms(tag, s.license):
-        return &quot;stricter-than-upstream&quot;, &quot;info&quot;, (
-            f&quot;declared {tag} adds restrictions to {s.name} ({s.license}); both sets of terms apply to this copy&quot;)
-    if tag in _PERMISSIVE_TAGS and s.license.startswith(&quot;CC-BY-&quot;) and &quot;NC&quot; not in s.license:
-        return &quot;relabelled&quot;, &quot;warning&quot;, (
-            f&quot;declared {tag}, but {basis}, released under {s.license}; attribution and a notice of changes are &quot;
-            &quot;still owed to the original authors&quot;)
-    return &quot;upstream-conflict&quot;, &quot;warning&quot;, f&quot;declared {tag} differs from upstream {s.license} ({basis})&quot;
+        return "stricter-than-upstream", "info", (
+            f"declared {tag} adds restrictions to {s.name} ({s.license}); both sets of terms apply to this copy")
+    if tag in _PERMISSIVE_TAGS and s.license.startswith("CC-BY-") and "NC" not in s.license:
+        return "relabelled", "warning", (
+            f"declared {tag}, but {basis}, released under {s.license}; attribution and a notice of changes are "
+            "still owed to the original authors")
+    return "upstream-conflict", "warning", f"declared {tag} differs from upstream {s.license} ({basis})"
 
 
-def _cap(severity: str, s: UpstreamSource, m: SourceMatch) -&gt; str:
-    &quot;&quot;&quot;Limit severity by how sure we are of the upstream terms and of the match itself.
+def _cap(severity: str, s: UpstreamSource, m: SourceMatch) -> str:
+    """Limit severity by how sure we are of the upstream terms and of the match itself.
 
     A single weak signal (a repo name alone, a link alone, a mention) is never critical;
-    the card&#x27;s own source_datasets, or two independent signals that agree, can be.
-    &quot;&quot;&quot;
-    cap = &quot;critical&quot;
-    if s.confidence == &quot;medium&quot;:
-        cap = &quot;warning&quot;
-    elif s.confidence == &quot;low&quot;:
-        cap = &quot;info&quot;
-    if m.evidence == &quot;publisher&quot;:
-        cap = min(cap, &quot;info&quot;, key=_SEVERITY_RANK.get)
-    elif m.evidence == &quot;card-mention&quot; or not m.corroborated:
-        cap = min(cap, &quot;warning&quot;, key=_SEVERITY_RANK.get)
+    the card's own source_datasets, or two independent signals that agree, can be.
+    """
+    cap = "critical"
+    if s.confidence == "medium":
+        cap = "warning"
+    elif s.confidence == "low":
+        cap = "info"
+    if m.evidence == "publisher":
+        cap = min(cap, "info", key=_SEVERITY_RANK.get)
+    elif m.evidence == "card-mention" or not m.corroborated:
+        cap = min(cap, "warning", key=_SEVERITY_RANK.get)
     return min(severity, cap, key=_SEVERITY_RANK.get)
 
 
-def assess(declared, matches: list[SourceMatch], repo_id: str | None = None) -&gt; LicenseAssessment:
+def assess(declared, matches: list[SourceMatch], repo_id: str | None = None) -> LicenseAssessment:
     tag = normalise_tag(declared)
-    rid = (repo_id or &quot;&quot;).lower()
+    rid = (repo_id or "").lower()
     if not matches:
         return LicenseAssessment(
             declared=tag,
-            status=&quot;missing&quot; if tag is None else &quot;no-known-upstream&quot;,
-            severity=&quot;warning&quot; if tag is None else &quot;ok&quot;,
+            status="missing" if tag is None else "no-known-upstream",
+            severity="warning" if tag is None else "ok",
             concluded=None,
             commercial_training=None,
             redistribution=None,
@@ -440,51 +401,51 @@ def assess(declared, matches: list[SourceMatch], repo_id: str | None = None) -&g
     sources = [_BY_KEY[m.key] for m in matches]
 
     def describe(src, m):
-        return {&quot;key&quot;: src.key, &quot;name&quot;: src.name, &quot;license&quot;: src.license, &quot;evidence&quot;: m.evidence,
-                &quot;corroborated&quot;: m.corroborated, &quot;statement_url&quot;: src.statement_url, &quot;statement&quot;: src.statement,
-                &quot;checked&quot;: src.checked, &quot;confidence&quot;: src.confidence}
+        return {"key": src.key, "name": src.name, "license": src.license, "evidence": m.evidence,
+                "corroborated": m.corroborated, "statement_url": src.statement_url, "statement": src.statement,
+                "checked": src.checked, "confidence": src.confidence}
 
-    if all(m.evidence == &quot;publisher&quot; for m in matches):
+    if all(m.evidence == "publisher" for m in matches):
         same = tag is not None and all(_same_license(tag, s.license) for s in sources if s.license != NOT_STATED)
         return LicenseAssessment(
             declared=tag,
-            status=&quot;publisher-upload&quot;,
-            severity=&quot;ok&quot; if same else (&quot;warning&quot; if tag is None else &quot;info&quot;),
+            status="publisher-upload",
+            severity="ok" if same else ("warning" if tag is None else "info"),
             concluded=None,
             commercial_training=None,
             redistribution=None,
             upstream=[describe(s, m) for s, m in zip(sources, matches)],
-            notes=[] if same else [f&quot;uploaded by the publisher of {&#x27;, &#x27;.join(s.name for s in sources)}, whose tag on this &quot;
-                                   f&quot;upload governs; it differs from their published terms ({&#x27;, &#x27;.join(s.license for s in sources)})&quot;],
+            notes=[] if same else [f"uploaded by the publisher of {', '.join(s.name for s in sources)}, whose tag on this "
+                                   f"upload governs; it differs from their published terms ({', '.join(s.license for s in sources)})"],
         )
 
     if all(s.license == NOT_STATED for s in sources):
-        names = &quot;, &quot;.join(s.name for s in sources)
-        sev = &quot;warning&quot; if tag else &quot;info&quot;
-        if all(m.evidence in (&quot;publisher&quot;, &quot;card-mention&quot;) for m in matches):
-            sev = &quot;info&quot;
+        names = ", ".join(s.name for s in sources)
+        sev = "warning" if tag else "info"
+        if all(m.evidence in ("publisher", "card-mention") for m in matches):
+            sev = "info"
         return LicenseAssessment(
             declared=tag,
-            status=&quot;no-upstream-grant&quot;,
+            status="no-upstream-grant",
             severity=sev,
             concluded=None,
             commercial_training=None,
             redistribution=None,
             upstream=[describe(s, m) for s, m in zip(sources, matches)],
-            notes=[f&quot;appears to be derived from {names}, whose original release states no data licence (only a code &quot;
-                   f&quot;licence), so the declared &#x27;{tag or &#x27;none&#x27;}&#x27; cannot be traced to a grant from the data&#x27;s authors&quot;],
+            notes=[f"appears to be derived from {names}, whose original release states no data licence (only a code "
+                   f"licence), so the declared '{tag or 'none'}' cannot be traced to a grant from the data's authors"],
         )
     pairs = [(s, m) for s, m in zip(sources, matches) if s.license != NOT_STATED]
     sources = [s for s, _ in pairs]
     matches = [m for _, m in pairs]
     # Only matches that say the data came from the upstream decide the concluded terms; a mere
-    # mention (or the publisher&#x27;s own upload) leaves the declared licence in force.
-    strong = [s for s, m in pairs if m.evidence in (&quot;card-source&quot;, &quot;card-link&quot;, &quot;repo-id&quot;)]
+    # mention (or the publisher's own upload) leaves the declared licence in force.
+    strong = [s for s, m in pairs if m.evidence in ("card-source", "card-link", "repo-id")]
     restrictions = sorted({r for s in strong for r in s.restrictions})
     commercial = _tri(s.commercial_training for s in strong) if strong else None
     redistribution = _tri(s.redistribution for s in strong) if strong else None
     lics = sorted({s.license for s in strong})
-    concluded = (lics[0] if len(lics) == 1 else &quot; AND &quot;.join(lics)) if lics else None
+    concluded = (lics[0] if len(lics) == 1 else " AND ".join(lics)) if lics else None
 
     # Judge each source on its own evidence and confidence; the worst one decides.
     per = []
@@ -495,23 +456,23 @@ def assess(declared, matches: list[SourceMatch], repo_id: str | None = None) -&g
     status, severity = worst[0], worst[1]
     notes = [p[2] for p in sorted(per, key=lambda p: -_SEVERITY_RANK[p[1]]) if p[2]]
     notes = list(dict.fromkeys(notes))
-    if any(s.confidence == &quot;medium&quot; for s in sources):
-        notes.append(&quot;some upstream terms come from an umbrella or indirect statement (e.g. the Open X-Embodiment &quot;
-                     &quot;README), not the component&#x27;s own release&quot;)
-    if any(s.confidence == &quot;low&quot; for s in sources):
-        notes.append(&quot;some upstream licence mappings are uncertain; treat those as leads, not findings&quot;)
-    if status in (&quot;relabelled&quot;, &quot;upstream-conflict&quot;):
-        notes.append(&quot;if the uploader is the original rights holder, the new tag may be a deliberate relicence&quot;)
+    if any(s.confidence == "medium" for s in sources):
+        notes.append("some upstream terms come from an umbrella or indirect statement (e.g. the Open X-Embodiment "
+                     "README), not the component's own release")
+    if any(s.confidence == "low" for s in sources):
+        notes.append("some upstream licence mappings are uncertain; treat those as leads, not findings")
+    if status in ("relabelled", "upstream-conflict"):
+        notes.append("if the uploader is the original rights holder, the new tag may be a deliberate relicence")
     evidence = {m.evidence for m in matches}
-    if evidence == {&quot;repo-id&quot;}:
-        notes.append(&quot;match is by repo name only; confirm the source before relying on it&quot;)
-    elif evidence == {&quot;card-mention&quot;}:
-        notes.append(&quot;the card only names the upstream; it may be cited for comparison rather than as a source&quot;)
-    if any(m.evidence in (&quot;card-link&quot;, &quot;repo-id&quot;) and not m.corroborated for m in matches) and severity == &quot;warning&quot; \
-            and any(p[0] == &quot;upstream-conflict&quot; and _SEVERITY_RANK[_assess_one(tag, p[3], p[4].evidence, rid)[1]] == 3
+    if evidence == {"repo-id"}:
+        notes.append("match is by repo name only; confirm the source before relying on it")
+    elif evidence == {"card-mention"}:
+        notes.append("the card only names the upstream; it may be cited for comparison rather than as a source")
+    if any(m.evidence in ("card-link", "repo-id") and not m.corroborated for m in matches) and severity == "warning" \
+            and any(p[0] == "upstream-conflict" and _SEVERITY_RANK[_assess_one(tag, p[3], p[4].evidence, rid)[1]] == 3
                     for p in per):
-        notes.append(&quot;this would be critical if a second signal confirmed the source (source_datasets on the card, &quot;
-                     &quot;or both a derivation link and the repo name)&quot;)
+        notes.append("this would be critical if a second signal confirmed the source (source_datasets on the card, "
+                     "or both a derivation link and the repo name)")
     return LicenseAssessment(
         declared=tag,
         status=status,
@@ -525,19 +486,17 @@ def assess(declared, matches: list[SourceMatch], repo_id: str | None = None) -&g
     )
 
 
-def assess_card(repo_id: str | None, readme: str | None, declared) -&gt; LicenseAssessment:
+def assess_card(repo_id: str | None, readme: str | None, declared) -> LicenseAssessment:
     return assess(declared, match_sources(repo_id, readme), repo_id=repo_id)
+</script>
+<script type="text/plain" class="rdq-file" data-path="rdq/provenance.py">"""License and provenance analysis of a Hugging Face dataset card.
 
-</gradio-file>
-<gradio-file name="rdq/provenance.py">
-&quot;&quot;&quot;License and provenance analysis of a Hugging Face dataset card.
-
-LeRobot&#x27;s push_to_hub() defaults to license=&quot;apache-2.0&quot; and fills the README
+LeRobot's push_to_hub() defaults to license="apache-2.0" and fills the README
 from a template whose Homepage, Paper and Citation fields read
-&quot;[More Information Needed]&quot;. A dataset whose card is still that untouched
+"[More Information Needed]". A dataset whose card is still that untouched
 template has a license nobody actually chose and no record of where the data
 came from.
-&quot;&quot;&quot;
+"""
 
 from __future__ import annotations
 
@@ -548,37 +507,37 @@ import yaml
 
 from .licenses import assess_card, most_restrictive
 
-TEMPLATE_MARKER = &quot;This dataset was created using [LeRobot]&quot;
-UNFILLED = &quot;[More Information Needed]&quot;
+TEMPLATE_MARKER = "This dataset was created using [LeRobot]"
+UNFILLED = "[More Information Needed]"
 
-NONCOMMERCIAL_LICENSES = re.compile(r&quot;(^|-)nc(-|$)|noncommercial|non-commercial&quot;, re.I)
+NONCOMMERCIAL_LICENSES = re.compile(r"(^|-)nc(-|$)|noncommercial|non-commercial", re.I)
 PERMISSIVE_LICENSES = {
-    &quot;apache-2.0&quot;,
-    &quot;mit&quot;,
-    &quot;bsd-2-clause&quot;,
-    &quot;bsd-3-clause&quot;,
-    &quot;cc-by-4.0&quot;,
-    &quot;cc-by-sa-4.0&quot;,
-    &quot;cc0-1.0&quot;,
-    &quot;odc-by&quot;,
-    &quot;pddl&quot;,
-    &quot;cdla-permissive-2.0&quot;,
-    &quot;openrail&quot;,
+    "apache-2.0",
+    "mit",
+    "bsd-2-clause",
+    "bsd-3-clause",
+    "cc-by-4.0",
+    "cc-by-sa-4.0",
+    "cc0-1.0",
+    "odc-by",
+    "pddl",
+    "cdla-permissive-2.0",
+    "openrail",
 }
 
 # Public datasets whose licences forbid commercial use or require a signed agreement.
 RESTRICTED_SOURCES = {
-    &quot;epic-kitchens&quot;: &quot;non-commercial licence&quot;,
-    &quot;epic kitchens&quot;: &quot;non-commercial licence&quot;,
-    &quot;ego4d&quot;: &quot;signed agreement that forbids redistribution&quot;,
-    &quot;egodex&quot;: &quot;non-commercial, no-derivatives licence&quot;,
-    &quot;agibot world&quot;: &quot;non-commercial, share-alike licence&quot;,
-    &quot;agibotworld&quot;: &quot;non-commercial, share-alike licence&quot;,
-    &quot;hoi4d&quot;: &quot;non-commercial licence&quot;,
-    &quot;aria everyday&quot;: &quot;non-commercial research licence&quot;,
-    &quot;aria digital twin&quot;: &quot;non-commercial research licence&quot;,
-    &quot;something-something&quot;: &quot;non-commercial licence&quot;,
-    &quot;kinetics&quot;: &quot;built from YouTube videos with mixed rights&quot;,
+    "epic-kitchens": "non-commercial licence",
+    "epic kitchens": "non-commercial licence",
+    "ego4d": "signed agreement that forbids redistribution",
+    "egodex": "non-commercial, no-derivatives licence",
+    "agibot world": "non-commercial, share-alike licence",
+    "agibotworld": "non-commercial, share-alike licence",
+    "hoi4d": "non-commercial licence",
+    "aria everyday": "non-commercial research licence",
+    "aria digital twin": "non-commercial research licence",
+    "something-something": "non-commercial licence",
+    "kinetics": "built from YouTube videos with mixed rights",
 }
 
 
@@ -596,14 +555,14 @@ class ProvenanceResult:
     source_datasets: list[str] = field(default_factory=list)
     upstream: dict | None = None  # licenses.LicenseAssessment as a dict
 
-    def to_dict(self) -&gt; dict:
+    def to_dict(self) -> dict:
         return asdict(self)
 
 
-def split_card(readme: str) -&gt; tuple[dict, str]:
-    &quot;&quot;&quot;Return (front-matter dict, body) of a Hugging Face README.&quot;&quot;&quot;
-    if readme.startswith(&quot;---&quot;):
-        parts = readme.split(&quot;---&quot;, 2)
+def split_card(readme: str) -> tuple[dict, str]:
+    """Return (front-matter dict, body) of a Hugging Face README."""
+    if readme.startswith("---"):
+        parts = readme.split("---", 2)
         if len(parts) == 3:
             try:
                 meta = yaml.safe_load(parts[1]) or {}
@@ -613,28 +572,28 @@ def split_card(readme: str) -&gt; tuple[dict, str]:
     return {}, readme
 
 
-def classify_license(license_value) -&gt; str:
+def classify_license(license_value) -> str:
     if not license_value:
-        return &quot;missing&quot;
+        return "missing"
     if isinstance(license_value, list):
         license_value = most_restrictive(license_value)
         if not license_value:
-            return &quot;missing&quot;
+            return "missing"
     lic = str(license_value).strip().lower()
     if NONCOMMERCIAL_LICENSES.search(lic):
-        return &quot;noncommercial&quot;
-    if re.search(r&quot;(^|-)nd(-|$)&quot;, lic):
-        return &quot;no-derivatives&quot;
-    if lic in PERMISSIVE_LICENSES or lic.startswith(&quot;cc-by-&quot;) and &quot;nc&quot; not in lic:
-        return &quot;permissive&quot;
-    return &quot;other&quot;
+        return "noncommercial"
+    if re.search(r"(^|-)nd(-|$)", lic):
+        return "no-derivatives"
+    if lic in PERMISSIVE_LICENSES or lic.startswith("cc-by-") and "nc" not in lic:
+        return "permissive"
+    return "other"
 
 
-_MODEL_CONTEXT = re.compile(r&quot;pre-?train|encoder|backbone|representation|embedding|features from|r3m|vc-1|vip\b&quot;)
+_MODEL_CONTEXT = re.compile(r"pre-?train|encoder|backbone|representation|embedding|features from|r3m|vc-1|vip\b")
 
 
-def _mentioned_as_data(name: str, text: str) -&gt; bool:
-    &quot;&quot;&quot;True if the card names a restricted source other than as a pretrained model&#x27;s training data.&quot;&quot;&quot;
+def _mentioned_as_data(name: str, text: str) -> bool:
+    """True if the card names a restricted source other than as a pretrained model's training data."""
     for m in re.finditer(re.escape(name), text):
         window = text[max(0, m.start() - 80) : m.end() + 40]
         if not _MODEL_CONTEXT.search(window):
@@ -642,70 +601,70 @@ def _mentioned_as_data(name: str, text: str) -&gt; bool:
     return False
 
 
-def analyse_card(readme: str | None, card_license=None, repo_id: str | None = None) -&gt; ProvenanceResult:
-    meta, body = split_card(readme or &quot;&quot;)
-    lic = card_license if card_license is not None else meta.get(&quot;license&quot;)
+def analyse_card(readme: str | None, card_license=None, repo_id: str | None = None) -> ProvenanceResult:
+    meta, body = split_card(readme or "")
+    lic = card_license if card_license is not None else meta.get("license")
     if isinstance(lic, list):
         lic = most_restrictive(lic)
     lic_class = classify_license(lic)
 
     template = TEMPLATE_MARKER in body
     unfilled = []
-    for label in (&quot;Homepage&quot;, &quot;Paper&quot;, &quot;License&quot;, &quot;BibTeX&quot;):
-        pattern = re.compile(rf&quot;{label}[^\n]*\n?[^\n]*{re.escape(UNFILLED)}&quot;, re.I)
+    for label in ("Homepage", "Paper", "License", "BibTeX"):
+        pattern = re.compile(rf"{label}[^\n]*\n?[^\n]*{re.escape(UNFILLED)}", re.I)
         if pattern.search(body):
             unfilled.append(label.lower())
-    description = &quot;&quot;
-    match = re.search(r&quot;## Dataset Description\s*(.*?)\s*- \*\*Homepage&quot;, body, re.S)
+    description = ""
+    match = re.search(r"## Dataset Description\s*(.*?)\s*- \*\*Homepage", body, re.S)
     if match:
         description = match.group(1).strip()
-    untouched = template and not description and {&quot;homepage&quot;, &quot;paper&quot;} &lt;= set(unfilled)
+    untouched = template and not description and {"homepage", "paper"} <= set(unfilled)
 
-    lower = (readme or &quot;&quot;).lower()
+    lower = (readme or "").lower()
     restricted = sorted({name for name in RESTRICTED_SOURCES if _mentioned_as_data(name, lower)})
 
-    default_unconfirmed = untouched and str(lic or &quot;&quot;).lower() == &quot;apache-2.0&quot;
+    default_unconfirmed = untouched and str(lic or "").lower() == "apache-2.0"
     notes = []
     if default_unconfirmed:
         notes.append(
-            &quot;licence is apache-2.0 but the card is LeRobot&#x27;s unedited template, so the licence &quot;
-            &quot;is most likely the upload tool&#x27;s default rather than a choice by the data owner&quot;
+            "licence is apache-2.0 but the card is LeRobot's unedited template, so the licence "
+            "is most likely the upload tool's default rather than a choice by the data owner"
         )
     elif untouched:
-        notes.append(&quot;card is LeRobot&#x27;s unedited template: no description, homepage, paper or citation&quot;)
+        notes.append("card is LeRobot's unedited template: no description, homepage, paper or citation")
     for name in restricted:
-        notes.append(f&quot;card mentions {name}, whose data has a {RESTRICTED_SOURCES[name]}&quot;)
+        notes.append(f"card mentions {name}, whose data has a {RESTRICTED_SOURCES[name]}")
 
     upstream = assess_card(repo_id, readme, lic)
     notes.extend(upstream.notes)
-    src = meta.get(&quot;source_datasets&quot;) or []
+    src = meta.get("source_datasets") or []
     if isinstance(src, str):
         src = [src]
 
-    if upstream.status == &quot;upstream-conflict&quot; and upstream.severity == &quot;critical&quot;:
-        verdict = &quot;licence conflicts with upstream&quot;
-    elif lic_class == &quot;missing&quot;:
-        verdict = &quot;no licence&quot;
-    elif lic_class == &quot;noncommercial&quot;:
-        verdict = &quot;non-commercial&quot;
-    elif lic_class == &quot;no-derivatives&quot;:
-        verdict = &quot;no-derivatives licence&quot;
-    elif upstream.status == &quot;relabelled&quot; and upstream.severity == &quot;warning&quot;:
-        verdict = &quot;relabelled (attribution owed)&quot;
-    elif restricted or upstream.status == &quot;restricted-redistribution&quot;:
-        verdict = &quot;restricted source&quot;
-    elif upstream.status == &quot;upstream-conflict&quot; and upstream.severity == &quot;warning&quot;:
-        verdict = &quot;differs from upstream&quot;
-    elif upstream.status == &quot;no-upstream-grant&quot; and upstream.severity == &quot;warning&quot;:
-        verdict = &quot;no upstream data licence&quot;
+    if upstream.status == "upstream-conflict" and upstream.severity == "critical":
+        verdict = "licence conflicts with upstream"
+    elif lic_class == "missing":
+        verdict = "no licence"
+    elif lic_class == "noncommercial":
+        verdict = "non-commercial"
+    elif lic_class == "no-derivatives":
+        verdict = "no-derivatives licence"
+    elif upstream.status == "relabelled" and upstream.severity == "warning":
+        verdict = "relabelled (attribution owed)"
+    elif restricted or upstream.status == "restricted-redistribution":
+        verdict = "restricted source"
+    elif upstream.status == "upstream-conflict" and upstream.severity == "warning":
+        verdict = "differs from upstream"
+    elif upstream.status == "no-upstream-grant" and upstream.severity == "warning":
+        verdict = "no upstream data licence"
     elif default_unconfirmed:
-        verdict = &quot;default licence, unconfirmed&quot;
+        verdict = "default licence, unconfirmed"
     elif untouched:
-        verdict = &quot;licensed, no provenance&quot;
-    elif lic_class == &quot;permissive&quot;:
-        verdict = &quot;documented&quot;
+        verdict = "licensed, no provenance"
+    elif lic_class == "permissive":
+        verdict = "documented"
     else:
-        verdict = &quot;custom licence&quot;
+        verdict = "custom licence"
     return ProvenanceResult(
         license=str(lic) if lic else None,
         license_class=lic_class,
@@ -715,1248 +674,1320 @@ def analyse_card(readme: str | None, card_license=None, repo_id: str | None = No
         restricted_sources=restricted,
         verdict=verdict,
         notes=notes,
-        license_link=str(meta[&quot;license_link&quot;]) if meta.get(&quot;license_link&quot;) else None,
+        license_link=str(meta["license_link"]) if meta.get("license_link") else None,
         source_datasets=[str(x) for x in src],
         upstream=upstream.to_dict(),
     )
-
-</gradio-file>
-<gradio-file name="rdq/data/upstream_licences.json">
-{
- &quot;version&quot;: &quot;2026-10-12&quot;,
- &quot;note&quot;: &quot;Upstream terms of public robot datasets, each checked against a primary source. confidence: high = explicit data licence from the original authors; medium = umbrella or indirect statement (e.g. the Open X-Embodiment README); low = umbrella statement with an uncertain mapping. license &#x27;not stated&#x27; means the original release states no data licence. Not legal advice.&quot;,
- &quot;sources&quot;: [
+</script>
+<script type="text/plain" class="rdq-file" data-path="rdq/data/upstream_licences.json">{
+ "version": "2026-10-12",
+ "note": "Upstream terms of public robot datasets, each checked against a primary source. confidence: high = explicit data licence from the original authors; medium = umbrella or indirect statement (e.g. the Open X-Embodiment README); low = umbrella statement with an uncertain mapping. license 'not stated' means the original release states no data licence. Not legal advice.",
+ "sources": [
   {
-   &quot;key&quot;: &quot;droid&quot;,
-   &quot;name&quot;: &quot;DROID&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "droid",
+   "name": "DROID",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://arxiv.org/abs/2403.12945&quot;,
-   &quot;statement&quot;: &quot;DROID is released under CC BY 4.0 (stated in the DROID paper).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;(^|[/_\\-.])droid([_\\-.]|\\d|$)&quot;,
-   &quot;link_pattern&quot;: &quot;droid-dataset\\.github\\.io&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;&quot;
+   "statement_url": "https://arxiv.org/abs/2403.12945",
+   "statement": "DROID is released under CC BY 4.0 (stated in the DROID paper).",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|[/_\\-.])droid([_\\-.]|\\d|$)",
+   "link_pattern": "droid-dataset\\.github\\.io",
+   "mention_pattern": null,
+   "notes": ""
   },
   {
-   &quot;key&quot;: &quot;bridge_v2&quot;,
-   &quot;name&quot;: &quot;BridgeData V2&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "bridge_v2",
+   "name": "BridgeData V2",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://rail-berkeley.github.io/bridgedata/&quot;,
-   &quot;statement&quot;: &quot;All data is provided under the Creative Commons Attribution 4.0 International License.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;(^|[/_\\-.])(bridge[_\\-]?(data)?[_\\-]?(v2|orig)|bridgedata|bridgev2)&quot;,
-   &quot;link_pattern&quot;: &quot;rail-berkeley\\.github\\.io/bridgedata&quot;,
-   &quot;mention_pattern&quot;: &quot;bridgedata v2|bridgedata&quot;,
-   &quot;notes&quot;: &quot;&quot;
+   "statement_url": "https://rail-berkeley.github.io/bridgedata/",
+   "statement": "All data is provided under the Creative Commons Attribution 4.0 International License.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|[/_\\-.])(bridge[_\\-]?(data)?[_\\-]?(v2|orig)|bridgedata|bridgev2)",
+   "link_pattern": "rail-berkeley\\.github\\.io/bridgedata",
+   "mention_pattern": "bridgedata v2|bridgedata",
+   "notes": ""
   },
   {
-   &quot;key&quot;: &quot;libero&quot;,
-   &quot;name&quot;: &quot;LIBERO&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "libero",
+   "name": "LIBERO",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/Lifelong-Robot-Learning/LIBERO&quot;,
-   &quot;statement&quot;: &quot;LIBERO code is MIT; the released datasets are CC BY 4.0.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;(^|[/_\\-])libero[_\\-]?(10|90|goal|object|spatial|long)?([_\\-]|$)&quot;,
-   &quot;link_pattern&quot;: &quot;lifelong-robot-learning/libero|libero-project\\.github\\.io&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;&quot;
+   "statement_url": "https://github.com/Lifelong-Robot-Learning/LIBERO",
+   "statement": "LIBERO code is MIT; the released datasets are CC BY 4.0.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|[/_\\-])libero[_\\-]?(10|90|goal|object|spatial|long)?([_\\-]|$)",
+   "link_pattern": "lifelong-robot-learning/libero|libero-project\\.github\\.io",
+   "mention_pattern": null,
+   "notes": ""
   },
   {
-   &quot;key&quot;: &quot;agibot_world&quot;,
-   &quot;name&quot;: &quot;AgiBot World&quot;,
-   &quot;license&quot;: &quot;CC-BY-NC-SA-4.0&quot;,
-   &quot;commercial_training&quot;: false,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;non-commercial&quot;,
-    &quot;share-alike&quot;,
-    &quot;signed-agreement&quot;
+   "key": "agibot_world",
+   "name": "AgiBot World",
+   "license": "CC-BY-NC-SA-4.0",
+   "commercial_training": false,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "non-commercial",
+    "share-alike",
+    "signed-agreement"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/agibot-world/AgiBotWorld-Alpha&quot;,
-   &quot;statement&quot;: &quot;AgiBot World Community License Agreement, CC BY-NC-SA 4.0, gated access.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;agibot[_\\-]?world|agibot[_\\-](alpha|beta)&quot;,
-   &quot;link_pattern&quot;: &quot;agibot-world/agibotworld|agibot-world\\.com&quot;,
-   &quot;mention_pattern&quot;: &quot;agibotworld|agibot world|agibot-world&quot;,
-   &quot;notes&quot;: &quot;&quot;
+   "statement_url": "https://huggingface.co/datasets/agibot-world/AgiBotWorld-Alpha",
+   "statement": "AgiBot World Community License Agreement, CC BY-NC-SA 4.0, gated access.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "agibot[_\\-]?world|agibot[_\\-](alpha|beta)",
+   "link_pattern": "agibot-world/agibotworld|agibot-world\\.com",
+   "mention_pattern": "agibotworld|agibot world|agibot-world",
+   "notes": ""
   },
   {
-   &quot;key&quot;: &quot;egodex&quot;,
-   &quot;name&quot;: &quot;EgoDex&quot;,
-   &quot;license&quot;: &quot;CC-BY-NC-ND-4.0&quot;,
-   &quot;commercial_training&quot;: false,
-   &quot;redistribution&quot;: false,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;non-commercial&quot;,
-    &quot;no-derivatives&quot;
+   "key": "egodex",
+   "name": "EgoDex",
+   "license": "CC-BY-NC-ND-4.0",
+   "commercial_training": false,
+   "redistribution": false,
+   "restrictions": [
+    "attribution",
+    "non-commercial",
+    "no-derivatives"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/apple/ml-egodex&quot;,
-   &quot;statement&quot;: &quot;EgoDex is available under CC-by-NC-ND terms.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;egodex&quot;,
-   &quot;link_pattern&quot;: &quot;apple/ml-egodex&quot;,
-   &quot;mention_pattern&quot;: &quot;egodex&quot;,
-   &quot;notes&quot;: &quot;&quot;
+   "statement_url": "https://github.com/apple/ml-egodex",
+   "statement": "EgoDex is available under CC-by-NC-ND terms.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "egodex",
+   "link_pattern": "apple/ml-egodex",
+   "mention_pattern": "egodex",
+   "notes": ""
   },
   {
-   &quot;key&quot;: &quot;epic_kitchens&quot;,
-   &quot;name&quot;: &quot;EPIC-KITCHENS&quot;,
-   &quot;license&quot;: &quot;CC-BY-NC-4.0&quot;,
-   &quot;commercial_training&quot;: false,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;non-commercial&quot;
+   "key": "epic_kitchens",
+   "name": "EPIC-KITCHENS",
+   "license": "CC-BY-NC-4.0",
+   "commercial_training": false,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "non-commercial"
    ],
-   &quot;statement_url&quot;: &quot;https://epic-kitchens.github.io/2025&quot;,
-   &quot;statement&quot;: &quot;EPIC-KITCHENS is CC BY-NC 4.0; commercial licences on request.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;epic[_\\-]?kitchens?&quot;,
-   &quot;link_pattern&quot;: &quot;epic-kitchens\\.github\\.io&quot;,
-   &quot;mention_pattern&quot;: &quot;epic[- ]kitchens&quot;,
-   &quot;notes&quot;: &quot;&quot;
+   "statement_url": "https://epic-kitchens.github.io/2025",
+   "statement": "EPIC-KITCHENS is CC BY-NC 4.0; commercial licences on request.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "epic[_\\-]?kitchens?",
+   "link_pattern": "epic-kitchens\\.github\\.io",
+   "mention_pattern": "epic[- ]kitchens",
+   "notes": ""
   },
   {
-   &quot;key&quot;: &quot;hoi4d&quot;,
-   &quot;name&quot;: &quot;HOI4D&quot;,
-   &quot;license&quot;: &quot;CC-BY-NC-4.0&quot;,
-   &quot;commercial_training&quot;: false,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;non-commercial&quot;
+   "key": "hoi4d",
+   "name": "HOI4D",
+   "license": "CC-BY-NC-4.0",
+   "commercial_training": false,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "non-commercial"
    ],
-   &quot;statement_url&quot;: &quot;https://hoi4d.github.io/&quot;,
-   &quot;statement&quot;: &quot;HOI4D is released under CC BY-NC 4.0.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;hoi4d&quot;,
-   &quot;link_pattern&quot;: &quot;hoi4d\\.github\\.io&quot;,
-   &quot;mention_pattern&quot;: &quot;hoi4d&quot;,
-   &quot;notes&quot;: &quot;&quot;
+   "statement_url": "https://hoi4d.github.io/",
+   "statement": "HOI4D is released under CC BY-NC 4.0.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "hoi4d",
+   "link_pattern": "hoi4d\\.github\\.io",
+   "mention_pattern": "hoi4d",
+   "notes": ""
   },
   {
-   &quot;key&quot;: &quot;ego4d&quot;,
-   &quot;name&quot;: &quot;Ego4D&quot;,
-   &quot;license&quot;: &quot;LicenseRef-Ego4D&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: false,
-   &quot;restrictions&quot;: [
-    &quot;signed-agreement&quot;,
-    &quot;no-redistribution&quot;
+   "key": "ego4d",
+   "name": "Ego4D",
+   "license": "LicenseRef-Ego4D",
+   "commercial_training": true,
+   "redistribution": false,
+   "restrictions": [
+    "signed-agreement",
+    "no-redistribution"
    ],
-   &quot;statement_url&quot;: &quot;https://ego4d-data.org/pdfs/Ego4D-Licenses-Draft.pdf&quot;,
-   &quot;statement&quot;: &quot;Use requires a signed agreement; licensees may not give third parties access to the data.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;ego4d&quot;,
-   &quot;link_pattern&quot;: &quot;ego4d-data\\.org&quot;,
-   &quot;mention_pattern&quot;: &quot;ego4d&quot;,
-   &quot;notes&quot;: &quot;&quot;
+   "statement_url": "https://ego4d-data.org/pdfs/Ego4D-Licenses-Draft.pdf",
+   "statement": "Use requires a signed agreement; licensees may not give third parties access to the data.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "ego4d",
+   "link_pattern": "ego4d-data\\.org",
+   "mention_pattern": "ego4d",
+   "notes": ""
   },
   {
-   &quot;key&quot;: &quot;oxe_language_table&quot;,
-   &quot;name&quot;: &quot;Language-Table (Open X-Embodiment component)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "oxe_language_table",
+   "name": "Language-Table (Open X-Embodiment component)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;language[-_]?table&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Google&#x27;s own release (github.com/google-research/language-table) has an Apache-2.0 LICENSE for code and its README states no data licence; data is served from the same gresearch/robotics bucket as OXE. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "language[-_]?table",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Google's own release (github.com/google-research/language-table) has an Apache-2.0 LICENSE for code and its README states no data licence; data is served from the same gresearch/robotics bucket as OXE. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;oxe_fractal_rt1&quot;,
-   &quot;name&quot;: &quot;RT-1 Robot Action / fractal20220817_data&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "oxe_fractal_rt1",
+   "name": "RT-1 Robot Action / fractal20220817_data",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;fractal20220817|(^|[/_-])rt-1([/_-]|$)&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). RT-1 project page (robotics-transformer1.github.io) links the data (gs://gresearch/rt-1-data-release) without a licence; robotics_transformer repo is Apache-2.0 for code only. allenai/MolmoAct2-RT-1-Dataset is a processed derivative. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "fractal20220817|(^|[/_-])rt-1([/_-]|$)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). RT-1 project page (robotics-transformer1.github.io) links the data (gs://gresearch/rt-1-data-release) without a licence; robotics_transformer repo is Apache-2.0 for code only. allenai/MolmoAct2-RT-1-Dataset is a processed derivative. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;oxe_kuka_qtopt&quot;,
-   &quot;name&quot;: &quot;QT-Opt Kuka grasping (OXE &#x27;kuka&#x27;)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "oxe_kuka_qtopt",
+   "name": "QT-Opt Kuka grasping (OXE 'kuka')",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)kuka([-_](lerobot|qt[-_]?opt))?$&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). No standalone data licence for the QT-Opt data was found; Google contribution distributed through OXE. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)kuka([-_](lerobot|qt[-_]?opt))?$",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone data licence for the QT-Opt data was found; Google contribution distributed through OXE. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;bc_z&quot;,
-   &quot;name&quot;: &quot;BC-Z&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "bc_z",
+   "name": "BC-Z",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://www.kaggle.com/datasets/google/bc-z-robot&quot;,
-   &quot;statement&quot;: &quot;Attribution 4.0 International (CC BY 4.0)&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;(^|[/_-])bc[-_]z([-_]|$)&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Kaggle licence field on the dataset published by the &#x27;Google&#x27; Kaggle account (linked from sites.google.com/view/bc-z). Agrees with the OXE umbrella.&quot;
+   "statement_url": "https://www.kaggle.com/datasets/google/bc-z-robot",
+   "statement": "Attribution 4.0 International (CC BY 4.0)",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|[/_-])bc[-_]z([-_]|$)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Kaggle licence field on the dataset published by the 'Google' Kaggle account (linked from sites.google.com/view/bc-z). Agrees with the OXE umbrella."
   },
   {
-   &quot;key&quot;: &quot;furniture_bench&quot;,
-   &quot;name&quot;: &quot;FurnitureBench&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "furniture_bench",
+   "name": "FurnitureBench",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;furniture[-_]?bench&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Component release (clvrai/furniture-bench, MIT LICENSE for code; dataset docs and site show only &#x27;(c) Copyright 2023, CLVR @ KAIST&#x27;) states no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "furniture[-_]?bench",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component release (clvrai/furniture-bench, MIT LICENSE for code; dataset docs and site show only '(c) Copyright 2023, CLVR @ KAIST') states no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;taco_play&quot;,
-   &quot;name&quot;: &quot;TACO-Play (Task-Agnostic Real World Robot Play)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "taco_play",
+   "name": "TACO-Play (Task-Agnostic Real World Robot Play)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://www.kaggle.com/datasets/oiermees/taco-robot&quot;,
-   &quot;statement&quot;: &quot;Attribution 4.0 International (CC BY 4.0)&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;taco[-_]?play&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Kaggle licence field on the dataset published by first author Oier Mees (the LeRobot card&#x27;s homepage). Agrees with the OXE umbrella.&quot;
+   "statement_url": "https://www.kaggle.com/datasets/oiermees/taco-robot",
+   "statement": "Attribution 4.0 International (CC BY 4.0)",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "taco[-_]?play",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Kaggle licence field on the dataset published by first author Oier Mees (the LeRobot card's homepage). Agrees with the OXE umbrella."
   },
   {
-   &quot;key&quot;: &quot;fmb&quot;,
-   &quot;name&quot;: &quot;FMB (Functional Manipulation Benchmark)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "fmb",
+   "name": "FMB (Functional Manipulation Benchmark)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://functional-manipulation-benchmark.github.io/&quot;,
-   &quot;statement&quot;: &quot;All data is provided under the Creative Commons Attribution 4.0 International License&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;(^|[/_-])fmb([-_]|$)&quot;,
-   &quot;link_pattern&quot;: &quot;functional-manipulation-benchmark\\.github\\.io&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Explicit data licence on the official project site; agrees with the OXE umbrella.&quot;
+   "statement_url": "https://functional-manipulation-benchmark.github.io/",
+   "statement": "All data is provided under the Creative Commons Attribution 4.0 International License",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|[/_-])fmb([-_]|$)",
+   "link_pattern": "functional-manipulation-benchmark\\.github\\.io",
+   "mention_pattern": null,
+   "notes": "Explicit data licence on the official project site; agrees with the OXE umbrella."
   },
   {
-   &quot;key&quot;: &quot;berkeley_cable_routing&quot;,
-   &quot;name&quot;: &quot;Berkeley Cable Routing&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "berkeley_cable_routing",
+   "name": "Berkeley Cable Routing",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://sites.google.com/view/cablerouting/data&quot;,
-   &quot;statement&quot;: &quot;All data is provided under the Creative Commons Attribution 4.0 International License&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;cable[-_]routing&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Explicit statement on the official dataset page (linked from charlesxu0124/CableRouting, whose MIT LICENSE covers code). Agrees with the OXE umbrella.&quot;
+   "statement_url": "https://sites.google.com/view/cablerouting/data",
+   "statement": "All data is provided under the Creative Commons Attribution 4.0 International License",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "cable[-_]routing",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Explicit statement on the official dataset page (linked from charlesxu0124/CableRouting, whose MIT LICENSE covers code). Agrees with the OXE umbrella."
   },
   {
-   &quot;key&quot;: &quot;roboturk_real&quot;,
-   &quot;name&quot;: &quot;RoboTurk Real (Sawyer) dataset&quot;,
-   &quot;license&quot;: &quot;MIT&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;
+   "key": "roboturk_real",
+   "name": "RoboTurk Real (Sawyer) dataset",
+   "license": "MIT",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/StanfordVL/roboturk_real_dataset&quot;,
-   &quot;statement&quot;: &quot;This dataset and codebase are released under the MIT License.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;roboturk&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Component&#x27;s own explicit data licence (MIT) differs from the OXE umbrella (CC BY 4.0). The rightsholder&#x27;s own MIT grant governs the original; both are permissive. MIT allows sublicensing, so an Apache-2.0 tag on a mirror is not a hard conflict provided the MIT notice is kept.&quot;
+   "statement_url": "https://github.com/StanfordVL/roboturk_real_dataset",
+   "statement": "This dataset and codebase are released under the MIT License.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "roboturk",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Component's own explicit data licence (MIT) differs from the OXE umbrella (CC BY 4.0). The rightsholder's own MIT grant governs the original; both are permissive. MIT allows sublicensing, so an Apache-2.0 tag on a mirror is not a hard conflict provided the MIT notice is kept."
   },
   {
-   &quot;key&quot;: &quot;utaustin_mutex&quot;,
-   &quot;name&quot;: &quot;UT Austin MUTEX&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "utaustin_mutex",
+   "name": "UT Austin MUTEX",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;utaustin[-_]mutex|(^|/)mutex([-_]|$)&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Component release (UT-Austin-RPL/MUTEX, MIT LICENSE for code; project page; Box download) states no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "utaustin[-_]mutex|(^|/)mutex([-_]|$)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component release (UT-Austin-RPL/MUTEX, MIT LICENSE for code; project page; Box download) states no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;toto&quot;,
-   &quot;name&quot;: &quot;TOTO benchmark&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "toto",
+   "name": "TOTO benchmark",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)toto([-_]lerobot)?$&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Component release (AGI-Labs/toto_benchmark, BSD-2-Clause LICENSE for code; toto-benchmark.org) states no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)toto([-_]lerobot)?$",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component release (AGI-Labs/toto_benchmark, BSD-2-Clause LICENSE for code; toto-benchmark.org) states no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;berkeley_autolab_ur5&quot;,
-   &quot;name&quot;: &quot;Berkeley Autolab UR5&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "berkeley_autolab_ur5",
+   "name": "Berkeley Autolab UR5",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;berkeley[-_]autolab[-_]ur5&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Component site (sites.google.com/view/berkeley-ur5) gives a citation request but no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "berkeley[-_]autolab[-_]ur5",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component site (sites.google.com/view/berkeley-ur5) gives a citation request but no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;berkeley_rpt&quot;,
-   &quot;name&quot;: &quot;Berkeley RPT (Robot Learning with Sensorimotor Pre-training)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "berkeley_rpt",
+   "name": "Berkeley RPT (Robot Learning with Sensorimotor Pre-training)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;berkeley[-_]rpt&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Project page states no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "berkeley[-_]rpt",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Project page states no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;stanford_kuka_multimodal&quot;,
-   &quot;name&quot;: &quot;Stanford Kuka Multimodal (Making Sense of Vision and Touch)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "stanford_kuka_multimodal",
+   "name": "Stanford Kuka Multimodal (Making Sense of Vision and Touch)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;stanford[-_]kuka[-_]multimodal&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Component release (stanford-iprl-lab/multimodal_representation, MIT LICENSE for code; project site) states no data licence. The LeRobot mirror&#x27;s &#x27;mit&#x27; tag mirrors the code licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "stanford[-_]kuka[-_]multimodal",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component release (stanford-iprl-lab/multimodal_representation, MIT LICENSE for code; project site) states no data licence. The LeRobot mirror's 'mit' tag mirrors the code licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;jaco_play&quot;,
-   &quot;name&quot;: &quot;Jaco Play (CLVR)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "jaco_play",
+   "name": "Jaco Play (CLVR)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/clvrai/clvr_jaco_play_dataset&quot;,
-   &quot;statement&quot;: &quot;The data is available under the Creative Commons Attribution 4.0 International License.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;jaco[-_]?play&quot;,
-   &quot;link_pattern&quot;: &quot;github\\.com/clvrai/clvr_jaco_play_dataset&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;README statement plus a CC BY 4.0 LICENSE file in the official repo. Agrees with the OXE umbrella.&quot;
+   "statement_url": "https://github.com/clvrai/clvr_jaco_play_dataset",
+   "statement": "The data is available under the Creative Commons Attribution 4.0 International License.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "jaco[-_]?play",
+   "link_pattern": "github\\.com/clvrai/clvr_jaco_play_dataset",
+   "mention_pattern": null,
+   "notes": "README statement plus a CC BY 4.0 LICENSE file in the official repo. Agrees with the OXE umbrella."
   },
   {
-   &quot;key&quot;: &quot;viola&quot;,
-   &quot;name&quot;: &quot;UT Austin VIOLA&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "viola",
+   "name": "UT Austin VIOLA",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;(^|[/_-])viola([-_]|$)&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Component release (UT-Austin-RPL/VIOLA, MIT LICENSE for code; project page) states no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|[/_-])viola([-_]|$)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component release (UT-Austin-RPL/VIOLA, MIT LICENSE for code; project page) states no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;nyu_franka_play&quot;,
-   &quot;name&quot;: &quot;NYU Franka Play (play-to-policy / C-BeT)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "nyu_franka_play",
+   "name": "NYU Franka Play (play-to-policy / C-BeT)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;nyu[-_]franka[-_]play&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Component release (jeffacce/play-to-policy, MIT LICENSE for code; datasets on OSF; project page) states no data licence; OSF licence field could not be read. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "nyu[-_]franka[-_]play",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component release (jeffacce/play-to-policy, MIT LICENSE for code; datasets on OSF; project page) states no data licence; OSF licence field could not be read. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;austin_buds_sailor_sirius&quot;,
-   &quot;name&quot;: &quot;UT Austin BUDS / Sailor / Sirius&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "austin_buds_sailor_sirius",
+   "name": "UT Austin BUDS / Sailor / Sirius",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;austin[-_](buds|sailor|sirius)&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Component repos (UT-Austin-RPL/BUDS, sailor, sirius; MIT LICENSE for code) state no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "austin[-_](buds|sailor|sirius)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Component repos (UT-Austin-RPL/BUDS, sailor, sirius; MIT LICENSE for code) state no data licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;ucsd_kitchen&quot;,
-   &quot;name&quot;: &quot;UCSD Kitchen&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "ucsd_kitchen",
+   "name": "UCSD Kitchen",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;low&quot;,
-   &quot;id_pattern&quot;: &quot;ucsd[-_]kitchen&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). No standalone component release located; not checked beyond OXE. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "ucsd[-_]kitchen",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release located; not checked beyond OXE. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;ucsd_pick_and_place&quot;,
-   &quot;name&quot;: &quot;UCSD Pick and Place&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "ucsd_pick_and_place",
+   "name": "UCSD Pick and Place",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;low&quot;,
-   &quot;id_pattern&quot;: &quot;ucsd[-_]pick[-_]and[-_]place&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). No standalone component release located; not checked beyond OXE. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "ucsd[-_]pick[-_]and[-_]place",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release located; not checked beyond OXE. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;cmu_play_fusion&quot;,
-   &quot;name&quot;: &quot;CMU PlayFusion&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "cmu_play_fusion",
+   "name": "CMU PlayFusion",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;cmu[-_]play[-_]fusion&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Project page (play-fusion.github.io) states no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "cmu[-_]play[-_]fusion",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Project page (play-fusion.github.io) states no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;iamlab_cmu_pickup_insert&quot;,
-   &quot;name&quot;: &quot;IAMLab CMU Pickup Insert&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "iamlab_cmu_pickup_insert",
+   "name": "IAMLab CMU Pickup Insert",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;low&quot;,
-   &quot;id_pattern&quot;: &quot;iamlab[-_]cmu&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "iamlab[-_]cmu",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;dlr_datasets&quot;,
-   &quot;name&quot;: &quot;DLR (SARA pour / grid clamp, EDAN shared control)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "dlr_datasets",
+   "name": "DLR (SARA pour / grid clamp, EDAN shared control)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;low&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)dlr[-_](sara|edan)&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "(^|/)dlr[-_](sara|edan)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;columbia_cairlab_pusht_real&quot;,
-   &quot;name&quot;: &quot;Columbia CAIRLab Push-T real&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "columbia_cairlab_pusht_real",
+   "name": "Columbia CAIRLab Push-T real",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;columbia[-_]cairlab[-_]pusht&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Real Push-T data from the Diffusion Policy authors; their repo licence (&#x27;This repository is released under the MIT license.&#x27;) covers code, and no data licence is stated. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "columbia[-_]cairlab[-_]pusht",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Real Push-T data from the Diffusion Policy authors; their repo licence ('This repository is released under the MIT license.') covers code, and no data licence is stated. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;stanford_hydra&quot;,
-   &quot;name&quot;: &quot;Stanford HYDRA&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "stanford_hydra",
+   "name": "Stanford HYDRA",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;stanford[-_]hydra&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Project page states no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "stanford[-_]hydra",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Project page states no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;dobbe_hony&quot;,
-   &quot;name&quot;: &quot;Dobb-E / Homes of New York (OXE &#x27;dobbe&#x27;)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "dobbe_hony",
+   "name": "Dobb-E / Homes of New York (OXE 'dobbe')",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)dobbe([-_]|$)&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). dobb-e.com licenses source code MIT and website content separately; no licence is stated for the HoNY data. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)dobbe([-_]|$)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). dobb-e.com licenses source code MIT and website content separately; no licence is stated for the HoNY data. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;nyu_door_opening&quot;,
-   &quot;name&quot;: &quot;NYU Door Opening (VINN)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "nyu_door_opening",
+   "name": "NYU Door Opening (VINN)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;low&quot;,
-   &quot;id_pattern&quot;: &quot;nyu[-_]door[-_]opening&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "nyu[-_]door[-_]opening",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;berkeley_fanuc_manipulation&quot;,
-   &quot;name&quot;: &quot;Berkeley Fanuc Manipulation&quot;,
-   &quot;license&quot;: &quot;LicenseRef-BerkeleyFanuc-MIT-NonCommercial&quot;,
-   &quot;commercial_training&quot;: null,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;non-commercial&quot;
+   "key": "berkeley_fanuc_manipulation",
+   "name": "Berkeley Fanuc Manipulation",
+   "license": "LicenseRef-BerkeleyFanuc-MIT-NonCommercial",
+   "commercial_training": null,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "non-commercial"
    ],
-   &quot;statement_url&quot;: &quot;https://sites.google.com/berkeley.edu/fanuc-manipulation&quot;,
-   &quot;statement&quot;: &quot;The dataset is released under the permissive MIT license, allowing free use, redistribution, and adaptation&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;berkeley[-_]fanuc&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Self-contradictory: the page names MIT but (per two separate fetches) limits the grant to non-commercial purposes; the raw page could not be retrieved to confirm the tail of the sentence. Contested against the OXE umbrella (CC BY 4.0). Treat commercial use as unclear and verify manually.&quot;
+   "statement_url": "https://sites.google.com/berkeley.edu/fanuc-manipulation",
+   "statement": "The dataset is released under the permissive MIT license, allowing free use, redistribution, and adaptation",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "berkeley[-_]fanuc",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Self-contradictory: the page names MIT but (per two separate fetches) limits the grant to non-commercial purposes; the raw page could not be retrieved to confirm the tail of the sentence. Contested against the OXE umbrella (CC BY 4.0). Treat commercial use as unclear and verify manually."
   },
   {
-   &quot;key&quot;: &quot;berkeley_mvp&quot;,
-   &quot;name&quot;: &quot;Berkeley MVP (Real-World Robot Learning with Masked Visual Pre-training)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "berkeley_mvp",
+   "name": "Berkeley MVP (Real-World Robot Learning with Masked Visual Pre-training)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;berkeley[-_]mvp&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Project page states no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "berkeley[-_]mvp",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Project page states no licence. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;stanford_robocook&quot;,
-   &quot;name&quot;: &quot;Stanford RoboCook&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "stanford_robocook",
+   "name": "Stanford RoboCook",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;robocook&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). Project page links a Google Drive download with no licence; hshi74/robocook LICENSE (MIT) covers code. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "robocook",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). Project page links a Google Drive download with no licence; hshi74/robocook LICENSE (MIT) covers code. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;imperialcollege_sawyer_wrist_cam&quot;,
-   &quot;name&quot;: &quot;Imperial College Sawyer wrist cam&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "imperialcollege_sawyer_wrist_cam",
+   "name": "Imperial College Sawyer wrist cam",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;low&quot;,
-   &quot;id_pattern&quot;: &quot;imperialcollege[-_]sawyer&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "imperialcollege[-_]sawyer",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;usc_cloth_sim&quot;,
-   &quot;name&quot;: &quot;USC Cloth Sim&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "usc_cloth_sim",
+   "name": "USC Cloth Sim",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer&quot;,
-   &quot;statement&quot;: &quot;All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;low&quot;,
-   &quot;id_pattern&quot;: &quot;usc[-_]cloth[-_]sim&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for &#x27;all other materials&#x27;). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence.&quot;
+   "statement_url": "https://github.com/google-deepmind/open_x_embodiment#license-and-disclaimer",
+   "statement": "All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY).",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "usc[-_]cloth[-_]sim",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Licence comes only from the Open X-Embodiment umbrella README (Apache-2.0 for software, CC BY 4.0 for 'all other materials'). No standalone component release checked. Whether the umbrella line covers contributed datasets hosted in gs://gresearch/robotics is not explicit and is contested; treat as CC BY 4.0 at medium confidence."
   },
   {
-   &quot;key&quot;: &quot;aloha_sim_act&quot;,
-   &quot;name&quot;: &quot;ACT ALOHA sim demos (insertion, transfer cube; human and scripted)&quot;,
-   &quot;license&quot;: &quot;not stated&quot;,
-   &quot;commercial_training&quot;: null,
-   &quot;redistribution&quot;: null,
-   &quot;restrictions&quot;: [],
-   &quot;statement_url&quot;: &quot;https://github.com/tonyzhaozh/act&quot;,
-   &quot;statement&quot;: &quot;You can find all scripted/human demo for simulated environments here.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)aloha[-_]sim[-_](insertion|transfer[-_]cube)&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Data licence not stated. The ACT repo LICENSE is MIT (Copyright 2023 Tony Z. Zhao) and covers code; the demos are a Google Drive folder with no terms. The LeRobot &#x27;mit&#x27; tag reflects the code licence, not a data grant. Scripted episodes can be regenerated with the MIT code.&quot;
+   "key": "aloha_sim_act",
+   "name": "ACT ALOHA sim demos (insertion, transfer cube; human and scripted)",
+   "license": "not stated",
+   "commercial_training": null,
+   "redistribution": null,
+   "restrictions": [],
+   "statement_url": "https://github.com/tonyzhaozh/act",
+   "statement": "You can find all scripted/human demo for simulated environments here.",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)aloha[-_]sim[-_](insertion|transfer[-_]cube)",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Data licence not stated. The ACT repo LICENSE is MIT (Copyright 2023 Tony Z. Zhao) and covers code; the demos are a Google Drive folder with no terms. The LeRobot 'mit' tag reflects the code licence, not a data grant. Scripted episodes can be regenerated with the MIT code."
   },
   {
-   &quot;key&quot;: &quot;mobile_aloha&quot;,
-   &quot;name&quot;: &quot;Mobile ALOHA datasets&quot;,
-   &quot;license&quot;: &quot;not stated&quot;,
-   &quot;commercial_training&quot;: null,
-   &quot;redistribution&quot;: null,
-   &quot;restrictions&quot;: [],
-   &quot;statement_url&quot;: &quot;https://mobile-aloha.github.io/&quot;,
-   &quot;statement&quot;: &quot;[no licence statement; the project page links &#x27;Datasets&#x27; to a Google Drive folder]&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)aloha[-_]mobile[-_]&quot;,
-   &quot;link_pattern&quot;: &quot;mobile-aloha\\.github\\.io&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Data licence not stated on the project page or in MarkFzp/mobile-aloha (MIT LICENSE for code).&quot;
+   "key": "mobile_aloha",
+   "name": "Mobile ALOHA datasets",
+   "license": "not stated",
+   "commercial_training": null,
+   "redistribution": null,
+   "restrictions": [],
+   "statement_url": "https://mobile-aloha.github.io/",
+   "statement": "[no licence statement; the project page links 'Datasets' to a Google Drive folder]",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)aloha[-_]mobile[-_]",
+   "link_pattern": "mobile-aloha\\.github\\.io",
+   "mention_pattern": null,
+   "notes": "Data licence not stated on the project page or in MarkFzp/mobile-aloha (MIT LICENSE for code)."
   },
   {
-   &quot;key&quot;: &quot;aloha_static&quot;,
-   &quot;name&quot;: &quot;ALOHA static datasets (as ported by LeRobot)&quot;,
-   &quot;license&quot;: &quot;not stated&quot;,
-   &quot;commercial_training&quot;: null,
-   &quot;redistribution&quot;: null,
-   &quot;restrictions&quot;: [],
-   &quot;statement_url&quot;: &quot;https://tonyzhaozh.github.io/aloha/&quot;,
-   &quot;statement&quot;: &quot;[no licence statement; the ALOHA page offers no dataset download]&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;low&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)aloha[-_]static[-_]&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;LeRobot cards cite the ALOHA paper/page, which publishes no dataset or terms; the static ALOHA demos appear to be the co-training data distributed with the Mobile ALOHA Drive folder (unconfirmed). tonyzhaozh/aloha is MIT for code. LeRobot mirrors are inconsistent among themselves (mit and apache-2.0).&quot;
+   "key": "aloha_static",
+   "name": "ALOHA static datasets (as ported by LeRobot)",
+   "license": "not stated",
+   "commercial_training": null,
+   "redistribution": null,
+   "restrictions": [],
+   "statement_url": "https://tonyzhaozh.github.io/aloha/",
+   "statement": "[no licence statement; the ALOHA page offers no dataset download]",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "(^|/)aloha[-_]static[-_]",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "LeRobot cards cite the ALOHA paper/page, which publishes no dataset or terms; the static ALOHA demos appear to be the co-training data distributed with the Mobile ALOHA Drive folder (unconfirmed). tonyzhaozh/aloha is MIT for code. LeRobot mirrors are inconsistent among themselves (mit and apache-2.0)."
   },
   {
-   &quot;key&quot;: &quot;pusht_diffusion_policy&quot;,
-   &quot;name&quot;: &quot;Push-T (Diffusion Policy, Chi et al.)&quot;,
-   &quot;license&quot;: &quot;not stated&quot;,
-   &quot;commercial_training&quot;: null,
-   &quot;redistribution&quot;: null,
-   &quot;restrictions&quot;: [],
-   &quot;statement_url&quot;: &quot;https://github.com/real-stanford/diffusion_policy&quot;,
-   &quot;statement&quot;: &quot;This repository is released under the MIT license.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)pusht(_image|_keypoints)?$&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Data licence not stated. The quoted MIT licence covers the repository (code); training data is a separate download (diffusion-policy.cs.columbia.edu/data/training/pusht.zip) with no terms on the project page. LeRobot&#x27;s &#x27;mit&#x27; tag reflects the code licence.&quot;
+   "key": "pusht_diffusion_policy",
+   "name": "Push-T (Diffusion Policy, Chi et al.)",
+   "license": "not stated",
+   "commercial_training": null,
+   "redistribution": null,
+   "restrictions": [],
+   "statement_url": "https://github.com/real-stanford/diffusion_policy",
+   "statement": "This repository is released under the MIT license.",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)pusht(_image|_keypoints)?$",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Data licence not stated. The quoted MIT licence covers the repository (code); training data is a separate download (diffusion-policy.cs.columbia.edu/data/training/pusht.zip) with no terms on the project page. LeRobot's 'mit' tag reflects the code licence."
   },
   {
-   &quot;key&quot;: &quot;xarm_fowm&quot;,
-   &quot;name&quot;: &quot;xArm lift/push offline datasets (FOWM, Feng et al.)&quot;,
-   &quot;license&quot;: &quot;not stated&quot;,
-   &quot;commercial_training&quot;: null,
-   &quot;redistribution&quot;: null,
-   &quot;restrictions&quot;: [],
-   &quot;statement_url&quot;: &quot;https://github.com/fyhMer/fowm&quot;,
-   &quot;statement&quot;: &quot;This repository is licensed under the MIT license.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)xarm[-_](lift|push)[-_]medium&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;xarm_lift_medium(_replay)/xarm_push_medium(_replay) are the offline datasets released with FOWM (Google Drive links in the README). The MIT statement covers the repository; no data licence is stated. LeRobot cards point to the TD-MPC homepage, but the datasets come from FOWM.&quot;
+   "key": "xarm_fowm",
+   "name": "xArm lift/push offline datasets (FOWM, Feng et al.)",
+   "license": "not stated",
+   "commercial_training": null,
+   "redistribution": null,
+   "restrictions": [],
+   "statement_url": "https://github.com/fyhMer/fowm",
+   "statement": "This repository is licensed under the MIT license.",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)xarm[-_](lift|push)[-_]medium",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "xarm_lift_medium(_replay)/xarm_push_medium(_replay) are the offline datasets released with FOWM (Google Drive links in the README). The MIT statement covers the repository; no data licence is stated. LeRobot cards point to the TD-MPC homepage, but the datasets come from FOWM."
   },
   {
-   &quot;key&quot;: &quot;umi_cup_in_the_wild&quot;,
-   &quot;name&quot;: &quot;UMI in-the-wild cup arrangement&quot;,
-   &quot;license&quot;: &quot;not stated&quot;,
-   &quot;commercial_training&quot;: null,
-   &quot;redistribution&quot;: null,
-   &quot;restrictions&quot;: [],
-   &quot;statement_url&quot;: &quot;https://github.com/real-stanford/universal_manipulation_interface&quot;,
-   &quot;statement&quot;: &quot;This repository is released under the MIT license.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;umi[-_]cup[-_]in[-_]the[-_]wild&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;The MIT statement covers code; the project page and README give no data licence.&quot;
+   "key": "umi_cup_in_the_wild",
+   "name": "UMI in-the-wild cup arrangement",
+   "license": "not stated",
+   "commercial_training": null,
+   "redistribution": null,
+   "restrictions": [],
+   "statement_url": "https://github.com/real-stanford/universal_manipulation_interface",
+   "statement": "This repository is released under the MIT license.",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "umi[-_]cup[-_]in[-_]the[-_]wild",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "The MIT statement covers code; the project page and README give no data licence."
   },
   {
-   &quot;key&quot;: &quot;metaworld_mt50_lerobot&quot;,
-   &quot;name&quot;: &quot;Meta-World MT50 demos (LeRobot)&quot;,
-   &quot;license&quot;: &quot;Apache-2.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "metaworld_mt50_lerobot",
+   "name": "Meta-World MT50 demos (LeRobot)",
+   "license": "Apache-2.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/docs/lerobot/metaworld&quot;,
-   &quot;statement&quot;: &quot;We provide a LeRobot-ready dataset for Meta-World MT50 on the HF Hub&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;low&quot;,
-   &quot;id_pattern&quot;: &quot;metaworld[-_]?mt50&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;No independent upstream dataset: Hugging Face&#x27;s own docs present lerobot/metaworld_mt50 as their release, and its card tags apache-2.0, which is LeRobot&#x27;s template default. Who generated it and how is not documented. The Meta-World benchmark code is MIT.&quot;
+   "statement_url": "https://huggingface.co/docs/lerobot/metaworld",
+   "statement": "We provide a LeRobot-ready dataset for Meta-World MT50 on the HF Hub",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "metaworld[-_]?mt50",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "No independent upstream dataset: Hugging Face's own docs present lerobot/metaworld_mt50 as their release, and its card tags apache-2.0, which is LeRobot's template default. Who generated it and how is not documented. The Meta-World benchmark code is MIT."
   },
   {
-   &quot;key&quot;: &quot;robocasa&quot;,
-   &quot;name&quot;: &quot;RoboCasa / RoboCasa365&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "robocasa",
+   "name": "RoboCasa / RoboCasa365",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/robocasa/robocasa#license&quot;,
-   &quot;statement&quot;: &quot;Assets and Datasets: CC BY 4.0&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;robocasa&quot;,
-   &quot;link_pattern&quot;: &quot;github\\.com/robocasa/robocasa|robocasa\\.ai&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Official README: code MIT, assets and datasets CC BY 4.0. The ember-lab-berkeley cards call themselves a &#x27;Mirror of RoboCasa365&#x27; and claim &#x27;MIT, inherited from upstream RoboCasa365&#x27;, which mixes up the code licence and the data licence.&quot;
+   "statement_url": "https://github.com/robocasa/robocasa#license",
+   "statement": "Assets and Datasets: CC BY 4.0",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "robocasa",
+   "link_pattern": "github\\.com/robocasa/robocasa|robocasa\\.ai",
+   "mention_pattern": null,
+   "notes": "Official README: code MIT, assets and datasets CC BY 4.0. The ember-lab-berkeley cards call themselves a 'Mirror of RoboCasa365' and claim 'MIT, inherited from upstream RoboCasa365', which mixes up the code licence and the data licence."
   },
   {
-   &quot;key&quot;: &quot;behavior_1k_2025_challenge&quot;,
-   &quot;name&quot;: &quot;BEHAVIOR-1K 2025 challenge demos&quot;,
-   &quot;license&quot;: &quot;MIT&quot;,
-   &quot;commercial_training&quot;: null,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;
+   "key": "behavior_1k_2025_challenge",
+   "name": "BEHAVIOR-1K 2025 challenge demos",
+   "license": "MIT",
+   "commercial_training": null,
+   "redistribution": true,
+   "restrictions": [
+    "attribution"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/behavior-1k/2025-challenge-demos&quot;,
-   &quot;statement&quot;: &quot;license: mit&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;behavior[-_]?1k|(^|/)2025[-_]challenge[-_]demos$&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;The authors&#x27; own HF card tags MIT, but only as a tag. The demos are renders of the BEHAVIOR Data Bundle, whose EULA (OmniGibson asset_utils.py) says &#x27;Data may only be used for non-commercial academic research.&#x27; and forbids redistribution. Commercial training is therefore unclear.&quot;
+   "statement_url": "https://huggingface.co/datasets/behavior-1k/2025-challenge-demos",
+   "statement": "license: mit",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "behavior[-_]?1k|(^|/)2025[-_]challenge[-_]demos$",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "The authors' own HF card tags MIT, but only as a tag. The demos are renders of the BEHAVIOR Data Bundle, whose EULA (OmniGibson asset_utils.py) says 'Data may only be used for non-commercial academic research.' and forbids redistribution. Commercial training is therefore unclear."
   },
   {
-   &quot;key&quot;: &quot;abc_130k&quot;,
-   &quot;name&quot;: &quot;ABC-130K (XDOF)&quot;,
-   &quot;license&quot;: &quot;Apache-2.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "abc_130k",
+   "name": "ABC-130K (XDOF)",
+   "license": "Apache-2.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/XDOF/ABC-130k&quot;,
-   &quot;statement&quot;: &quot;Released under the Apache License 2.0. See `LICENSE`.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;abc[-_]?130k&quot;,
-   &quot;link_pattern&quot;: &quot;huggingface\\.co/datasets/xdof/abc-130k&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Official XDOF card. The upstream is gated (contact-sharing click-through), but the mirrors are ungated. That is not a licence conflict.&quot;
+   "statement_url": "https://huggingface.co/datasets/XDOF/ABC-130k",
+   "statement": "Released under the Apache License 2.0. See `LICENSE`.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "abc[-_]?130k",
+   "link_pattern": "huggingface\\.co/datasets/xdof/abc-130k",
+   "mention_pattern": null,
+   "notes": "Official XDOF card. The upstream is gated (contact-sharing click-through), but the mirrors are ungated. That is not a licence conflict."
   },
   {
-   &quot;key&quot;: &quot;l2d&quot;,
-   &quot;name&quot;: &quot;L2D (Learning to Drive, Yaak + Hugging Face)&quot;,
-   &quot;license&quot;: &quot;Apache-2.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "l2d",
+   "name": "L2D (Learning to Drive, Yaak + Hugging Face)",
+   "license": "Apache-2.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/yaak-ai/L2D&quot;,
-   &quot;statement&quot;: &quot;license: apache-2.0&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)l2d([-_]v\\d+)?$&quot;,
-   &quot;link_pattern&quot;: &quot;huggingface\\.co/datasets/yaak-ai/l2d&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;The original authors&#x27; card, but the tag sits in the stock LeRobot template, and apache-2.0 is the push_to_hub default. No LICENSE file, and neither the blog post nor yaak.ai states terms. Street-scene video may raise GDPR issues that are separate from copyright. yaak-ai/lerobot-driving-school is NOT L2D (a 10-episode 2023 ActionGPT sample, same org) and is deliberately not matched.&quot;
+   "statement_url": "https://huggingface.co/datasets/yaak-ai/L2D",
+   "statement": "license: apache-2.0",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)l2d([-_]v\\d+)?$",
+   "link_pattern": "huggingface\\.co/datasets/yaak-ai/l2d",
+   "mention_pattern": null,
+   "notes": "The original authors' card, but the tag sits in the stock LeRobot template, and apache-2.0 is the push_to_hub default. No LICENSE file, and neither the blog post nor yaak.ai states terms. Street-scene video may raise GDPR issues that are separate from copyright. yaak-ai/lerobot-driving-school is NOT L2D (a 10-episode 2023 ActionGPT sample, same org) and is deliberately not matched."
   },
   {
-   &quot;key&quot;: &quot;unitree_g1_datasets&quot;,
-   &quot;name&quot;: &quot;Unitree robotics datasets (unitreerobotics/*)&quot;,
-   &quot;license&quot;: &quot;Apache-2.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "unitree_g1_datasets",
+   "name": "Unitree robotics datasets (unitreerobotics/*)",
+   "license": "Apache-2.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/unitreerobotics/G1_Dex3_ToastedBread_Dataset&quot;,
-   &quot;statement&quot;: &quot;license: apache-2.0&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;^unitreerobotics/g1[-_]&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;The rightsholder&#x27;s own cards, but using the stock LeRobot template tag (possibly a default). Only Unitree&#x27;s own org matches. Third-party data recorded on G1 robots (e.g. RoboCOIN/Unitree_G1edu_*, aarontung/g1-*, mncai/G1_*) is a different dataset.&quot;
+   "statement_url": "https://huggingface.co/datasets/unitreerobotics/G1_Dex3_ToastedBread_Dataset",
+   "statement": "license: apache-2.0",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "^unitreerobotics/g1[-_]",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "The rightsholder's own cards, but using the stock LeRobot template tag (possibly a default). Only Unitree's own org matches. Third-party data recorded on G1 robots (e.g. RoboCOIN/Unitree_G1edu_*, aarontung/g1-*, mncai/G1_*) is a different dataset."
   },
   {
-   &quot;key&quot;: &quot;robocoin&quot;,
-   &quot;name&quot;: &quot;RoboCOIN (BAAI / FlagOpen)&quot;,
-   &quot;license&quot;: &quot;Apache-2.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;,
-    &quot;signed-agreement&quot;
+   "key": "robocoin",
+   "name": "RoboCOIN (BAAI / FlagOpen)",
+   "license": "Apache-2.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications",
+    "signed-agreement"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/RoboCOIN/Cobot_Magic_make_hamburger&quot;,
-   &quot;statement&quot;: &quot;This dataset is released under the apache-2.0 license.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;^robocoin/&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Explicit text on the official cards. A click-through gate asks users to cite the paper and not to harm human subjects. The repo names carry robot brands (AgiBot, Galaxea, Unitree, Galbot, Leju...), but these are RoboCOIN data, not AgiBot World or Galaxea Open-World.&quot;
+   "statement_url": "https://huggingface.co/datasets/RoboCOIN/Cobot_Magic_make_hamburger",
+   "statement": "This dataset is released under the apache-2.0 license.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "^robocoin/",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Explicit text on the official cards. A click-through gate asks users to cite the paper and not to harm human subjects. The repo names carry robot brands (AgiBot, Galaxea, Unitree, Galbot, Leju...), but these are RoboCOIN data, not AgiBot World or Galaxea Open-World."
   },
   {
-   &quot;key&quot;: &quot;rh20t&quot;,
-   &quot;name&quot;: &quot;RH20T&quot;,
-   &quot;license&quot;: &quot;LicenseRef-RH20T-split-CC-BY-SA-4.0-and-CC-BY-NC-4.0&quot;,
-   &quot;commercial_training&quot;: null,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;,
-    &quot;share-alike&quot;,
-    &quot;non-commercial&quot;
+   "key": "rh20t",
+   "name": "RH20T",
+   "license": "LicenseRef-RH20T-split-CC-BY-SA-4.0-and-CC-BY-NC-4.0",
+   "commercial_training": null,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications",
+    "share-alike",
+    "non-commercial"
    ],
-   &quot;statement_url&quot;: &quot;https://rh20t.github.io/&quot;,
-   &quot;statement&quot;: &quot;Commercial use of the RH20T-NC subset or models trained on it is not allowed.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;rh20t&quot;,
-   &quot;link_pattern&quot;: &quot;rh20t\\.github\\.io&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Split by scene: RH20T-C (scene_0001-0005) is CC BY-SA 4.0 and allows commercial use; RH20T-NC (scene_0006-0010) is CC BY-NC 4.0 (the page&#x27;s link points to the BY-NC-SA deed). The robot-lev mirrors keep this per-episode split. rh20t_api code is MIT.&quot;
+   "statement_url": "https://rh20t.github.io/",
+   "statement": "Commercial use of the RH20T-NC subset or models trained on it is not allowed.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "rh20t",
+   "link_pattern": "rh20t\\.github\\.io",
+   "mention_pattern": null,
+   "notes": "Split by scene: RH20T-C (scene_0001-0005) is CC BY-SA 4.0 and allows commercial use; RH20T-NC (scene_0006-0010) is CC BY-NC 4.0 (the page's link points to the BY-NC-SA deed). The robot-lev mirrors keep this per-episode split. rh20t_api code is MIT."
   },
   {
-   &quot;key&quot;: &quot;roboset&quot;,
-   &quot;name&quot;: &quot;RoboSet (RoboHive / RoboPen)&quot;,
-   &quot;license&quot;: &quot;MIT&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;
+   "key": "roboset",
+   "name": "RoboSet (RoboHive / RoboPen)",
+   "license": "MIT",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution"
    ],
-   &quot;statement_url&quot;: &quot;https://robopen.github.io/roboset/&quot;,
-   &quot;statement&quot;: &quot;This work is licensed under the MIT-License.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;low&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)roboset&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Website footer statement; it is unclear whether it covers the data or only the site. robohive code is Apache-2.0.&quot;
+   "statement_url": "https://robopen.github.io/roboset/",
+   "statement": "This work is licensed under the MIT-License.",
+   "checked": "2026-10-12",
+   "confidence": "low",
+   "id_pattern": "(^|/)roboset",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Website footer statement; it is unclear whether it covers the data or only the site. robohive code is Apache-2.0."
   },
   {
-   &quot;key&quot;: &quot;galaxea_open_world&quot;,
-   &quot;name&quot;: &quot;Galaxea Open-World Dataset&quot;,
-   &quot;license&quot;: &quot;CC-BY-NC-SA-4.0&quot;,
-   &quot;commercial_training&quot;: false,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;,
-    &quot;non-commercial&quot;,
-    &quot;share-alike&quot;,
-    &quot;signed-agreement&quot;
+   "key": "galaxea_open_world",
+   "name": "Galaxea Open-World Dataset",
+   "license": "CC-BY-NC-SA-4.0",
+   "commercial_training": false,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications",
+    "non-commercial",
+    "share-alike",
+    "signed-agreement"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/OpenGalaxea/Galaxea-Open-World-Dataset&quot;,
-   &quot;statement&quot;: &quot;All the data and code within this repo are under CC BY-NC-SA 4.0&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;galaxea[-_]?open[-_]?world&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;&#x27;Galaxea Community License Agreement&#x27;, gated. Repo ids naming a Galaxea robot (e.g. RoboCOIN/Galaxea_R1_Lite_*) are not this dataset.&quot;
+   "statement_url": "https://huggingface.co/datasets/OpenGalaxea/Galaxea-Open-World-Dataset",
+   "statement": "All the data and code within this repo are under CC BY-NC-SA 4.0",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "galaxea[-_]?open[-_]?world",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "'Galaxea Community License Agreement', gated. Repo ids naming a Galaxea robot (e.g. RoboCOIN/Galaxea_R1_Lite_*) are not this dataset."
   },
   {
-   &quot;key&quot;: &quot;agibot_digital_world&quot;,
-   &quot;name&quot;: &quot;AgiBot Digital World&quot;,
-   &quot;license&quot;: &quot;CC-BY-NC-SA-4.0&quot;,
-   &quot;commercial_training&quot;: false,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;,
-    &quot;non-commercial&quot;,
-    &quot;share-alike&quot;
+   "key": "agibot_digital_world",
+   "name": "AgiBot Digital World",
+   "license": "CC-BY-NC-SA-4.0",
+   "commercial_training": false,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications",
+    "non-commercial",
+    "share-alike"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/agibot-world/AgiBotDigitalWorld&quot;,
-   &quot;statement&quot;: &quot;All the data and code within this repo are under CC BY-NC-SA 4.0&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;agibot[-_]?digital[-_]?world&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Official card. This is separate from AgiBot World (already covered).&quot;
+   "statement_url": "https://huggingface.co/datasets/agibot-world/AgiBotDigitalWorld",
+   "statement": "All the data and code within this repo are under CC BY-NC-SA 4.0",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "agibot[-_]?digital[-_]?world",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Official card. This is separate from AgiBot World (already covered)."
   },
   {
-   &quot;key&quot;: &quot;dexmimicgen&quot;,
-   &quot;name&quot;: &quot;DexMimicGen datasets&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "dexmimicgen",
+   "name": "DexMimicGen datasets",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/NVlabs/dexmimicgen#license&quot;,
-   &quot;statement&quot;: &quot;the datasets are released under CC-BY 4.0&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;dexmimicgen&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;The code is under the NVIDIA Source Code License (non-commercial); only the datasets are CC BY 4.0.&quot;
+   "statement_url": "https://github.com/NVlabs/dexmimicgen#license",
+   "statement": "the datasets are released under CC-BY 4.0",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "dexmimicgen",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "The code is under the NVIDIA Source Code License (non-commercial); only the datasets are CC BY 4.0."
   },
   {
-   &quot;key&quot;: &quot;mimicgen&quot;,
-   &quot;name&quot;: &quot;MimicGen datasets&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "mimicgen",
+   "name": "MimicGen datasets",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/NVlabs/mimicgen#license&quot;,
-   &quot;statement&quot;: &quot;the datasets are released under CC-BY 4.0&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;(^|[/_-])mimicgen&quot;,
-   &quot;link_pattern&quot;: &quot;github\\.com/nvlabs/mimicgen|mimicgen\\.github\\.io&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;The README changelog says that on 04/04/2024 the &#x27;Dataset license changed to CC-BY 4.0, which is less restrictive&#x27;. Copies taken before then may carry the older terms. Code: NVIDIA Source Code License.&quot;
+   "statement_url": "https://github.com/NVlabs/mimicgen#license",
+   "statement": "the datasets are released under CC-BY 4.0",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|[/_-])mimicgen",
+   "link_pattern": "github\\.com/nvlabs/mimicgen|mimicgen\\.github\\.io",
+   "mention_pattern": null,
+   "notes": "The README changelog says that on 04/04/2024 the 'Dataset license changed to CC-BY 4.0, which is less restrictive'. Copies taken before then may carry the older terms. Code: NVIDIA Source Code License."
   },
   {
-   &quot;key&quot;: &quot;robomimic&quot;,
-   &quot;name&quot;: &quot;robomimic datasets&quot;,
-   &quot;license&quot;: &quot;MIT&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;
+   "key": "robomimic",
+   "name": "robomimic datasets",
+   "license": "MIT",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/robomimic/robomimic_datasets&quot;,
-   &quot;statement&quot;: &quot;license: mit&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;robomimic&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Tag only, on the official robomimic org card (amandlek/robomimic also tags MIT). The docs site and README state no data licence. The code is MIT.&quot;
+   "statement_url": "https://huggingface.co/datasets/robomimic/robomimic_datasets",
+   "statement": "license: mit",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "robomimic",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Tag only, on the official robomimic org card (amandlek/robomimic also tags MIT). The docs site and README state no data licence. The code is MIT."
   },
   {
-   &quot;key&quot;: &quot;lerobot_svla_so10x&quot;,
-   &quot;name&quot;: &quot;SmolVLA SO-100/SO-101 community datasets (lerobot/svla_*)&quot;,
-   &quot;license&quot;: &quot;Apache-2.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "lerobot_svla_so10x",
+   "name": "SmolVLA SO-100/SO-101 community datasets (lerobot/svla_*)",
+   "license": "Apache-2.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/lerobot/svla_so100_pickplace&quot;,
-   &quot;statement&quot;: &quot;license: apache-2.0&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;medium&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)svla[-_]so10[01][-_]&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Hugging Face&#x27;s own first-party release, so the tag is the creator&#x27;s declaration (though it is the LeRobot template default).&quot;
+   "statement_url": "https://huggingface.co/datasets/lerobot/svla_so100_pickplace",
+   "statement": "license: apache-2.0",
+   "checked": "2026-10-12",
+   "confidence": "medium",
+   "id_pattern": "(^|/)svla[-_]so10[01][-_]",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Hugging Face's own first-party release, so the tag is the creator's declaration (though it is the LeRobot template default)."
   },
   {
-   &quot;key&quot;: &quot;kai0&quot;,
-   &quot;name&quot;: &quot;OpenDriveLab Kai0 (chi-zero) data&quot;,
-   &quot;license&quot;: &quot;CC-BY-NC-SA-4.0&quot;,
-   &quot;commercial_training&quot;: false,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;,
-    &quot;non-commercial&quot;,
-    &quot;share-alike&quot;
+   "key": "kai0",
+   "name": "OpenDriveLab Kai0 (chi-zero) data",
+   "license": "CC-BY-NC-SA-4.0",
+   "commercial_training": false,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications",
+    "non-commercial",
+    "share-alike"
    ],
-   &quot;statement_url&quot;: &quot;https://github.com/OpenDriveLab/kai0&quot;,
-   &quot;statement&quot;: &quot;The data and checkpoint are under CC BY-NC-SA 4.0.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)kai0&quot;,
-   &quot;link_pattern&quot;: null,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Code is Apache-2.0. The HF card&#x27;s licence paragraph is an empty template, but its YAML tag (cc-by-nc-sa-4.0) agrees with the GitHub README.&quot;
+   "statement_url": "https://github.com/OpenDriveLab/kai0",
+   "statement": "The data and checkpoint are under CC BY-NC-SA 4.0.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|/)kai0",
+   "link_pattern": null,
+   "mention_pattern": null,
+   "notes": "Code is Apache-2.0. The HF card's licence paragraph is an empty template, but its YAML tag (cc-by-nc-sa-4.0) agrees with the GitHub README."
   },
   {
-   &quot;key&quot;: &quot;hiw_500&quot;,
-   &quot;name&quot;: &quot;BitRobot HIW-500 (Humanoids in the Wild)&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "hiw_500",
+   "name": "BitRobot HIW-500 (Humanoids in the Wild)",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/BitRobot/HIW-500&quot;,
-   &quot;statement&quot;: &quot;The public HIW-500 dataset is released under the CC BY 4.0 license&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;hiw[-_]?500&quot;,
-   &quot;link_pattern&quot;: &quot;huggingface\\.co/datasets/bitrobot/hiw-500&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Official card; the LeRobot conversion BitRobot/HIW-500-LeRobot comes from the same org and carries the same text.&quot;
+   "statement_url": "https://huggingface.co/datasets/BitRobot/HIW-500",
+   "statement": "The public HIW-500 dataset is released under the CC BY 4.0 license",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "hiw[-_]?500",
+   "link_pattern": "huggingface\\.co/datasets/bitrobot/hiw-500",
+   "mention_pattern": null,
+   "notes": "Official card; the LeRobot conversion BitRobot/HIW-500-LeRobot comes from the same org and carries the same text."
   },
   {
-   &quot;key&quot;: &quot;habit&quot;,
-   &quot;name&quot;: &quot;Config HABIT&quot;,
-   &quot;license&quot;: &quot;CC-BY-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;
+   "key": "habit",
+   "name": "Config HABIT",
+   "license": "CC-BY-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/configinc/HABIT&quot;,
-   &quot;statement&quot;: &quot;license: cc-by-4.0&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;(^|/)habit$&quot;,
-   &quot;link_pattern&quot;: &quot;huggingface\\.co/datasets/configinc/habit&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;Official card by the authors (Config, KAIST), with a YAML tag plus a &#x27;License: CC BY 4.0&#x27; badge. The project page states no licence.&quot;
+   "statement_url": "https://huggingface.co/datasets/configinc/HABIT",
+   "statement": "license: cc-by-4.0",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "(^|/)habit$",
+   "link_pattern": "huggingface\\.co/datasets/configinc/habit",
+   "mention_pattern": null,
+   "notes": "Official card by the authors (Config, KAIST), with a YAML tag plus a 'License: CC BY 4.0' badge. The project page states no licence."
   },
   {
-   &quot;key&quot;: &quot;tacverse&quot;,
-   &quot;name&quot;: &quot;TacVerse (Xense Robotics)&quot;,
-   &quot;license&quot;: &quot;CC-BY-SA-4.0&quot;,
-   &quot;commercial_training&quot;: true,
-   &quot;redistribution&quot;: true,
-   &quot;restrictions&quot;: [
-    &quot;attribution&quot;,
-    &quot;indicate-modifications&quot;,
-    &quot;share-alike&quot;
+   "key": "tacverse",
+   "name": "TacVerse (Xense Robotics)",
+   "license": "CC-BY-SA-4.0",
+   "commercial_training": true,
+   "redistribution": true,
+   "restrictions": [
+    "attribution",
+    "indicate-modifications",
+    "share-alike"
    ],
-   &quot;statement_url&quot;: &quot;https://huggingface.co/datasets/TacVerse/TacVerse&quot;,
-   &quot;statement&quot;: &quot;Released under CC BY-SA 4.0.&quot;,
-   &quot;checked&quot;: &quot;2026-10-12&quot;,
-   &quot;confidence&quot;: &quot;high&quot;,
-   &quot;id_pattern&quot;: &quot;^tacverse/&quot;,
-   &quot;link_pattern&quot;: &quot;huggingface\\.co/datasets/tacverse/&quot;,
-   &quot;mention_pattern&quot;: null,
-   &quot;notes&quot;: &quot;The landing card adds that derivative datasets must use the same CC BY-SA 4.0 terms.&quot;
+   "statement_url": "https://huggingface.co/datasets/TacVerse/TacVerse",
+   "statement": "Released under CC BY-SA 4.0.",
+   "checked": "2026-10-12",
+   "confidence": "high",
+   "id_pattern": "^tacverse/",
+   "link_pattern": "huggingface\\.co/datasets/tacverse/",
+   "mention_pattern": null,
+   "notes": "The landing card adds that derivative datasets must use the same CC BY-SA 4.0 terms."
   }
  ]
 }
-
-</gradio-file>
-</gradio-lite>
+</script>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let py;
+async function boot() {
+  try {
+    py = await loadPyodide();
+    await py.loadPackage("pyyaml");
+    for (const el of document.querySelectorAll(".rdq-file")) {
+      const path = el.dataset.path;
+      py.FS.mkdirTree(path.split("/").slice(0, -1).join("/"));
+      py.FS.writeFile(path, el.textContent);
+    }
+    py.runPython(`
+import json, sys
+sys.path.insert(0, ".")
+from rdq.provenance import analyse_card
+def run(readme, repo_id):
+    return json.dumps(analyse_card(readme, repo_id=repo_id).to_dict())
+`);
+    $("#go").disabled = false;
+    $("#status").textContent = "Ready.";
+    const id = new URLSearchParams(location.search).get("id");
+    if (id) { $("#q").value = id; check(id); }
+  } catch (e) {
+    $("#status").textContent = "The checker failed to load: " + e;
+  }
+}
+function parseId(s) {
+  s = (s || "").trim().replace(/\/+$/, "");
+  const m = s.match(/huggingface\.co\/datasets\/([^/\s]+\/[^/\s?#]+)/);
+  if (m) s = m[1];
+  return /^[\w.-]+\/[\w.-]+$/.test(s) ? s : null;
+}
+async function check(raw) {
+  const id = parseId(raw);
+  if (!id) { $("#status").textContent = "Enter a dataset id like lerobot/droid_1.0.1."; return; }
+  $("#go").disabled = true; $("#status").textContent = "Reading the dataset card…"; $("#out").innerHTML = "";
+  try {
+    const r = await fetch(`https://huggingface.co/datasets/${id}/resolve/main/README.md`);
+    if (!r.ok) {
+      $("#status").textContent = r.status === 404 ? "No dataset card found. Check the id; private and gated datasets can't be read here."
+                                                  : `The Hub answered ${r.status}.`;
+      return;
+    }
+    const readme = await r.text();
+    const res = JSON.parse(py.globals.get("run")(readme, id));
+    render(id, res);
+    $("#status").textContent = "";
+    history.replaceState(null, "", "?id=" + encodeURIComponent(id));
+  } catch (e) {
+    $("#status").textContent = "Something went wrong: " + e;
+  } finally { $("#go").disabled = false; }
+}
+function render(id, p) {
+  const up = p.upstream || {};
+  const sev = up.severity || (p.verdict === "documented" ? "ok" : "info");
+  let h = `<div class="card"><h2>${esc(id)}</h2>`;
+  h += `<div class="row"><span class="k">Declared licence</span><span>${esc(p.license || "none")}</span></div>`;
+  h += `<div class="row"><span class="k">Verdict</span><span class="pill ${esc(sev)}">${esc(p.verdict)}</span></div>`;
+  if ((up.upstream || []).length) {
+    h += `<div class="row"><span class="k">Against the original</span><span>${esc(up.status)} · <span class="${esc(up.severity)}">${esc(up.severity)}</span></span></div><ul>`;
+    for (const u of up.upstream) {
+      h += `<li><b>${esc(u.name)}</b>: ${esc(u.license)} (matched by ${esc(u.evidence)}, ${esc(u.confidence)} confidence).
+            <a href="${esc(u.statement_url)}" target="_blank" rel="noopener">Source</a>, checked ${esc(u.checked)}</li>`;
+    }
+    h += `</ul>`;
+  }
+  if ((p.notes || []).length) h += `<div class="row" style="margin-top:12px"><span class="k">Notes</span></div><ul>` +
+    p.notes.map(n => `<li>${esc(n)}</li>`).join("") + `</ul>`;
+  $("#out").innerHTML = h + `</div>`;
+}
+$("#f").addEventListener("submit", e => { e.preventDefault(); check($("#q").value); });
+document.querySelectorAll(".examples a").forEach(a => a.addEventListener("click", () => { $("#q").value = a.dataset.id; check(a.dataset.id); }));
+boot();
+</script>
 </body>
 </html>

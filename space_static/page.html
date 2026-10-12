@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>rdq: robot dataset licence check</title>
+<script src="https://cdn.jsdelivr.net/pyodide/{{PYODIDE}}/full/pyodide.js"></script>
+<style>
+  :root { --bg:#fbfaf8; --fg:#1d1f23; --muted:#62666e; --line:#e3e1dc; --card:#fff; --accent:#3b4cca;
+          --crit:#b42318; --warn:#b54708; --info:#175cd3; --ok:#067647; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141518; --fg:#ececec; --muted:#a2a6ad; --line:#2b2d33; --card:#1c1d21;
+          --accent:#8c98ff; --crit:#f97066; --warn:#fdb022; --info:#84adff; --ok:#47cd89; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:40px 16px 64px; }
+  h1 { font-size:28px; line-height:1.2; margin:0 0 8px; letter-spacing:-0.01em; }
+  p.lede { color:var(--muted); margin:0 0 24px; }
+  form { display:flex; gap:8px; flex-wrap:wrap; }
+  input { flex:1 1 280px; min-width:0; font:inherit; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); }
+  button { font:inherit; font-weight:600; padding:10px 18px; border:0; border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:wait; }
+  .examples { margin:10px 0 0; font-size:14px; color:var(--muted); }
+  .examples a { color:var(--accent); cursor:pointer; margin-right:12px; text-decoration:underline; }
+  #status { margin:20px 0 0; color:var(--muted); font-size:14px; min-height:1.4em; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-top:16px; }
+  .card h2 { font-size:18px; margin:0 0 12px; word-break:break-all; }
+  .row { display:flex; gap:8px; margin:4px 0; flex-wrap:wrap; }
+  .k { color:var(--muted); min-width:170px; }
+  .pill { display:inline-block; padding:1px 10px; border-radius:999px; font-size:13px; font-weight:600; border:1px solid currentColor; }
+  .critical { color:var(--crit); } .warning { color:var(--warn); } .info { color:var(--info); } .ok { color:var(--ok); }
+  ul { padding-left:20px; margin:8px 0 0; } li { margin:4px 0; }
+  a { color:var(--accent); }
+  footer { margin-top:32px; font-size:13px; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Can you train on this robot dataset?</h1>
+  <p class="lede">Paste a LeRobot dataset from the Hugging Face Hub. rdq compares its declared licence with the terms of the original
+    dataset it was converted from (65 public robot datasets, each checked against its primary source). Everything runs in your browser.</p>
+  <form id="f">
+    <input id="q" placeholder="e.g. lerobot/droid_1.0.1 or a dataset URL" autocomplete="off" aria-label="Dataset id" />
+    <button id="go" type="submit" disabled>Check</button>
+  </form>
+  <div class="examples">Try:
+    <a data-id="IPEC-COMMUNITY/droid_lerobot">IPEC-COMMUNITY/droid_lerobot</a>
+    <a data-id="lerobot/pusht">lerobot/pusht</a>
+    <a data-id="lerobot/svla_so101_pickplace">lerobot/svla_so101_pickplace</a>
+  </div>
+  <div id="status">Loading the checker…</div>
+  <div id="out"></div>
+  <footer>A licence tag on a copy can't grant rights its uploader doesn't hold. This is a diligence aid, not legal advice.
+    Full quality checks (desync, frozen logs, glitches, duplicates) and data passports:
+    <a href="https://github.com/s1g6r/rdq">github.com/s1g6r/rdq</a></footer>
+</main>
+{{FILES}}
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let py;
+async function boot() {
+  try {
+    py = await loadPyodide();
+    await py.loadPackage("pyyaml");
+    for (const el of document.querySelectorAll(".rdq-file")) {
+      const path = el.dataset.path;
+      py.FS.mkdirTree(path.split("/").slice(0, -1).join("/"));
+      py.FS.writeFile(path, el.textContent);
+    }
+    py.runPython(`
+import json, sys
+sys.path.insert(0, ".")
+from rdq.provenance import analyse_card
+def run(readme, repo_id):
+    return json.dumps(analyse_card(readme, repo_id=repo_id).to_dict())
+`);
+    $("#go").disabled = false;
+    $("#status").textContent = "Ready.";
+    const id = new URLSearchParams(location.search).get("id");
+    if (id) { $("#q").value = id; check(id); }
+  } catch (e) {
+    $("#status").textContent = "The checker failed to load: " + e;
+  }
+}
+function parseId(s) {
+  s = (s || "").trim().replace(/\/+$/, "");
+  const m = s.match(/huggingface\.co\/datasets\/([^/\s]+\/[^/\s?#]+)/);
+  if (m) s = m[1];
+  return /^[\w.-]+\/[\w.-]+$/.test(s) ? s : null;
+}
+async function check(raw) {
+  const id = parseId(raw);
+  if (!id) { $("#status").textContent = "Enter a dataset id like lerobot/droid_1.0.1."; return; }
+  $("#go").disabled = true; $("#status").textContent = "Reading the dataset card…"; $("#out").innerHTML = "";
+  try {
+    const r = await fetch(`https://huggingface.co/datasets/${id}/resolve/main/README.md`);
+    if (!r.ok) {
+      $("#status").textContent = r.status === 404 ? "No dataset card found. Check the id; private and gated datasets can't be read here."
+                                                  : `The Hub answered ${r.status}.`;
+      return;
+    }
+    const readme = await r.text();
+    const res = JSON.parse(py.globals.get("run")(readme, id));
+    render(id, res);
+    $("#status").textContent = "";
+    history.replaceState(null, "", "?id=" + encodeURIComponent(id));
+  } catch (e) {
+    $("#status").textContent = "Something went wrong: " + e;
+  } finally { $("#go").disabled = false; }
+}
+function render(id, p) {
+  const up = p.upstream || {};
+  const sev = up.severity || (p.verdict === "documented" ? "ok" : "info");
+  let h = `<div class="card"><h2>${esc(id)}</h2>`;
+  h += `<div class="row"><span class="k">Declared licence</span><span>${esc(p.license || "none")}</span></div>`;
+  h += `<div class="row"><span class="k">Verdict</span><span class="pill ${esc(sev)}">${esc(p.verdict)}</span></div>`;
+  if ((up.upstream || []).length) {
+    h += `<div class="row"><span class="k">Against the original</span><span>${esc(up.status)} · <span class="${esc(up.severity)}">${esc(up.severity)}</span></span></div><ul>`;
+    for (const u of up.upstream) {
+      h += `<li><b>${esc(u.name)}</b>: ${esc(u.license)} (matched by ${esc(u.evidence)}, ${esc(u.confidence)} confidence).
+            <a href="${esc(u.statement_url)}" target="_blank" rel="noopener">Source</a>, checked ${esc(u.checked)}</li>`;
+    }
+    h += `</ul>`;
+  }
+  if ((p.notes || []).length) h += `<div class="row" style="margin-top:12px"><span class="k">Notes</span></div><ul>` +
+    p.notes.map(n => `<li>${esc(n)}</li>`).join("") + `</ul>`;
+  $("#out").innerHTML = h + `</div>`;
+}
+$("#f").addEventListener("submit", e => { e.preventDefault(); check($("#q").value); });
+document.querySelectorAll(".examples a").forEach(a => a.addEventListener("click", () => { $("#q").value = a.dataset.id; check(a.dataset.id); }));
+boot();
+</script>
+</body>
+</html>
