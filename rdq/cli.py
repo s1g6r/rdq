@@ -22,7 +22,7 @@ def _cmd_check(args) -> int:
     from .report import audit, format_terminal, write_filter, write_html, write_json
 
     try:
-        result = audit(args.path, max_frames=args.max_frames, repo_id=args.repo_id)
+        result = audit(args.path, max_frames=args.max_frames, repo_id=args.repo_id, video=args.video)
     except DatasetLoadError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -179,6 +179,7 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--fail-under", type=int, help="exit with code 1 if the score is below this (for CI)")
     c.add_argument("--no-color", action="store_true")
     c.add_argument("--repo-id", help="hub id of the dataset (enables upstream-licence matching by name)")
+    c.add_argument("--video", action="store_true", help="also decode a few frames per episode (frozen/black/blur/decode checks; needs PyAV)")
     c.set_defaults(fn=_cmd_check)
 
     r = sub.add_parser("rank", help="score and rank episodes with literature-based quality signals (no training)")

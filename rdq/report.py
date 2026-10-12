@@ -16,11 +16,24 @@ from .scoring import Score, score
 SEVERITY_ORDER = {CRITICAL: 0, WARNING: 1, INFO: 2}
 
 
-def audit(path: str | Path, max_frames: int | None = None, readme: str | None = None, repo_id: str | None = None) -> dict:
-    """Run every check on a local dataset folder and return a JSON-ready dict."""
+def audit(
+    path: str | Path,
+    max_frames: int | None = None,
+    readme: str | None = None,
+    repo_id: str | None = None,
+    video: bool = False,
+) -> dict:
+    """Run every check on a local dataset folder and return a JSON-ready dict.
+
+    With video=True, a few frames per episode and camera are decoded as well (needs PyAV).
+    """
     path = Path(path)
     ds = load_dataset(path, max_frames=max_frames)
     findings = run_checks(ds, Thresholds())
+    if video:
+        from .video import check_videos
+
+        findings += check_videos(ds)
     findings.sort(key=lambda f: (SEVERITY_ORDER[f.severity], f.check))
     sc = score(findings, sorted(ds.episodes))
     if readme is None and (path / "README.md").exists():
