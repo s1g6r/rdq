@@ -54,3 +54,88 @@ def test_card_mention_alone_is_only_a_warning():
 def test_correctly_tagged_no_derivatives_source():
     a = assess_card("user/egodex-test", "", "cc-by-nc-nd-4.0")
     assert a.status == "restricted-redistribution" and a.severity == "warning"
+
+
+# --------------------------------------------------------------------------- #
+# Data passport
+# --------------------------------------------------------------------------- #
+
+import json  # noqa: E402
+
+import pytest  # noqa: E402
+
+from rdq import synthetic as syn  # noqa: E402
+from rdq.passport import build_passport, content_hash, load_answers, to_datasheet, to_spdx  # noqa: E402
+from rdq.report import audit  # noqa: E402
+
+
+def _ds(tmp_path, license_tag="apache-2.0", card=TEMPLATE_CARD):
+    root = syn.write_dataset(tmp_path / "ds", syn.make_episodes(10))
+    readme = f"---\nlicense: {license_tag}\n---\n{card}"
+    (root / "README.md").write_text(readme)
+    return root, readme
+
+
+def test_passport_for_relabelled_mirror(tmp_path):
+    root, readme = _ds(tmp_path)
+    result = audit(root, readme=readme, repo_id="someone/droid_subset")
+    p = build_passport(result, readme, root, repo_id="someone/droid_subset")
+    assert p["rdq:license"]["status"] == "relabelled"
+    assert p["rdq:license"]["concluded"] == "CC-BY-4.0"
+    assert p["license"] == "https://creativecommons.org/licenses/by/4.0/"
+    assert p["prov:wasDerivedFrom"][0]["name"] == "DROID"
+    assert "collection_method" in p["rdq:unanswered"]
+    assert p["rdq:structure"]["episodes"] == 10
+    json.dumps(p)  # serialisable
+
+
+def test_passport_default_licence_without_upstream_is_noassertion(tmp_path):
+    root, readme = _ds(tmp_path)
+    p = build_passport(audit(root, readme=readme, repo_id="me/so101_pick"), readme, root, repo_id="me/so101_pick")
+    assert p["rdq:license"]["status"] == "default-unconfirmed"
+    assert p["license"] == "NOASSERTION"
+    answers = {"license_confirmed_by": "Jane Doe, data owner", "collection_method": "leader-arm teleop"}
+    p2 = build_passport(audit(root, readme=readme, repo_id="me/so101_pick"), readme, root, repo_id="me/so101_pick", answers=answers)
+    assert p2["rdq:license"]["status"] == "owner-confirmed"
+    assert p2["license"] == "https://spdx.org/licenses/Apache-2.0.html"
+    assert p2["rai:dataCollection"] == "leader-arm teleop"
+
+
+def test_noncommercial_upstream_adds_usage_prohibition(tmp_path):
+    root, readme = _ds(tmp_path)
+    p = build_passport(audit(root, readme=readme, repo_id="x/agibot_alpha_v30"), readme, root, repo_id="x/agibot_alpha_v30")
+    assert p["rdq:license"]["commercialTraining"] is False
+    assert {"odrl:action": "odrl:commercialize"} in p["usageInfo"]["odrl:prohibition"]
+
+
+def test_spdx_and_datasheet(tmp_path):
+    root, readme = _ds(tmp_path)
+    p = build_passport(audit(root, readme=readme, repo_id="someone/droid_subset"), readme, root, repo_id="someone/droid_subset")
+    spdx = to_spdx(p)
+    rels = {n["relationshipType"]: n for n in spdx["@graph"] if n.get("type") == "Relationship"}
+    assert {"hasDeclaredLicense", "hasConcludedLicense", "descendantOf"} <= set(rels)
+    exprs = {n["simplelicensing_licenseExpression"] for n in spdx["@graph"] if n.get("type") == "simplelicensing_LicenseExpression"}
+    assert exprs == {"Apache-2.0", "CC-BY-4.0"}
+    md = to_datasheet(p)
+    assert "## Licence" in md and "CC-BY-4.0" in md and "_not provided_" in md
+
+
+def test_content_hash_changes_with_data(tmp_path):
+    root, _ = _ds(tmp_path)
+    h1 = content_hash(root)["value"]
+    (root / "meta" / "info.json").write_text((root / "meta" / "info.json").read_text() + " ")
+    assert content_hash(root)["value"] != h1
+
+
+def test_answers_reject_unknown_keys(tmp_path):
+    f = tmp_path / "a.yaml"
+    f.write_text("collection_method: teleop\nfavourite_colour: blue\n")
+    with pytest.raises(ValueError):
+        load_answers(f)
+
+
+def test_passport_validates_with_mlcroissant(tmp_path):
+    mlc = pytest.importorskip("mlcroissant")
+    root, readme = _ds(tmp_path)
+    p = build_passport(audit(root, readme=readme, repo_id="someone/droid_subset"), readme, root, repo_id="someone/droid_subset")
+    mlc.Dataset(jsonld=p)  # raises on validation errors
