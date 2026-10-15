@@ -88,7 +88,22 @@ with the failure patterns of paid collection (clean, idle padding, a bad lens, a
 stalls, black frames, gaps and a truncated file, and a re-uploader of other people's clips:
 re-encoded, cut, mirrored and brightened, or converted to 25 fps).
 
-BENCHMARK_TABLE
+| Seed | Files | Planted defects found (time within 1.5 s) | Files falsely flagged | Copies found | False copy pairs | Usable-hours error | Contributor ranking (Spearman) |
+|---|---|---|---|---|---|---|---|
+| 0 (20 s clips) | 41 | 25 of 25 | 0 | 8 of 8 | 0 | +3.1% | 1.0 |
+| 1 (30 s clips) | 41 | 24 of 24 | 0 | 8 of 8 | 0 | +2.1% | 1.0 |
+| 2 (25 s clips) | 51 | 33 of 33 | 0 | 10 of 10 | 0 | +2.4% | 1.0 |
+
+Copies include every mode (re-encoded at lower resolution, cut, mirrored and brightened, 25 fps), and
+the truncated file was caught in every seed. The usable-hours estimate is slightly optimistic because
+span edges are found up to about a second late. Analysis took about 2.5 s per minute of video on 2
+cores. Results: `experiments/results/video_benchmark_seed*.json`.
+
+**Many takes of one scene** (`experiments/video_scale.py`): 80 takes of one task from one fixed
+camera, so every frame hash matches every other take and the hash index saturates, plus three copies
+(half-size re-encode, mirrored cut starting off the sampling grid, 25 fps). With moving objects of
+moderate size, all 3 copies were found and nothing else; with objects so small they almost vanish
+at thumbnail scale, 2 of 3 (the mirrored cut was missed) and nothing else.
 
 **Real robot footage** (`experiments/video_real.py`, run in CI by `.github/workflows/video-real.yml`):
 60 episodes from ten public LeRobot datasets (ALOHA static and mobile, ALOHA sim, DROID, SO-101,
