@@ -96,7 +96,7 @@ re-encoded, cut, mirrored and brightened, or converted to 25 fps).
 
 Copies include every mode (re-encoded at lower resolution, cut, mirrored and brightened, 25 fps), and
 the truncated file was caught in every seed. The usable-hours estimate is slightly optimistic because
-span edges are found up to about a second late. Analysis took about 2.5 s per minute of video on 2
+span edges are found up to about a second late. Analysis took 2.4-3.1 s per minute of video on 2
 cores. Results: `experiments/results/video_benchmark_seed*.json`.
 
 **Many takes of one scene** (`experiments/video_scale.py`): 80 takes of one task from one fixed
@@ -115,7 +115,7 @@ re-encode and a mirrored, brightened 60% cut) filed under another contributor.
 |---|---|
 | Genuine episodes with any finding (false alarms) | 0 of 60 |
 | Planted copies found, with the right original and kind | 2 of 2 (near-duplicate; trimmed copy) |
-| Candidate pairs between other takes of the same task, rejected | 34 of 34 |
+| Look-alike candidate pairs that are not copies of each other (other takes of the same task, or a copy against a different take), rejected | 34 of 34 |
 | Motion agreement: copies vs other takes | 0.90-0.94 vs at most 0.54 (threshold 0.75) |
 | Analysis speed | about 3.1 s per minute of video on 2 CI cores |
 
