@@ -54,7 +54,7 @@ Egocentric and teleop footage is bought by the hour, and not every hour is usabl
 - **copies**: re-uploads, re-encodes, mirrored or cut copies, the same stream in another container, footage looped within a file, and (with `--store`) copies of earlier deliveries. Takes of the same task from a fixed camera look alike frame by frame; a copy also repeats the same movements at the same moments, and that is what rdq checks before calling anything a copy;
 - a **per-contributor scorecard** and an optional delivery spec (resolution, fps, codec, duration, maximum idle and blur share).
 
-On synthetic deliveries with known answers it finds every planted defect class and every copy (re-encoded, cut, mirrored, 25 fps) with no false copies, and estimates usable hours within a few percent. On 60 real episodes from ten public LeRobot datasets (many takes of one task from one fixed camera) it reported nothing false and found both planted copies. Details, thresholds and limits: [docs/raw-video.md](docs/raw-video.md). Needs `pip install "rdq[video]"`.
+On synthetic deliveries with known answers it finds every planted defect class and every copy (re-encoded, cut, mirrored, 25 fps) with no false copies, and estimates usable hours within a few percent. On 60 real episodes from ten public LeRobot datasets (many takes of one task from one fixed camera), and on 72 held-out episodes from twelve more, it reported nothing false and found every planted copy. Details, thresholds and limits: [docs/raw-video.md](docs/raw-video.md). Needs `pip install "rdq[video]"`.
 
 ## Integrity checks
 

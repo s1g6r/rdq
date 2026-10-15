@@ -76,7 +76,7 @@ perceptual hash, a mirrored-frame hash, a 32x18 thumbnail and optical flow. File
   mirrored hashes). Takes of the same task from a fixed camera share every background pixel, so
   frames alone are not evidence. The decisive test re-decodes the matched stretch of both files,
   finds the sub-second shift that lines them up, and requires the frame-to-frame changes to
-  correlate (0.75 or more): a copy repeats the same movements at the same moments; another take
+  correlate (0.80 or more): a copy repeats the same movements at the same moments; another take
   does not. Copies are grouped, and each copy is reported once against one original (an earlier
   batch if there is one, else the longest file).
 - **Usable time** is footage minus the union of all unusable spans; copies count as zero.
@@ -116,12 +116,28 @@ re-encode and a mirrored, brightened 60% cut) filed under another contributor.
 | Genuine episodes with any finding (false alarms) | 0 of 60 |
 | Planted copies found, with the right original and kind | 2 of 2 (near-duplicate; trimmed copy) |
 | Look-alike candidate pairs that are not copies of each other (other takes of the same task, or a copy against a different take), rejected | 34 of 34 |
-| Motion agreement: copies vs other takes | 0.90-0.94 vs at most 0.54 (threshold 0.75) |
+| Motion agreement: copies vs other takes | 0.90-0.94 vs at most 0.54 (threshold then 0.75, now 0.80) |
 | Analysis speed | about 3.1 s per minute of video on 2 CI cores |
 
 The per-file and per-pair measurements behind these numbers are in
 `experiments/results/video_real_ci_annotations.txt`. "No false alarms" is the claim; these curated public
 episodes may simply contain few real defects, so this run says little about recall on real footage.
+
+**Held-out real footage**: 72 episodes from twelve other public LeRobot datasets that were never used
+for tuning (ALOHA cups and Mobile ALOHA wipe-wine, Unitree H1, xArm, Stanford HYDRA, UT Austin BUDS,
+TOTO, FMB, Berkeley cable routing, SO-100 stacking, IAMLab CMU, CMU Play Fusion), plus one planted
+half-size re-encode of an FMB episode.
+
+| Measure | Result |
+|---|---|
+| Genuine episodes with any finding (false alarms) | 0 of 72 |
+| Planted copy found | 1 of 1 (motion agreement 0.92) |
+| Look-alike candidate pairs rejected | 53 of 53, highest motion agreement 0.70 |
+
+One change was made after this run: the highest score between two different takes (0.70, two ALOHA
+episodes of the same cup task) was closer to the copy threshold than in the tuning set, so the threshold
+was raised from 0.75 to 0.80. Every copy seen so far scores 0.86 or more. Measurements:
+`experiments/results/video_real_heldout_ci_annotations.txt`.
 
 Tuning history, kept honest: the first run on real footage flagged takes of the same task as copies
 (their frames match) and soft, low-texture wrist-camera footage as blurry, and missed the planted
