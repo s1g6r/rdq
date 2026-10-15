@@ -14,6 +14,7 @@ It reads tables, not videos (unless you ask), and runs on a laptop for typical d
 pip install git+https://github.com/s1g6r/rdq    # Python 3.10+
 rdq check owner/name --html report.html --filter keep.json      # a Hub dataset id (fetches tables + card only)
 rdq check path/to/dataset --repo-id owner/name --video          # or a local folder, with camera checks
+rdq check owner/name --video-full                               # decode every frame: frozen/black/blurry stretches, duplicated episodes
 rdq rank path/to/dataset --json scores.json                     # rank episodes for review
 rdq passport path/to/dataset --repo-id owner/name --spdx passport.spdx.json --datasheet DATASHEET.md
 rdq scorecard path/to/dataset --groups collectors.csv     # quality per collector, operator or task

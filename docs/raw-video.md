@@ -146,6 +146,15 @@ and the one-second change measure were added in response; the numbers above are 
 on the same files, so they are a check of the fixes, not an independent test. The next independent
 test is a real delivery.
 
+## Inside LeRobot datasets: `rdq check --video-full`
+
+The same machinery runs on LeRobot datasets. Each video file is decoded once; each episode's stretch
+(from `meta/episodes`) is checked as its own clip, and the findings go into the normal `rdq check`
+report with episode numbers, so they also drop episodes from `--filter keep.json`:
+`video.frozen_span`, `video.black_span`, `video.covered_span`, `video.overexposed_span`,
+`video.blur_span`, `video.idle_span` (info), `video.recording_gap`, `video.decode_error` and
+`video.duplicate_episode` (an episode whose footage repeats another's). Every camera is checked.
+
 ## Limits
 
 - A contributor whose camera is blurry all the time is compared with its own norm, so that blur is
