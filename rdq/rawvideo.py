@@ -1339,7 +1339,8 @@ def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, 
 
     # per-contributor scorecard
     cards: dict = defaultdict(lambda: {"files": 0, "hours": 0.0, "usable_hours": 0.0, "critical_files": 0,
-                                       "warning_files": 0, "unusable_s": Counter(), "cross_contributor_duplicates": 0})
+                                       "warning_files": 0, "unusable_s": Counter(), "cross_contributor_duplicates": 0,
+                                       "copied_by_others": 0})
     for fo in files_out:
         c = cards[fo["record"]["contributor"]]
         c["files"] += 1
@@ -1351,10 +1352,11 @@ def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, 
         for k, v in fo["acct"].get("unusable", {}).items():
             c["unusable_s"][k] += v
     for d in dups:
-        if d.get("cross_contributor"):
-            for side in ("contributor_a", "contributor_b"):
-                if d[side] in cards:
-                    cards[d[side]]["cross_contributor_duplicates"] += 1
+        if d.get("cross_contributor"):     # b is the copy, a the original (or the earlier file)
+            if d["contributor_b"] in cards:
+                cards[d["contributor_b"]]["cross_contributor_duplicates"] += 1
+            if d["contributor_a"] in cards:
+                cards[d["contributor_a"]]["copied_by_others"] += 1
     batch_h = sum(c["hours"] for c in cards.values())
     batch_u = sum(c["usable_hours"] for c in cards.values())
     prior = batch_u / batch_h if batch_h else 0.0
@@ -1368,7 +1370,8 @@ def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, 
                           "ranking_score": round(shrunk, 3), "critical_files": c["critical_files"],
                           "warning_files": c["warning_files"],
                           "cross_contributor_duplicates": c["cross_contributor_duplicates"],
-                          "unusable_minutes": {k2: round(v / 60, 1) for k2, v in c["unusable_s"].most_common()}})
+                          "copied_by_others": c["copied_by_others"],
+                          "unusable_minutes": {k2: round(v / 60, 2) for k2, v in c["unusable_s"].most_common()}})
     scorecard.sort(key=lambda r: r["ranking_score"])
 
     totals = Counter()
@@ -1384,7 +1387,7 @@ def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, 
         "summary": {"files": len(files_out), "hours": round(batch_h, 3), "usable_hours": round(batch_u, 3),
                     "usable_share": round(prior, 3), "files_critical": sev_count["critical"],
                     "files_warning": sev_count["warning"], "files_ok": sev_count["ok"],
-                    "unusable_minutes": {k: round(v / 60, 1) for k, v in totals.most_common()},
+                    "unusable_minutes": {k: round(v / 60, 2) for k, v in totals.most_common()},
                     "duplicates": Counter(d["kind"] for d in dups),
                     "cross_contributor_duplicates": sum(1 for d in dups if d.get("cross_contributor")),
                     "contributors": len(cards), "sharpness_baseline": round(sharp_baseline, 1)},
@@ -1467,7 +1470,7 @@ def format_terminal(report: dict, color: bool = False) -> str:
              f"files: {c(str(s['files_critical']) + ' critical', '31')}, {c(str(s['files_warning']) + ' warning', '33')}, "
              f"{s['files_ok']} ok"]
     if s["unusable_minutes"]:
-        lines.append("  unusable minutes by reason: " + ", ".join(f"{k} {v:g}" for k, v in s["unusable_minutes"].items()))
+        lines.append("  unusable time by reason: " + ", ".join(f"{k} {_mins(v)}" for k, v in s["unusable_minutes"].items()))
     if report["duplicates"]:
         kinds = ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in s["duplicates"].items())
         lines.append(f"  duplicates: {kinds}" + (f" ({s['cross_contributor_duplicates']} across contributors)"
@@ -1478,8 +1481,9 @@ def format_terminal(report: dict, color: bool = False) -> str:
         for r in report["scorecard"][:25]:
             loss = next(iter(r["unusable_minutes"].items()), None)
             lines.append(f"  {r['contributor'][:23]:<24}{r['files']:>6}{r['hours']:>8.2f}{r['usable_share']:>9.0%}  "
-                         + (f"{loss[0]} {loss[1]:g} min" if loss else "-")
-                         + (f", {r['cross_contributor_duplicates']} cross-contributor dup" if r["cross_contributor_duplicates"] else ""))
+                         + (f"{loss[0]} {_mins(loss[1])}" if loss else "-")
+                         + (f", {r['cross_contributor_duplicates']} copies of others' files" if r["cross_contributor_duplicates"] else "")
+                         + (f" ({r['copied_by_others']} of its files copied by others)" if r.get("copied_by_others") else ""))
     flagged = [f for f in report["files"] if f["status"] != "ok"]
     if flagged:
         lines += ["", c("  Files with findings", "1")]
@@ -1493,6 +1497,15 @@ def format_terminal(report: dict, color: bool = False) -> str:
             lines.append(f"  … {len(flagged) - 40} more in the JSON/HTML report")
     lines += ["", "  Thresholds are calibrated on test clips; check a few flagged files by eye before rejecting work."]
     return "\n".join(lines)
+
+
+def _mins(m: float) -> str:
+    """2.4 min, 45 s or 1.2 h for a duration given in minutes."""
+    if m < 1:
+        return f"{m * 60:.0f} s"
+    if m < 120:
+        return f"{m:.1f} min"
+    return f"{m / 60:.1f} h"
 
 
 def _clock(x: float) -> str:
@@ -1524,7 +1537,7 @@ def render_html(report: dict) -> str:
         f"<tr><td>{esc(r['contributor'])}</td><td class=n>{r['files']}</td><td class=n>{r['hours']:.2f}</td>"
         f"<td class=n>{r['usable_hours']:.2f}</td><td class=n><b>{pct(r['usable_share'])}</b></td>"
         f"<td class=n>{r['critical_files']}</td><td class=n>{r['cross_contributor_duplicates']}</td>"
-        f"<td>{esc(', '.join(f'{k} {v:g} min' for k, v in list(r['unusable_minutes'].items())[:4]) or '-')}</td></tr>"
+        f"<td>{esc(', '.join(f'{k} {_mins(v)}' for k, v in list(r['unusable_minutes'].items())[:4]) or '-')}</td></tr>"
         for r in report["scorecard"])
     dup_rows = "".join(
         f"<tr><td>{esc(d['kind'].replace('_', ' '))}</td><td>{esc(Path(d['a']).name)}<br><small>{esc(d.get('contributor_a', ''))}</small></td>"
@@ -1540,7 +1553,7 @@ def render_html(report: dict) -> str:
             f"<tr class={f['status']}><td><b>{esc(Path(f['path']).name)}</b><br><small>{esc(f['contributor'])} · "
             f"{esc(m.get('width'))}x{esc(m.get('height'))} · {esc(round(m.get('fps') or 0, 2))} fps · {esc(m.get('codec'))}</small></td>"
             f"<td class=n>{f['usable_s']:.0f} / {f['duration_s']:.0f} s</td><td><ul>{issues}</ul></td></tr>")
-    unusable = ", ".join(f"{k} {v:g} min" for k, v in s["unusable_minutes"].items()) or "none"
+    unusable = ", ".join(f"{k} {_mins(v)}" for k, v in s["unusable_minutes"].items()) or "none"
     return f"""<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
 <title>rdq video report</title><style>
 :root{{--bg:#fbfaf8;--fg:#1d1f23;--muted:#62666e;--line:#e3e1dc;--card:#fff;--crit:#b42318;--warn:#b54708;--ok:#067647}}
@@ -1551,14 +1564,14 @@ main{{max-width:1100px;margin:0 auto}} h1{{font-size:24px;margin:0 0 4px}} h2{{f
 .tile{{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}} .tile b{{display:block;font-size:22px}}
 table{{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}}
 th,td{{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}} th{{font-size:13px;color:var(--muted)}}
-td.n{{text-align:right;font-variant-numeric:tabular-nums}} ul{{margin:0;padding-left:18px}} li.critical{{color:var(--crit)}}
+td.n{{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}} ul{{margin:0;padding-left:18px}} li.critical{{color:var(--crit)}}
 li.warning{{color:var(--warn)}} li.info{{color:var(--muted)}} li.ok{{color:var(--ok)}} .wrap{{overflow-x:auto}}
 </style></head><body><main>
 <h1>Video delivery report</h1><div class=muted>rdq check-video · {s['files']} files · {s['contributors']} contributor(s)</div>
 <div class=tiles><div class=tile><b>{s['hours']:.2f} h</b>footage</div><div class=tile><b>{s['usable_hours']:.2f} h</b>usable ({pct(s['usable_share'])})</div>
 <div class=tile><b>{s['files_critical']}</b>files with critical findings</div><div class=tile><b>{s['cross_contributor_duplicates']}</b>duplicates across contributors</div></div>
 <p>Unusable time by reason: {esc(unusable)}.</p>
-<h2>Contributors, worst first</h2><div class=wrap><table><tr><th>Contributor</th><th>Files</th><th>Hours</th><th>Usable h</th><th>Usable</th><th>Critical files</th><th>Cross-contrib. dups</th><th>Main losses</th></tr>{rows}</table></div>
+<h2>Contributors, worst first</h2><div class=wrap><table><tr><th>Contributor</th><th>Files</th><th>Hours</th><th>Usable h</th><th>Usable</th><th>Critical files</th><th>Copies of others' files</th><th>Main losses</th></tr>{rows}</table></div>
 <h2>Duplicates and overlaps</h2>{'<div class=wrap><table><tr><th>Kind</th><th>Original</th><th>Copy</th><th>Overlap s</th><th>Across contributors</th></tr>' + dup_rows + '</table></div>' if dup_rows else '<p class=muted>None found.</p>'}
 <h2>Files</h2><div class=wrap><table><tr><th>File</th><th>Usable</th><th>Findings</th></tr>{''.join(file_rows)}</table></div>
 <p class=muted>Thresholds were set on synthetic footage with known defects and on public robot footage (see docs/raw-video.md). Check a few flagged files by eye before using a finding to reject work or withhold payment.</p>

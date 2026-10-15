@@ -1,0 +1,169 @@
+== rdq-video-3
+P n svla_so101/000000 svla_so101/000003 ov=5.0 dens=0.8 nd=0.14 mc=0.37 cmc=0.293 fg=0.708 mo=4.53 sh=0.1 
+P n svla_so101/000000 svla_so101/000005 ov=8.0 dens=0.69 nd=0.121 mc=0.33 cmc=0.216 fg=0.749 mo=3.85 sh=-0.3 
+P n svla_so101/000001 svla_so101/000003 ov=5.0 dens=0.8 nd=0.131 mc=0.374 cmc=0.498 fg=0.621 mo=4.82 sh=0.55 
+P n svla_so101/000001 svla_so101/000005 ov=5.5 dens=0.82 nd=0.122 mc=0.379 cmc=0.554 fg=0.79 mo=4.13 sh=0.2 
+P n svla_so101/000003 svla_so101/000005 ov=6.5 dens=0.77 nd=0.135 mc=0.27 cmc=0.267 fg=0.731 mo=4.46 sh=0.15 
+P n aloha_sim_/000000 aloha_sim_/000001 ov=10.0 dens=0.75 nd=0.074 mc=0.27 cmc=0.31 fg=0.626 mo=0.89 sh=-0.3 
+P n aloha_sim_/000000 aloha_sim_/000004 ov=5.5 dens=0.82 nd=0.077 mc=0.193 cmc=0.138 fg=0.365 mo=0.83 sh=-0.4 
+P n aloha_sim_/000001 aloha_sim_/000004 ov=8.0 dens=0.62 nd=0.1 mc=0.125 cmc=-0.025 fg=0.438 mo=0.78 sh=0.6 
+P n aloha_sim_/000002 aloha_sim_/000003 ov=9.0 dens=0.78 nd=0.055 mc=0.41 cmc=0.529 fg=0.705 mo=0.73 sh=0.0 
+P n nyu_franka/000000 nyu_franka/000002 ov=10.0 dens=0.8 nd=0.286 mc=0.082 cmc=0.136 fg=0.258 mo=1.13 sh=-0.15 
+P n nyu_franka/000000 nyu_franka/000004 ov=9.0 dens=0.94 nd=0.255 mc=0.069 cmc=0.055 fg=0.006 mo=1.05 sh=-0.5 
+P n nyu_franka/000000 nyu_franka/000005 ov=5.5 dens=0.73 nd=0.252 mc=0.035 cmc=0.043 fg=0.263 mo=1.22 sh=0.15 
+P n nyu_franka/000001 nyu_franka/000005 ov=5.0 dens=0.9 nd=0.239 mc=0.092 cmc=0.124 fg=0.268 mo=1.27 sh=0.45 
+P n nyu_franka/000002 nyu_franka/000004 ov=6.5 dens=0.92 nd=0.228 mc=0.089 cmc=-0.08 fg=0.05 mo=0.98 sh=0.6 
+P n nyu_franka/000002 nyu_franka/000005 ov=12.0 dens=0.75 nd=0.261 mc=0.114 cmc=-0.001 fg=0.131 mo=0.86 sh=-0.3 
+P n aloha_stat/000002 aloha_stat/000005 ov=7.0 dens=0.86 nd=0.146 mc=0.321 cmc=0.461 fg=0.65 mo=4.07 sh=0.2 
+P n aloha_stat/000004 aloha_stat/000005 ov=13.0 dens=0.65 nd=0.187 mc=0.344 cmc=0.548 fg=0.689 mo=4.25 sh=0.0 
+P Y aloha_stat/000001 copier/cut ov=13.5 dens=0.96 nd=0.052 mc=0.903 cmc=0.832 fg=0.982 mo=3.99 sh=0.1 
+P Y copier/cut copier/upload ov=13.5 dens=1.0 nd=0.057 mc=0.935 cmc=0.832 fg=0.968 mo=4.02 sh=-0.1 
+P n svla_so101/000000 svla_so101/000002 ov=8.0 dens=0.88 nd=0.097 mc=0.396 cmc=0.529 fg=0.788 mo=4.08 sh=-0.1 
+P n svla_so101/000000 svla_so101/000004 ov=5.5 dens=0.82 nd=0.088 mc=0.364 cmc=0.515 fg=0.792 mo=4.5 sh=0.15 
+P n svla_so101/000001 svla_so101/000002 ov=6.0 dens=0.83 nd=0.121 mc=0.361 cmc=0.405 fg=0.837 mo=3.77 sh=-0.15 
+P n svla_so101/000001 svla_so101/000004 ov=5.0 dens=0.9 nd=0.107 mc=0.377 cmc=0.558 fg=0.751 mo=4.33 sh=0.05 
+P n svla_so101/000002 svla_so101/000004 ov=5.0 dens=0.8 nd=0.081 mc=0.343 cmc=0.618 fg=0.805 mo=4.63 sh=0.15 
+P n berkeley_a/000000 berkeley_a/000003 ov=6.5 dens=0.62 nd=0.257 mc=0.126 cmc=0.227 fg=0.382 mo=1.05 sh=0.3 
+P n svla_so101/000002 svla_so101/000005 ov=7.5 dens=0.67 nd=0.112 mc=0.435 cmc=0.392 fg=0.816 mo=4.12 sh=-0.15 
+P n svla_so101/000002 svla_so101/000003 ov=6.5 dens=0.69 nd=0.11 mc=0.317 cmc=0.322 fg=0.647 mo=4.69 sh=0.2 
+P n svla_so101/000003 svla_so101/000004 ov=6.5 dens=0.92 nd=0.146 mc=0.47 cmc=0.693 fg=0.8 mo=4.46 sh=0.05 
+P n svla_so101/000004 svla_so101/000005 ov=7.5 dens=0.8 nd=0.079 mc=0.378 cmc=0.481 fg=0.836 mo=4.3 sh=0.1
+== rdq-video-2
+F nyu_franka_p/ode_000001 lap=1643.315/1762.059/2031.585 chg=23.0/81.5 ratio=1.411/1.575 cam=1896.66/1.581 
+F nyu_franka_p/ode_000002 lap=1681.692/1903.473/2014.854 chg=10.8/37.0 ratio=1.454/1.557 cam=1896.66/1.581 
+F nyu_franka_p/ode_000003 lap=1850.501/2010.664/2132.86 chg=18.0/70.0 ratio=1.585/1.609 cam=1896.66/1.581 
+F nyu_franka_p/ode_000004 lap=1838.173/1889.848/2046.291 chg=2.3/19.25 ratio=1.528/1.586 cam=1896.66/1.581 
+F nyu_franka_p/ode_000005 lap=1504.936/1718.208/1794.017 chg=6.7/63.0 ratio=1.44/1.516 cam=1896.66/1.581 
+F pusht/ode_000000 lap=689.165/738.078/909.43 chg=2.0/14.0 ratio=2.319/2.767 cam=859.083/3.489 
+F pusht/ode_000001 lap=668.277/856.47/951.901 chg=1.0/5.25 ratio=2.812/3.507 cam=859.083/3.489 
+F pusht/ode_000002 lap=662.489/854.467/995.745 chg=1.6/31.5 ratio=2.314/3.454 cam=859.083/3.489 
+F pusht/ode_000003 lap=683.754/902.702/1044.078 chg=1.45/36.25 ratio=2.545/3.589 cam=859.083/3.489 
+F pusht/ode_000004 lap=755.113/861.696/1041.635 chg=1.95/6.25 ratio=2.435/3.472 cam=859.083/3.489 
+F pusht/ode_000005 lap=727.48/889.442/1059.327 chg=1.45/29.5 ratio=2.382/3.845 cam=859.083/3.489 
+F svla_so101_p/ode_000000 lap=97.221/106.705/112.072 chg=4.4/121.0 ratio=0.46/0.528 cam=102.155/0.49 
+F svla_so101_p/ode_000001 lap=83.529/97.24/103.126 chg=43.0/113.75 ratio=0.463/0.489 cam=102.155/0.49 
+F svla_so101_p/ode_000002 lap=77.639/101.359/110.653 chg=55.8/131.25 ratio=0.445/0.49 cam=102.155/0.49 
+F svla_so101_p/ode_000003 lap=77.795/102.952/111.003 chg=75.0/129.0 ratio=0.454/0.509 cam=102.155/0.49 
+F svla_so101_p/ode_000004 lap=84.957/106.2/113.735 chg=58.8/133.5 ratio=0.45/0.483 cam=102.155/0.49 
+F svla_so101_p/ode_000005 lap=77.958/97.709/104.659 chg=49.95/136.5 ratio=0.452/0.482 cam=102.155/0.49 
+F taco_play/ode_000000 lap=416.372/541.336/736.176 chg=43.5/53.0 ratio=1.403/1.667 cam=515.357/1.233 
+F taco_play/ode_000001 lap=261.68/489.379/601.667 chg=24.3/38.5 ratio=1.441/1.863 cam=515.357/1.233 
+F taco_play/ode_000002 lap=143.499/379.972/706.428 chg=76.4/97.5 ratio=0.672/0.728 cam=515.357/1.233 
+F taco_play/ode_000003 lap=170.634/254.611/395.991 chg=26.0/43.5 ratio=1.054/1.486 cam=515.357/1.233 
+F taco_play/ode_000004 lap=215.387/810.351/1140.251 chg=119.5/138.5 ratio=0.681/0.98 cam=515.357/1.233 
+F taco_play/ode_000005 lap=323.348/650.875/781.792 chg=85.2/98.5 ratio=0.681/0.822 cam=515.357/1.233 
+F utaustin_mut/ode_000000 lap=4128.583/4456.254/5193.199 chg=13.8/59.25 ratio=3.195/3.592 cam=4137.357/3.34 
+F utaustin_mut/ode_000001 lap=3592.656/3784.854/4086.7 chg=44.95/72.25 ratio=2.72/2.908 cam=4137.357/3.34 
+F utaustin_mut/ode_000002 lap=2641.404/3423.86/4233.512 chg=60.7/93.0 ratio=2.684/2.921 cam=4137.357/3.34 
+F utaustin_mut/ode_000003 lap=4307.243/4653.152/5152.892 chg=25.7/83.5 ratio=3.233/3.463 cam=4137.357/3.34 
+F utaustin_mut/ode_000004 lap=2786.846/3818.46/4065.831 chg=35.05/77.25 ratio=2.969/3.217 cam=4137.357/3.34 
+F utaustin_mut/ode_000005 lap=4203.352/4531.255/5444.903 chg=11.6/58.75 ratio=3.288/3.543 cam=4137.357/3.34 
+P n aloha_mobi/000003 aloha_mobi/000005 ov=7.5 dens=0.8 nd=0.14 mc=0.082 cmc=0.095 fg=0.245 mo=1.57 sh=-0.1 
+P n pusht/000001 pusht/000002 ov=5.5 dens=0.91 nd=0.151 mc=0.014 cmc=0.008 fg=0.02 mo=0.51 sh=0.6 
+P n nyu_franka/000004 nyu_franka/000005 ov=12.0 dens=0.92 nd=0.239 mc=0.026 cmc=-0.025 fg=0.247 mo=0.91 sh=0.45 
+P n aloha_stat/000001 aloha_stat/000003 ov=5.5 dens=0.73 nd=0.21 mc=0.483 cmc=0.678 fg=0.68 mo=2.25 sh=0.05 
+P Y aloha_stat/000001 copier/upload ov=22.0 dens=1.0 nd=0.024 mc=0.943 cmc=0.997 fg=0.99 mo=3.52 sh=0.0 
+P n aloha_stat/000003 aloha_stat/000004 ov=6.5 dens=0.85 nd=0.142 mc=0.395 cmc=0.542 fg=0.622 mo=2.52 sh=0.0 
+P n aloha_stat/000003 copier/upload ov=5.5 dens=0.73 nd=0.214 mc=0.539 cmc=0.676 fg=0.67 mo=2.28 sh=-0.1 
+P n svla_so101/000000 svla_so101/000001 ov=6.0 dens=0.83 nd=0.093 mc=0.337 cmc=0.468 fg=0.749 mo=3.57 sh=0.55
+== rdq-video-1
+utaustin_mutex/in_mutex__episode_000002.mp4 128x128 9/9s ok 
+utaustin_mutex/in_mutex__episode_000003.mp4 128x128 7/7s ok 
+utaustin_mutex/in_mutex__episode_000004.mp4 128x128 22/22s ok 
+utaustin_mutex/in_mutex__episode_000005.mp4 128x128 8/8s ok 
+DUP near_duplicate aloha_static_coffee__episode_000001.mp4 -> reupload.mp4 22.0 
+DUP trimmed_copy aloha_static_coffee__episode_000001.mp4 -> cut.mp4 13.5 
+DEBUG blur_threshold=78.971 sharpness_baseline=315.884 
+F aloha_mobile/ode_000000 lap=45.978/98.207/297.862 chg=11.0/61.5 ratio=0.408/0.449 cam=104.526/0.446 
+F aloha_mobile/ode_000001 lap=79.502/125.829/309.799 chg=13.0/74.5 ratio=0.46/0.489 cam=104.526/0.446 
+F aloha_mobile/ode_000002 lap=55.719/117.445/344.019 chg=13.9/69.0 ratio=0.413/0.466 cam=104.526/0.446 
+F aloha_mobile/ode_000003 lap=78.246/106.468/347.03 chg=14.35/70.0 ratio=0.412/0.436 cam=104.526/0.446 
+F aloha_mobile/ode_000004 lap=79.085/102.585/376.997 chg=24.25/84.5 ratio=0.414/0.438 cam=104.526/0.446 
+F aloha_mobile/ode_000005 lap=78.612/84.24/332.75 chg=7.0/68.0 ratio=0.414/0.443 cam=104.526/0.446 
+F aloha_sim_in/ode_000000 lap=136.842/169.158/191.01 chg=14.55/36.5 ratio=0.491/0.507 cam=169.784/0.502 
+F aloha_sim_in/ode_000001 lap=156.421/186.429/207.608 chg=12.95/36.5 ratio=0.482/0.501 cam=169.784/0.502 
+F aloha_sim_in/ode_000002 lap=154.96/173.405/185.949 chg=2.35/24.0 ratio=0.48/0.501 cam=169.784/0.502 
+F aloha_sim_in/ode_000003 lap=147.98/157.139/193.247 chg=14.5/26.25 ratio=0.48/0.494 cam=169.784/0.502 
+F aloha_sim_in/ode_000004 lap=159.627/170.41/182.599 chg=16.4/30.0 ratio=0.481/0.504 cam=169.784/0.502 
+F aloha_sim_in/ode_000005 lap=142.517/167.134/179.435 chg=1.7/28.0 ratio=0.486/0.506 cam=169.784/0.502 
+F aloha_static/ode_000000 lap=243.476/295.807/355.952 chg=29.8/94.5 ratio=0.457/0.514 cam=295.085/0.51 
+F aloha_static/ode_000001 lap=236.307/278.278/342.706 chg=29.35/88.25 ratio=0.458/0.516 cam=295.085/0.51 
+F aloha_static/ode_000002 lap=243.47/294.794/351.334 chg=36.4/96.75 ratio=0.456/0.499 cam=295.085/0.51 
+F aloha_static/ode_000003 lap=242.443/292.692/340.756 chg=37.15/84.75 ratio=0.467/0.508 cam=295.085/0.51 
+F aloha_static/ode_000004 lap=243.343/295.377/348.972 chg=37.1/97.25 ratio=0.456/0.506 cam=295.085/0.51 
+F aloha_static/ode_000005 lap=255.653/324.21/362.845 chg=23.7/92.25 ratio=0.462/0.512 cam=295.085/0.51 
+F berkeley_aut/ode_000000 lap=22.916/34.385/46.217 chg=10.0/52.5 ratio=0.19/0.267 cam=53.547/0.285 
+F berkeley_aut/ode_000001 lap=52.873/66.118/83.388 chg=17.8/60.0 ratio=0.254/0.304 cam=53.547/0.285 
+F berkeley_aut/ode_000002 lap=10.678/25.956/75.76 chg=21.0/106.5 ratio=0.091/0.199 cam=53.547/0.285 
+F berkeley_aut/ode_000003 lap=61.929/74.795/99.542 chg=14.35/53.75 ratio=0.288/0.324 cam=53.547/0.285 
+F berkeley_aut/ode_000004 lap=64.689/99.107/175.331 chg=29.4/111.0 ratio=0.267/0.334 cam=53.547/0.285 
+F berkeley_aut/ode_000005 lap=16.587/40.976/75.896 chg=28.9/132.0 ratio=0.129/0.207 cam=53.547/0.285 
+F copier/cut lap=203.607/265.317/316.924 chg=48.1/99.5 ratio=0.431/0.493 cam=265.317/0.493 
+F copier/reupload lap=273.814/336.682/365.694 chg=28.9/88.5 ratio=0.503/0.559 cam=336.682/0.559 
+F droid_100/ode_000000 lap=2389.331/2430.267/2469.773 chg=19.0/69.0 ratio=1.211/1.225 cam=1110.731/0.933 
+F droid_100/ode_000001 lap=482.537/615.016/872.492 chg=36.1/59.25 ratio=0.719/0.785 cam=1110.731/0.933 
+F droid_100/ode_000002 lap=1863.209/2002.163/2092.317 chg=55.1/76.5 ratio=1.383/1.426 cam=1110.731/0.933 
+F droid_100/ode_000003 lap=998.848/1062.51/1150.186 chg=23.0/58.0 ratio=0.993/1.022 cam=1110.731/0.933 
+F droid_100/ode_000004 lap=957.564/1158.953/1219.534 chg=39.2/85.0 ratio=0.816/0.843 cam=1110.731/0.933 
+F droid_100/ode_000005 lap=453.354/577.094/721.839 chg=87.4/161.25 ratio=0.67/0.74 cam=1110.731/0.933 
+F nyu_franka_p/ode_000000 lap=1818.297/2010.62/2103.128 chg=14.6/65.75 ratio=1.545/1.602 cam=1896.66/1.581
+== rdq-video-0
+files=62 min=15.4 usable=0.96 crit=2 warn=0 sec_per_min=3.09 
+aloha_mobile_cabinet/_cabinet__episode_000000.mp4 640x480 30/30s ok 
+aloha_mobile_cabinet/_cabinet__episode_000001.mp4 640x480 30/30s ok 
+aloha_mobile_cabinet/_cabinet__episode_000002.mp4 640x480 30/30s ok 
+aloha_mobile_cabinet/_cabinet__episode_000003.mp4 640x480 30/30s ok 
+aloha_mobile_cabinet/_cabinet__episode_000004.mp4 640x480 30/30s ok 
+aloha_mobile_cabinet/_cabinet__episode_000005.mp4 640x480 30/30s ok 
+aloha_sim_insertion_human/on_human__episode_000000.mp4 640x480 10/10s ok 
+aloha_sim_insertion_human/on_human__episode_000001.mp4 640x480 10/10s ok 
+aloha_sim_insertion_human/on_human__episode_000002.mp4 640x480 10/10s ok 
+aloha_sim_insertion_human/on_human__episode_000003.mp4 640x480 10/10s ok 
+aloha_sim_insertion_human/on_human__episode_000004.mp4 640x480 10/10s ok 
+aloha_sim_insertion_human/on_human__episode_000005.mp4 640x480 10/10s ok 
+aloha_static_coffee/c_coffee__episode_000000.mp4 640x480 22/22s ok 
+aloha_static_coffee/c_coffee__episode_000001.mp4 640x480 22/22s ok 
+aloha_static_coffee/c_coffee__episode_000002.mp4 640x480 22/22s ok 
+aloha_static_coffee/c_coffee__episode_000003.mp4 640x480 22/22s ok 
+aloha_static_coffee/c_coffee__episode_000004.mp4 640x480 22/22s ok 
+aloha_static_coffee/c_coffee__episode_000005.mp4 640x480 22/22s ok 
+berkeley_autolab_ur5/olab_ur5__episode_000000.mp4 640x480 14/14s ok 
+berkeley_autolab_ur5/olab_ur5__episode_000001.mp4 640x480 15/15s ok 
+berkeley_autolab_ur5/olab_ur5__episode_000002.mp4 640x480 16/16s ok 
+berkeley_autolab_ur5/olab_ur5__episode_000003.mp4 640x480 16/16s ok 
+berkeley_autolab_ur5/olab_ur5__episode_000004.mp4 640x480 25/25s ok 
+berkeley_autolab_ur5/olab_ur5__episode_000005.mp4 640x480 21/21s ok 
+copier/cut.mp4 640x480 0/13s trimmed_copy! 
+copier/reupload.mp4 320x240 0/22s near_duplicate! 
+droid_100/roid_100__episode_000000.mp4 320x180 11/11s ok 
+droid_100/roid_100__episode_000001.mp4 320x180 16/16s ok 
+droid_100/roid_100__episode_000002.mp4 320x180 9/9s ok 
+droid_100/roid_100__episode_000003.mp4 320x180 14/14s ok 
+droid_100/roid_100__episode_000004.mp4 320x180 14/14s ok 
+droid_100/roid_100__episode_000005.mp4 320x180 6/6s ok 
+nyu_franka_play_dataset/_dataset__episode_000000.mp4 128x128 17/17s ok 
+nyu_franka_play_dataset/_dataset__episode_000001.mp4 128x128 19/19s ok 
+nyu_franka_play_dataset/_dataset__episode_000002.mp4 128x128 19/19s ok 
+nyu_franka_play_dataset/_dataset__episode_000003.mp4 128x128 8/8s ok 
+nyu_franka_play_dataset/_dataset__episode_000004.mp4 128x128 13/13s ok 
+nyu_franka_play_dataset/_dataset__episode_000005.mp4 128x128 27/27s ok 
+pusht/pusht__episode_000000.mp4 96x96 16/16s ok 
+pusht/pusht__episode_000001.mp4 96x96 12/12s ok 
+pusht/pusht__episode_000002.mp4 96x96 14/14s ok 
+pusht/pusht__episode_000003.mp4 96x96 16/16s ok 
+pusht/pusht__episode_000004.mp4 96x96 16/16s ok 
+pusht/pusht__episode_000005.mp4 96x96 16/16s ok 
+svla_so101_pickplace/ickplace__episode_000000.mp4 640x480 10/10s ok 
+svla_so101_pickplace/ickplace__episode_000001.mp4 640x480 9/9s ok 
+svla_so101_pickplace/ickplace__episode_000002.mp4 640x480 8/8s ok 
+svla_so101_pickplace/ickplace__episode_000003.mp4 640x480 6/6s ok 
+svla_so101_pickplace/ickplace__episode_000004.mp4 640x480 7/7s ok 
+svla_so101_pickplace/ickplace__episode_000005.mp4 640x480 8/8s ok 
+taco_play/aco_play__episode_000000.mp4 84x84 4/4s ok 
+taco_play/aco_play__episode_000001.mp4 84x84 4/4s ok 
+taco_play/aco_play__episode_000002.mp4 84x84 4/4s ok 
+taco_play/aco_play__episode_000003.mp4 84x84 4/4s ok 
+taco_play/aco_play__episode_000004.mp4 84x84 4/4s ok 
+taco_play/aco_play__episode_000005.mp4 84x84 4/4s ok 
+utaustin_mutex/in_mutex__episode_000000.mp4 128x128 8/8s ok 
+utaustin_mutex/in_mutex__episode_000001.mp4 128x128 20/20s ok

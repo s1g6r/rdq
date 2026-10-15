@@ -96,7 +96,17 @@ Berkeley UR5 wrist camera, Push-T, UT Austin MUTEX, TACO Play, NYU Franka), many
 of one task from one fixed camera, plus two planted copies of one ALOHA episode (a half-size
 re-encode and a mirrored, brightened 60% cut) filed under another contributor.
 
-REAL_TABLE
+| Measure | Result |
+|---|---|
+| Genuine episodes with any finding (false alarms) | 0 of 60 |
+| Planted copies found, with the right original and kind | 2 of 2 (near-duplicate; trimmed copy) |
+| Candidate pairs between other takes of the same task, rejected | 34 of 34 |
+| Motion agreement: copies vs other takes | 0.90-0.94 vs at most 0.54 (threshold 0.75) |
+| Analysis speed | about 3.1 s per minute of video on 2 CI cores |
+
+The per-file and per-pair measurements behind these numbers are in
+`experiments/results/video_real_ci_annotations.txt`. "No false alarms" is the claim; these curated public
+episodes may simply contain few real defects, so this run says little about recall on real footage.
 
 Tuning history, kept honest: the first run on real footage flagged takes of the same task as copies
 (their frames match) and soft, low-texture wrist-camera footage as blurry, and missed the planted
