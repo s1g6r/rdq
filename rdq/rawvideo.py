@@ -54,7 +54,7 @@ OVER_MEAN, OVER_STD = 235.0, 10.0
 LOW_LIGHT_MEAN = 45.0
 BLUR_ABS = 40.0               # Laplacian variance at 320 px below which a frame is soft
 BLUR_REL = 0.25               # ... or below this share of the batch's typical sharpness
-STATIC_FLOW, STATIC_RESID, STATIC_MAD = 0.2, 0.3, 0.002
+IDLE_CHANGE = 2.0             # grey levels: 98th-percentile change of the 32x18 thumbnail over 1 s below which nothing moves
 WINDOW_S = 10.0               # idle / blur windows
 HASH_THR = 10                 # Hamming distance at which two 64-bit pHashes count as the same frame
 HASH_MIN_Q = 8.0              # skip flat samples (black, covered) when matching: they match everything
@@ -340,11 +340,12 @@ def decode_pass(path: Path) -> dict:
         t0 = t if t0 is None else t0
         t -= t0
         w, hgt = fr.width, fr.height
-        H = max(2, int(round(hgt * ANALYSIS_WIDTH / w / 2) * 2))
-        g = fr.reformat(width=ANALYSIS_WIDTH, height=H, format="gray").to_ndarray()
+        aw = max(16, min(ANALYSIS_WIDTH, w - w % 2))   # never upscale: a small frame upscaled looks soft
+        H = max(2, int(round(hgt * aw / w / 2) * 2))
+        g = fr.reformat(width=aw, height=H, format="gray").to_ndarray()
         iw = min(IDENT_WIDTH, w)
         ih = max(2, int(round(hgt * iw / w / 2) * 2))
-        gid = fr.reformat(width=iw, height=ih, format="gray").to_ndarray() if iw != ANALYSIS_WIDTH else g
+        gid = fr.reformat(width=iw, height=ih, format="gray").to_ndarray() if iw != aw else g
         out["corrupt_frames"] += int(bool(getattr(fr, "is_corrupt", False)))
         t_list.append(t)
         mean_l.append(float(g.mean()))
@@ -358,7 +359,7 @@ def decode_pass(path: Path) -> dict:
             lap_v.append(float(cv2.Laplacian(g, cv2.CV_64F).var()))
         if t + 1e-6 >= t_next:
             hsm = cv2.resize(g, (256, 144), interpolation=cv2.INTER_AREA)
-            sm = cv2.resize(g, (160, max(2, 160 * H // ANALYSIS_WIDTH)), interpolation=cv2.INTER_AREA)
+            sm = cv2.resize(g, (160, max(2, 160 * H // aw)), interpolation=cv2.INTER_AREA)
             fg = fr_ = np.nan
             if prev_small is not None and prev_small.shape == sm.shape:
                 f = cv2.calcOpticalFlowFarneback(prev_small, sm, None, 0.5, 3, 15, 3, 5, 1.2, 0).reshape(-1, 2)
@@ -377,7 +378,7 @@ def decode_pass(path: Path) -> dict:
                 t_next += 1.0 / SAMPLE_FPS
         prev = g16
         prev_id = gid
-        prev_small = cv2.resize(g, (160, max(2, 160 * H // ANALYSIS_WIDTH)), interpolation=cv2.INTER_AREA)
+        prev_small = cv2.resize(g, (160, max(2, 160 * H // aw)), interpolation=cv2.INTER_AREA)
         i += 1
     c.close()
     out["frames"] = i
@@ -474,6 +475,30 @@ def content_spans(dec: dict) -> dict:
     }
 
 
+def change_1s(sm: dict) -> np.ndarray:
+    """How much the picture changes over one second, per 2 fps sample: the 98th percentile of the absolute
+    difference between the 32x18 thumbnail and the one a second earlier, after removing any global
+    brightness shift. Averaging into thumbnails removes sensor noise and compression artefacts; a moving
+    arm, hand or object changes some cells by tens of grey levels even when it is small in the frame."""
+    t = sm.get("t")
+    th = sm.get("thumb")
+    out = np.full(len(t) if t is not None else 0, np.nan)
+    if t is None or th is None or len(t) < 2:
+        return out
+    th = th.astype(np.float32)
+    j = np.clip(np.searchsorted(t, t - 1.0), 0, len(t) - 1)
+    for k in range(len(t)):
+        jj = j[k]
+        if jj > 0 and abs(t[jj - 1] - (t[k] - 1.0)) < abs(t[jj] - (t[k] - 1.0)):
+            jj -= 1
+        if jj >= k or abs(t[jj] - (t[k] - 1.0)) > 0.3:
+            continue
+        d = th[k] - th[jj]
+        d -= np.median(d)
+        out[k] = float(np.percentile(np.abs(d), 98))
+    return out
+
+
 def windowed(dec: dict, spans: dict, sharp_baseline: float) -> dict:
     """Idle (static scene) and persistent blur from the 2 fps samples, each judged on a rolling
     4 s neighbourhood, kept when they last at least 5 s (idle) or 3 s (blur)."""
@@ -487,7 +512,8 @@ def windowed(dec: dict, spans: dict, sharp_baseline: float) -> dict:
     lap_t, lap = dec.get("lap_t", np.array([])), dec.get("lap", np.array([]))
     thr = max(BLUR_ABS, BLUR_REL * sharp_baseline) if sharp_baseline else BLUR_ABS
     lap_at = np.interp(t, lap_t, lap) if len(lap) else np.full(len(t), np.inf)
-    fg, fr, md = sm["flow_g"], sm["flow_r"], sm["mad"]
+    fg = sm["flow_g"]
+    chg = change_1s(sm)
     static = np.zeros(len(t), bool)
     soft = np.zeros(len(t), bool)
     moving = np.zeros(len(t), bool)
@@ -497,10 +523,8 @@ def windowed(dec: dict, spans: dict, sharp_baseline: float) -> dict:
         if m.sum() < 3:
             continue
         g_ = np.nanmedian(fg[m]) if np.isfinite(fg[m]).any() else np.nan
-        r_ = np.nanmedian(fr[m]) if np.isfinite(fr[m]).any() else np.nan
-        d_ = np.nanmedian(md[m]) if np.isfinite(md[m]).any() else np.nan
-        static[k] = bool(np.isfinite(g_) and g_ < STATIC_FLOW and np.isfinite(r_) and r_ < STATIC_RESID
-                         and np.isfinite(d_) and d_ < STATIC_MAD)
+        c_ = np.nanmedian(chg[m]) if np.isfinite(chg[m]).any() else np.nan
+        static[k] = bool(np.isfinite(c_) and c_ < IDLE_CHANGE)
         soft[k] = bool(np.mean(lap_at[m] < thr) >= 0.6)
         moving[k] = bool(np.isfinite(g_) and g_ > 1.0)
     dt = 1.0 / SAMPLE_FPS
@@ -643,6 +667,27 @@ def _ham(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return _POP[x].sum(-1)
 
 
+def _corr(x: np.ndarray, y: np.ndarray) -> float:
+    x = x.ravel() - x.mean()
+    y = y.ravel() - y.mean()
+    den = float(np.sqrt((x * x).sum() * (y * y).sum()))
+    return float((x * y).sum() / den) if den > 1e-6 else 0.0
+
+
+def _motion_agreement(ta: np.ndarray, tb: np.ndarray, bga: np.ndarray, bgb: np.ndarray) -> tuple[float, float, float]:
+    """(correlation of frame-to-frame changes, correlation of foreground = thumbnail minus the file's median
+    background, motion energy in grey levels) for two aligned thumbnail runs."""
+    if len(ta) < 3 or len(tb) < 3:
+        return 0.0, 0.0, 0.0
+    za = (ta - ta.mean(axis=(1, 2), keepdims=True))
+    zb = (tb - tb.mean(axis=(1, 2), keepdims=True))
+    da, db = np.diff(za, axis=0), np.diff(zb, axis=0)
+    motion = float(min(np.abs(da).mean(), np.abs(db).mean()))
+    fa = za - (bga - bga.mean())
+    fb = zb - (bgb - bgb.mean())
+    return round(_corr(da, db), 3), round(_corr(fa, fb), 3), round(motion, 2)
+
+
 def align(sa: dict, sb: dict, *, same_file: bool = False) -> dict | None:
     """Longest run of matching frames at one time offset between two hash sequences (2 fps grid).
     A single similar frame is not evidence (frames of one scene seconds apart look alike); only a long
@@ -701,9 +746,18 @@ def align(sa: dict, sb: dict, *, same_file: bool = False) -> dict | None:
             else:
                 zdiff = 9.0
             density = top[2] / max(1, n)
+            # The decisive test. Takes of the same task from a fixed camera share the background, so frames
+            # match; what differs is where and when things move. A copy repeats the same changes at the
+            # same moments: correlate the frame-to-frame changes, and the departures from each file's
+            # own static background, over the aligned run.
+            bb = sb["thumb"].astype(np.float32)
+            bga = np.median(sa["thumb"].astype(np.float32), axis=0)
+            bgb = np.median(bb[:, :, ::-1] if hb_key == "hf" else bb, axis=0)
+            dcorr, fgcorr, motion = _motion_agreement(ta[:m_n], tbm[:m_n], bga, bgb)
             cand = dict(offset_s=o / SAMPLE_FPS, start_a=a0 / SAMPLE_FPS, start_b=(a0 + o) / SAMPLE_FPS,
                         overlap_s=length, density=round(density, 2), thumb_diff=round(diff, 1),
-                        norm_diff=round(zdiff, 3), mirrored=hb_key == "hf")
+                        norm_diff=round(zdiff, 3), mirrored=hb_key == "hf", motion_corr=dcorr,
+                        foreground_corr=fgcorr, motion=motion)
             if (best is None or length > best["overlap_s"]):
                 best = cand
     return best
@@ -739,9 +793,91 @@ def _band_candidates(store: dict[str, dict], max_bucket: int = 500, min_votes: i
 
 
 DUP_NORM_DIFF = 0.45     # normalised thumbnail difference below which aligned frames are the same footage
+DUP_MOTION_CORR = 0.5    # correlation of frame-to-frame changes above which aligned runs are the same recording
+DUP_LOW_MOTION = 0.4     # grey levels; below this there is too little movement to compare changes
+DUP_STILL_FG_CORR = 0.85
 
 
-def find_duplicates(records: list[dict], history: dict | None = None) -> list[dict]:
+FINE_FPS = 6.0           # grid for the frame-accurate re-check of candidate pairs
+FINE_MAX_S = 30.0        # longest stretch re-decoded per candidate pair
+
+
+def _fine_thumbs(path: str, t0: float, t1: float) -> tuple[np.ndarray, np.ndarray]:
+    """Every frame's 32x18 thumbnail between t0 and t1 (seconds from the first frame)."""
+    import av
+    import cv2
+
+    ts, th = [], []
+    try:
+        c = av.open(path)
+        s = c.streams.video[0]
+        s.thread_type = "AUTO"
+        tb = float(s.time_base)
+        first = None
+        for fr in c.decode(s):
+            if fr.pts is None:
+                continue
+            t = fr.pts * tb
+            first = t if first is None else first
+            t -= first
+            if t < t0:
+                continue
+            if t > t1:
+                break
+            w, h = fr.width, fr.height
+            aw = max(16, min(ANALYSIS_WIDTH, w - w % 2))
+            g = fr.reformat(width=aw, height=max(2, int(round(h * aw / w / 2) * 2)), format="gray").to_ndarray()
+            ts.append(t)
+            th.append(cv2.resize(g, (32, 18), interpolation=cv2.INTER_AREA))
+        c.close()
+    except Exception:  # noqa: BLE001
+        pass
+    return np.array(ts), (np.stack(th).astype(np.float32) if th else np.zeros((0, 18, 32), np.float32))
+
+
+def refine(path_a: str, path_b: str, res: dict) -> dict:
+    """Frame-accurate re-check of a candidate pair. The 2 fps grids of two files fall at unrelated
+    moments (a copy cut at 3.3 s is sampled 0.2 s off), and over 0.2 s fast motion changes a thumbnail a
+    lot. Re-decode the matched stretch of both files, find the sub-second shift that lines them up best,
+    and recompute the motion agreement on a 6 fps grid."""
+    span = min(res["overlap_s"], FINE_MAX_S)
+    a0 = res["start_a"] + max(0.0, (res["overlap_s"] - span) / 2)
+    ta, tha = _fine_thumbs(path_a, a0, a0 + span)
+    off = res["start_b"] - res["start_a"]
+    tb, thb = _fine_thumbs(path_b, max(0.0, a0 + off - 0.75), a0 + off + span + 0.75)
+    if len(ta) < 6 or len(tb) < 6:
+        return res
+    if res.get("mirrored"):
+        thb = thb[:, :, ::-1]
+    grid = np.arange(a0 + 0.2, a0 + span - 0.2, 1.0 / FINE_FPS)
+    ia = np.clip(np.searchsorted(ta, grid), 0, len(ta) - 1)
+    A = tha[ia]
+    best = None
+    for d in np.arange(-0.6, 0.61, 0.05):
+        tq = grid + off + d
+        ib = np.clip(np.searchsorted(tb, tq), 0, len(tb) - 1)
+        ib = np.where((ib > 0) & (np.abs(tb[np.maximum(ib - 1, 0)] - tq) < np.abs(tb[ib] - tq)), ib - 1, ib)
+        ok = np.abs(tb[ib] - tq) <= 0.6 / FINE_FPS
+        if ok.sum() < 6:
+            continue
+        mc, fg, mo = _motion_agreement(A[ok], thb[ib[ok]], np.median(tha, 0), np.median(thb, 0))
+        if best is None or mc > best[0]:
+            best = (mc, fg, mo, d)
+    if best is None:
+        return res
+    return dict(res, motion_corr=best[0], foreground_corr=best[1], motion=best[2], fine_shift_s=round(float(best[3]), 2),
+                coarse_motion_corr=res.get("motion_corr"), refined=True)
+
+
+def _verified(res: dict | None) -> bool:
+    if not res or res["norm_diff"] > DUP_NORM_DIFF or res["density"] < 0.6:
+        return False
+    if res["motion"] >= DUP_LOW_MOTION:
+        return res["motion_corr"] >= DUP_MOTION_CORR
+    return res["foreground_corr"] >= DUP_STILL_FG_CORR
+
+
+def find_duplicates(records: list[dict], history: dict | None = None, debug: list | None = None) -> list[dict]:
     """Exact copies (same bytes, or same coded stream in a different container), near-duplicates and
     partial overlaps between files, against an optional store of earlier batches, plus loops within a file."""
     out: list[dict] = []
@@ -781,7 +917,12 @@ def find_duplicates(records: list[dict], history: dict | None = None) -> list[di
         if pair in seen_pairs:
             continue
         res = align(allstore[a], allstore[b])
-        if not res or res["norm_diff"] > DUP_NORM_DIFF or res["density"] < 0.6:
+        if res and res["norm_diff"] <= DUP_NORM_DIFF and res["density"] >= 0.6 and \
+                not a.startswith("history:") and not b.startswith("history:"):
+            res = refine(a, b, res)
+        if debug is not None and res:
+            debug.append(dict(a=a, b=b, verified=_verified(res), **res))
+        if not _verified(res):
             continue
         da, db = durations.get(a, 0), durations.get(b, 0)
         shorter = max(1e-9, min(da, db))
@@ -804,7 +945,9 @@ def find_duplicates(records: list[dict], history: dict | None = None) -> list[di
                         mirrored=res["mirrored"], evidence=dict(density=res["density"], norm_diff=res["norm_diff"])))
     for path, s in store.items():
         res = align(s, s, same_file=True)
-        if res and res["norm_diff"] <= DUP_NORM_DIFF and res["density"] >= 0.6 and res["overlap_s"] >= 10:
+        if debug is not None and res:
+            debug.append(dict(a=path, b=path, verified=_verified(res), loop=True, **res))
+        if _verified(res) and res["overlap_s"] >= 10:
             out.append(dict(kind="loop_within_file", a=path, b=path, overlap_s=round(res["overlap_s"], 1),
                             start_a=res["start_a"], start_b=res["start_b"], offset_s=res["offset_s"],
                             mirrored=res["mirrored"], evidence=dict(density=res["density"], norm_diff=res["norm_diff"])))
@@ -968,7 +1111,7 @@ def _robust_outliers(values: dict[str, float], z: float = 3.5) -> set[str]:
 
 def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, by_folder: bool = False,
                       spec: Spec | None = None, store: str | None = None, workers: int | None = None,
-                      progress=None) -> dict:
+                      progress=None, debug: bool = False) -> dict:
     spec = spec or Spec()
     files, root = find_videos(paths)
     mapping = load_contributors(contributors_csv) if contributors_csv else None
@@ -1047,7 +1190,8 @@ def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, 
             sm["q_all"] = sm["q"].copy()
             sm["q"] = np.where(mask, 0.0, sm["q"])
     history = load_store(store)
-    dups = consolidate_duplicates(find_duplicates(records, history), records)
+    dbg_pairs: list | None = [] if debug else None
+    dups = consolidate_duplicates(find_duplicates(records, history, dbg_pairs), records)
     contrib = {r["path"]: r["contributor"] for r in records}
     by_path = {fo["record"]["path"]: fo for fo in files_out}
     for d in dups:
@@ -1166,10 +1310,33 @@ def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, 
             "timing": {k: v for k, v in (fo["record"].get("ts") or {}).items() if k not in ("gap_spans", "stream_hash")},
             "issues": [i.to_dict() for i in sorted(fo["issues"], key=lambda i: (["critical", "warning", "info"].index(i.severity), -i.seconds))],
         } for fo in files_out],
+        **({"debug": _debug_info(files_out, dbg_pairs, sharp_baseline)} if debug else {}),
         "_records": records,
         "_store": store,
         "_history": history,
     }
+
+
+def _debug_info(files_out: list, pairs: list, sharp_baseline: float) -> dict:
+    """Raw measurements behind the findings, for tuning thresholds on new footage."""
+    def num(x):
+        return round(float(x), 3) if isinstance(x, (int, float, np.floating, np.integer)) and not isinstance(x, bool) else x
+
+    files = {}
+    for fo in files_out:
+        dec = fo["record"].get("dec") or {}
+        lap = dec.get("lap")
+        sm = dec.get("samples") or {}
+        chg = change_1s(sm) if sm.get("t") is not None and len(sm.get("t", [])) else np.array([])
+        files[fo["record"]["path"]] = {
+            "lap_p10": num(np.percentile(lap, 10)) if lap is not None and len(lap) else None,
+            "lap_median": num(np.median(lap)) if lap is not None and len(lap) else None,
+            "lap_p90": num(np.percentile(lap, 90)) if lap is not None and len(lap) else None,
+            "change_1s_median": num(np.nanmedian(chg)) if np.isfinite(chg).any() else None,
+            "change_1s_p10": num(np.nanpercentile(chg, 10)) if np.isfinite(chg).any() else None,
+        }
+    return {"sharpness_baseline": num(sharp_baseline), "blur_threshold": num(max(BLUR_ABS, BLUR_REL * sharp_baseline)),
+            "files": files, "pairs": [{k: num(v) for k, v in d.items()} for d in (pairs or [])]}
 
 
 def write_outputs(report: dict, json_path: str | None = None, html_path: str | None = None,

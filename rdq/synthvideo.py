@@ -33,6 +33,8 @@ class ClipSpec:
     defects: dict = field(default_factory=dict)   # name -> (start_s, end_s); "drop" -> (start_s, end_s)
     crf: int = 23
     vfr_from: float | None = None                  # halve the frame rate from this time on
+    scene_seed: int | None = None                  # same value = same scene (another take in the same place)
+    static_camera: bool = False                    # fixed camera: only the objects move
 
 
 def _texture(rng, h, w):
@@ -53,7 +55,10 @@ def render_clip(path: str | Path, spec: ClipSpec) -> Path:
 
     rng = np.random.default_rng(spec.seed)
     W, H = spec.width, spec.height
-    world = _texture(rng, H + 200, W + 400)
+    if spec.scene_seed is None:
+        world = _texture(rng, H + 200, W + 400)
+    else:
+        world = _texture(np.random.default_rng(spec.scene_seed), H + 200, W + 400)
     n_obj = 4
     obj = [dict(r=int(rng.integers(18, 40)), c=float(rng.uniform(60, 230)),
                 px=rng.uniform(0.1, 0.9), py=rng.uniform(0.2, 0.8), ax=rng.uniform(0.05, 0.25),
@@ -86,8 +91,11 @@ def render_clip(path: str | Path, spec: ClipSpec) -> Path:
         else:
             idle_state = None
             tt = t
-        cam_x = 200 + 150 * np.sin(0.21 * tt + spec.seed)
-        cam_y = 100 + 60 * np.sin(0.13 * tt + 2 * spec.seed)
+        if spec.static_camera:
+            cam_x, cam_y = 200, 100
+        else:
+            cam_x = 200 + 150 * np.sin(0.21 * tt + spec.seed)
+            cam_y = 100 + 60 * np.sin(0.13 * tt + 2 * spec.seed)
         frame = world[int(cam_y):int(cam_y) + H, int(cam_x):int(cam_x) + W].copy()
         for o in obj:
             x = int(W * (o["px"] + o["ax"] * np.sin(2 * np.pi * o["fx"] * tt + o["ph"])))

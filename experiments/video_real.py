@@ -25,6 +25,11 @@ DATASETS = [
     "lerobot/aloha_mobile_cabinet",
     "lerobot/berkeley_autolab_ur5",
     "lerobot/pusht",
+    # more fixed-camera scenes: many takes of one task in one place are the hard case for duplicate checks
+    "lerobot/aloha_sim_insertion_human",
+    "lerobot/utaustin_mutex",
+    "lerobot/taco_play",
+    "lerobot/nyu_franka_play_dataset",
 ]
 
 
@@ -99,7 +104,7 @@ def main() -> int:
     from rdq.rawvideo import check_video_batch, format_terminal, write_outputs
 
     t0 = time.time()
-    rep = check_video_batch([str(root)], by_folder=True, workers=2)
+    rep = check_video_batch([str(root)], by_folder=True, workers=2, debug=True)
     elapsed = time.time() - t0
     write_outputs(rep, json_path=str(Path(args.out) / "report.json"), html_path=str(Path(args.out) / "report.html"))
     print(format_terminal(rep))
@@ -116,12 +121,22 @@ def main() -> int:
                      f"{f['usable_s']:.0f}/{f['duration_s']:.0f}s {checks or 'ok'}")
     for d in rep["duplicates"]:
         lines.append(f"DUP {d['kind']} {Path(d['a']).name} -> {Path(d['b']).name} {d.get('overlap_s')}")
+    dbg = rep["debug"]
+    lines.append(f"DEBUG blur_threshold={dbg['blur_threshold']} sharpness_baseline={dbg['sharpness_baseline']}")
+    for path, v in dbg["files"].items():
+        lines.append(f"F {Path(path).parent.name[:12]}/{Path(path).stem[-10:]} lap={v['lap_p10']}/{v['lap_median']}/{v['lap_p90']} "
+                     f"chg={v['change_1s_p10']}/{v['change_1s_median']}")
+    for d in dbg["pairs"]:
+        lines.append(f"P {'Y' if d['verified'] else 'n'} {Path(d['a']).parent.name[:10]}/{Path(d['a']).stem[-6:]} "
+                     f"{Path(d['b']).parent.name[:10]}/{Path(d['b']).stem[-6:]} ov={d['overlap_s']} dens={d['density']} "
+                     f"nd={d['norm_diff']} mc={d['motion_corr']} cmc={d.get('coarse_motion_corr')} fg={d['foreground_corr']} "
+                     f"mo={d['motion']} sh={d.get('fine_shift_s')}")
     text = "\n".join(lines)
     (Path(args.out) / "summary.txt").write_text(text)
     chunk, k = [], 0
     for ln in lines:
         chunk.append(ln)
-        if sum(len(x) + 3 for x in chunk) > 3000:
+        if sum(len(x) + 3 for x in chunk) > 3800:
             print(f"::notice title=rdq-video-{k}::" + " %0A".join(chunk))
             chunk, k = [], k + 1
     if chunk:
