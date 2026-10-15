@@ -21,7 +21,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=7"]
 croissant = ["mlcroissant>=1.0"]
-video = ["av>=12"]
+video = ["av>=12", "opencv-python-headless>=4.8"]
 mcap = ["mcap>=1.1", "mcap-ros2-support>=0.5"]
 
 [project.scripts]

@@ -5,6 +5,7 @@
     rdq audit  --from-scan results/ --n 150 --out results/   # full checks on a sample
     rdq audit  --repos lerobot/svla_so101_pickplace --out results/
     rdq passport PATH --repo-id owner/name --answers answers.yaml --out passport.json
+    rdq check-video delivery/ --by-folder --html report.html   # raw video: usable hours, defects, duplicates
 """
 
 from __future__ import annotations
@@ -290,6 +291,34 @@ def _cmd_check_mcap(args) -> int:
     return 0
 
 
+def _cmd_check_video(args) -> int:
+    from .rawvideo import Spec, check_video_batch, format_terminal, write_outputs
+
+    try:
+        import av  # noqa: F401
+        import cv2  # noqa: F401
+    except ImportError:
+        print("error: check-video needs PyAV and OpenCV: pip install av opencv-python-headless", file=sys.stderr)
+        return 2
+
+    def progress(k, n, name):
+        if sys.stderr.isatty():
+            print(f"\r  analysed {k}/{n}: {name[:60]:<60}", end="", file=sys.stderr, flush=True)
+
+    try:
+        report = check_video_batch(args.paths, contributors_csv=args.contributors, by_folder=args.by_folder,
+                                   spec=Spec.load(args.spec), store=args.store, workers=args.workers,
+                                   progress=progress)
+    except (ValueError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if sys.stderr.isatty():
+        print(file=sys.stderr)
+    print(format_terminal(report, color=sys.stdout.isatty() and not args.no_color))
+    write_outputs(report, args.json, args.html, args.csv)
+    return 1 if report["summary"]["files_critical"] else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="rdq", description="Quality and provenance checks for robot-learning datasets")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -329,6 +358,22 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--filter", help="write the usable episode indices (in file order)")
     m.add_argument("--no-color", action="store_true")
     m.set_defaults(fn=_cmd_check_mcap)
+
+    v = sub.add_parser("check-video", help="audit a raw video delivery (folder or files): usable hours, defects, "
+                                           "duplicates, per-contributor scorecard")
+    v.add_argument("paths", nargs="+", help="video files and/or folders (searched recursively)")
+    v.add_argument("--contributors", help="CSV with file,contributor columns")
+    v.add_argument("--by-folder", action="store_true", help="contributor = first sub-folder under the given folder")
+    v.add_argument("--spec", help="YAML delivery spec: fps, min_width, min_height, codecs, min_duration_s, "
+                                  "max_duration_s, max_idle_share, max_blur_share")
+    v.add_argument("--store", help="JSON hash store; new files are also compared against earlier batches in it, "
+                                   "and this batch is added")
+    v.add_argument("--workers", type=int, help="parallel processes (default: up to 4)")
+    v.add_argument("--json")
+    v.add_argument("--html")
+    v.add_argument("--csv", help="one row per file with its findings")
+    v.add_argument("--no-color", action="store_true")
+    v.set_defaults(fn=_cmd_check_video)
 
     sc = sub.add_parser("scorecard", help="quality per collector, operator, session or task")
     sc.add_argument("path", help="local dataset folder, or owner/name on the Hugging Face Hub")
