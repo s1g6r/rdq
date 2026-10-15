@@ -752,9 +752,9 @@ def align(sa: dict, sb: dict, *, same_file: bool = False) -> dict | None:
         for o in vals[np.argsort(-cnt)[:6]]:
             idx = np.arange(max(0, -o), min(len(ha), len(hb) - o))
             x = np.bitwise_xor(ha[idx], hb[idx + o]).astype(">u8").view(np.uint8).reshape(-1, 8)
-            xf = np.bitwise_xor(fa[idx], fb[idx + o]).astype(">u8").view(np.uint8).reshape(-1, 8)
-            fgo = (_POP[xf].sum(-1) <= HASH_THR) | la[idx] | lb[idx + o]
-            ok = (_POP[x].sum(-1) <= HASH_THR) & fgo & qa_ok[idx] & qb_ok[idx + o]
+            # foregrounds pick the offset (above); the extent of the run is judged on frames alone, since a
+            # weak foreground's hash is noisy and would cut a real copy short
+            ok = (_POP[x].sum(-1) <= HASH_THR) & qa_ok[idx] & qb_ok[idx + o]
             run = gap = 0
             start = None
             top = (0, None, 0)
