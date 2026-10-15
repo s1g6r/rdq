@@ -18,6 +18,7 @@ rdq rank path/to/dataset --json scores.json                     # rank episodes 
 rdq passport path/to/dataset --repo-id owner/name --spdx passport.spdx.json --datasheet DATASHEET.md
 rdq scorecard path/to/dataset --groups collectors.csv     # quality per collector, operator or task
 rdq check-mcap delivery/*.mcap --state-topic /joint_states --action-topic /leader/joint_states   # audit MCAP before converting
+rdq check-video deliveries/oct/ --by-folder --html video.html   # raw video: usable hours, defects, copies, per contributor
 ```
 
 `keep.json` is `{"episodes": [...]}`, the episodes with no critical or warning finding. Pass the list to LeRobot with `--dataset.episodes="$(jq -c .episodes keep.json)"`.
@@ -43,6 +44,17 @@ LeRobot's `push_to_hub()` defaults to `license="apache-2.0"` and writes a templa
 - A Markdown datasheet.
 
 Facts computed from the data are kept separate from statements by the owner. rdq never makes up how data was collected. See [docs/passport.md](docs/passport.md).
+
+## Raw video deliveries (`rdq check-video`)
+
+Egocentric and teleop footage is bought by the hour, and not every hour is usable. `rdq check-video` reads a folder of video files (one sub-folder per contributor, or a CSV) and reports:
+
+- **usable hours**, per file and per contributor: footage minus black, covered, washed-out, frozen, idle and blurry stretches, recording gaps, unreadable or truncated files, and copies;
+- **where each problem is**, with times, so a reviewer can jump straight to it;
+- **copies**: re-uploads, re-encodes, mirrored or cut copies, the same stream in another container, footage looped within a file, and (with `--store`) copies of earlier deliveries. Takes of the same task from a fixed camera look alike frame by frame; a copy also repeats the same movements at the same moments, and that is what rdq checks before calling anything a copy;
+- a **per-contributor scorecard** and an optional delivery spec (resolution, fps, codec, duration, maximum idle and blur share).
+
+On synthetic deliveries with known answers it finds every planted defect class and every copy (re-encoded, cut, mirrored, 25 fps) with no false copies, and estimates usable hours within a few percent. On 60 real episodes from ten public LeRobot datasets (many takes of one task from one fixed camera) it reported nothing false and found both planted copies. Details, thresholds and limits: [docs/raw-video.md](docs/raw-video.md). Needs `pip install "rdq[video]"`.
 
 ## Integrity checks
 

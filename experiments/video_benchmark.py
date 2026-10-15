@@ -157,7 +157,7 @@ def evaluate(report: dict, truth: dict) -> dict:
     for p, t in truth.items():
         c = contrib_true.setdefault(t["contributor"], [0.0, 0.0])
         c[0] += tru[p]
-        c[1] += t["seconds"]
+        c[1] += files[p]["duration_s"]   # same denominator as the scorecard: footage that exists
     true_share = {c: v[0] / v[1] for c, v in contrib_true.items()}
     est_share = {r["contributor"]: r["usable_share"] for r in report["scorecard"]}
     names = sorted(true_share)

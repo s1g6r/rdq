@@ -1,0 +1,83 @@
+{
+  "freeze": {
+    "recall": 1.0,
+    "false_positive_files": 0,
+    "n": 3
+  },
+  "black": {
+    "recall": 1.0,
+    "false_positive_files": 0,
+    "n": 3
+  },
+  "covered": {
+    "recall": 1.0,
+    "false_positive_files": 0,
+    "n": 1
+  },
+  "blur": {
+    "recall": 1.0,
+    "false_positive_files": 0,
+    "n": 8
+  },
+  "idle": {
+    "recall": 1.0,
+    "false_positive_files": 0,
+    "n": 8
+  },
+  "drop": {
+    "recall": 1.0,
+    "false_positive_files": 0,
+    "n": 2
+  },
+  "truncated": {
+    "recall": 1.0,
+    "n": 1
+  },
+  "duplicates": {
+    "recall": 1.0,
+    "by_copy_mode": {
+      "reencode": 1.0,
+      "cut": 1.0,
+      "mirror": 1.0,
+      "fps25": 1.0
+    },
+    "false_pairs": 0,
+    "false_pair_examples": [],
+    "loops_reported": 0
+  },
+  "usable": {
+    "true_hours": 0.1434,
+    "estimated_hours": 0.1478,
+    "total_error_pct": 3.1,
+    "mean_abs_error_s_per_file": 0.39
+  },
+  "contributors": {
+    "true_usable_share": {
+      "bad_lens": 0.687,
+      "careful": 1.0,
+      "flaky_device": 0.929,
+      "padder": 0.585,
+      "reuploader": 0.0
+    },
+    "estimated_usable_share": {
+      "bad_lens": 0.734,
+      "careful": 1.0,
+      "flaky_device": 0.929,
+      "padder": 0.637,
+      "reuploader": 0.0
+    },
+    "spearman": 1.0,
+    "worst_estimated": "reuploader",
+    "worst_true": "reuploader"
+  },
+  "setup": {
+    "files": 41,
+    "clips_per_contributor": 8,
+    "seconds_per_clip": 20.0,
+    "seed": 0,
+    "render_s": 199.2,
+    "analysis_s": 31.2,
+    "analysis_s_per_video_minute": 2.33,
+    "workers": 2
+  }
+}

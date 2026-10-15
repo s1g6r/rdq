@@ -35,6 +35,7 @@ class ClipSpec:
     vfr_from: float | None = None                  # halve the frame rate from this time on
     scene_seed: int | None = None                  # same value = same scene (another take in the same place)
     static_camera: bool = False                    # fixed camera: only the objects move
+    object_scale: float = 1.0                      # smaller objects: frames dominated by the shared background
 
 
 def _texture(rng, h, w):
@@ -60,7 +61,7 @@ def render_clip(path: str | Path, spec: ClipSpec) -> Path:
     else:
         world = _texture(np.random.default_rng(spec.scene_seed), H + 200, W + 400)
     n_obj = 4
-    obj = [dict(r=int(rng.integers(18, 40)), c=float(rng.uniform(60, 230)),
+    obj = [dict(r=max(3, int(int(rng.integers(18, 40)) * spec.object_scale)), c=float(rng.uniform(60, 230)),
                 px=rng.uniform(0.1, 0.9), py=rng.uniform(0.2, 0.8), ax=rng.uniform(0.05, 0.25),
                 ay=rng.uniform(0.05, 0.2), fx=rng.uniform(0.05, 0.3), fy=rng.uniform(0.05, 0.3),
                 ph=rng.uniform(0, 6.28)) for _ in range(n_obj)]

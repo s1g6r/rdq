@@ -732,18 +732,29 @@ def align(sa: dict, sb: dict, *, same_file: bool = False) -> dict | None:
         ha, hb = sa["h"], sb[hb_key]
         if not len(ha) or not len(hb):
             continue
-        M = (_ham(ha, hb) <= HASH_THR) & (sa["q"][:, None] >= HASH_MIN_Q) & (sb["q"][None, :] >= HASH_MIN_Q)
-        if same_file:
-            k = int(LOOP_MIN_OFFSET_S * SAMPLE_FPS)
-            ii, jj = np.indices(M.shape)
-            M &= (jj - ii) >= k
-        ii, jj = np.nonzero(M)
-        if not len(ii):
+        qa_ok, qb_ok = sa["q"] >= HASH_MIN_Q, sb["q"] >= HASH_MIN_Q
+        _fg(sa), _fg(sb)
+        fa, fb = sa["hfg"], sb["hfg" if hb_key == "h" else "hfgf"]
+        la, lb = sa["qfg"] < FG_MIN_STD, sb["qfg"] < FG_MIN_STD
+        kmin = int(LOOP_MIN_OFFSET_S * SAMPLE_FPS)
+        offs = []
+        for s0 in range(0, len(ha), 1024):        # in blocks: two one-hour files are 7,200 x 7,200 samples
+            # frames must match, and so must their foregrounds wherever both have one
+            fgm = (_ham(fa[s0:s0 + 1024], fb) <= HASH_THR) | la[s0:s0 + 1024, None] | lb[None, :]
+            M = (_ham(ha[s0:s0 + 1024], hb) <= HASH_THR) & fgm & qa_ok[s0:s0 + 1024, None] & qb_ok[None, :]
+            ii, jj = np.nonzero(M)
+            d = jj - (ii + s0)
+            offs.append(d[d >= kmin] if same_file else d)
+        offs = np.concatenate(offs) if offs else np.array([], int)
+        if not len(offs):
             continue
-        vals, cnt = np.unique(jj - ii, return_counts=True)
+        vals, cnt = np.unique(offs, return_counts=True)
         for o in vals[np.argsort(-cnt)[:6]]:
             idx = np.arange(max(0, -o), min(len(ha), len(hb) - o))
-            ok = M[idx, idx + o]
+            x = np.bitwise_xor(ha[idx], hb[idx + o]).astype(">u8").view(np.uint8).reshape(-1, 8)
+            xf = np.bitwise_xor(fa[idx], fb[idx + o]).astype(">u8").view(np.uint8).reshape(-1, 8)
+            fgo = (_POP[xf].sum(-1) <= HASH_THR) | la[idx] | lb[idx + o]
+            ok = (_POP[x].sum(-1) <= HASH_THR) & fgo & qa_ok[idx] & qb_ok[idx + o]
             run = gap = 0
             start = None
             top = (0, None, 0)
@@ -798,17 +809,50 @@ def align(sa: dict, sb: dict, *, same_file: bool = False) -> dict | None:
     return best
 
 
+FG_MIN_STD = 2.0          # grey levels of foreground (thumbnail minus the file's background) worth hashing
+
+
+def _fg(s: dict) -> dict:
+    """Foreground hashes for one file's samples: the thumbnail minus the file's median thumbnail. Takes from
+    one fixed camera share the background, so their frame hashes match everywhere; what is left after
+    removing it is the arm, hands and objects at that moment, which is what a copy shares and another
+    take doesn't. Cached on the samples dict."""
+    if "hfg" in s:
+        return s
+    th = s["thumb"].astype(np.float32)
+    n = len(th)
+    hfg = np.zeros(n, np.uint64)
+    hfgf = np.zeros(n, np.uint64)
+    qfg = np.zeros(n)
+    if n:
+        bg = np.median(th, axis=0)
+        for k in range(n):
+            f = th[k] - bg
+            f -= f.mean()
+            qfg[k] = float(f.std())
+            if qfg[k] >= FG_MIN_STD:
+                hfg[k] = _phash64(f)
+                hfgf[k] = _phash64(np.ascontiguousarray(f[:, ::-1]))
+    s["hfg"], s["hfgf"], s["qfg"] = hfg, hfgf, qfg
+    return s
+
+
 def _band_candidates(store: dict[str, dict], max_bucket: int = 500, min_votes: int = 8) -> list[tuple[str, str]]:
     idx: dict = defaultdict(list)
     for f, s in store.items():
         h, q = s["h"], s["q"]
         hf = s["hf"]
+        _fg(s)
         for k in range(len(h)):
             if q[k] < HASH_MIN_Q:
                 continue
             for b in range(4):
                 idx[(b, (int(h[k]) >> (16 * b)) & 0xFFFF)].append((f, k, 0))
                 idx[(b, (int(hf[k]) >> (16 * b)) & 0xFFFF)].append((f, k, 1))
+            if s["qfg"][k] >= FG_MIN_STD:        # foreground bands: still informative when backgrounds match
+                for b in range(4):
+                    idx[(4 + b, (int(s["hfg"][k]) >> (16 * b)) & 0xFFFF)].append((f, k, 0))
+                    idx[(4 + b, (int(s["hfgf"][k]) >> (16 * b)) & 0xFFFF)].append((f, k, 1))
     votes: Counter = Counter()
     for lst in idx.values():
         if len(lst) > max_bucket:
@@ -908,9 +952,10 @@ def refine(path_a: str, path_b: str, res: dict) -> dict:
 def _verified(res: dict | None) -> bool:
     if not res or res["norm_diff"] > DUP_NORM_DIFF or res["density"] < 0.6:
         return False
-    if res["motion"] >= DUP_LOW_MOTION:
-        return res["motion_corr"] >= DUP_MOTION_CORR
-    return res["foreground_corr"] >= DUP_STILL_FG_CORR
+    if res["motion_corr"] >= DUP_MOTION_CORR:
+        return True
+    # too little movement to compare changes: fall back on the foregrounds lining up
+    return res["motion"] < DUP_LOW_MOTION and res["foreground_corr"] >= DUP_STILL_FG_CORR
 
 
 def find_duplicates(records: list[dict], history: dict | None = None, debug: list | None = None) -> list[dict]:
@@ -999,6 +1044,8 @@ def consolidate_duplicates(raw: list[dict], records: list[dict]) -> list[dict]:
     are kept once per pair of clusters. Pairs come out as a = original/earlier, b = copy, with start_a and
     start_b on each file's own timeline."""
     dur = {r["path"]: (r.get("dec") or {}).get("decoded_duration_s") or 0.0 for r in records}
+    pix = {r["path"]: ((r.get("meta") or {}).get("width") or 0) * ((r.get("meta") or {}).get("height") or 0) for r in records}
+    rate = {r["path"]: (r.get("meta") or {}).get("bit_rate") or 0 for r in records}
     parent: dict = {}
 
     def find(x):
@@ -1019,7 +1066,8 @@ def consolidate_duplicates(raw: list[dict], records: list[dict]) -> list[dict]:
         hist = sorted(g for g in group if g.startswith("history:"))
         if hist:
             return hist[0]
-        return sorted(group, key=lambda g: (-round(dur.get(g, 0.0), 1), g))[0]
+        # longest (to the second), then most pixels, then highest bitrate: a re-encode is usually smaller
+        return sorted(group, key=lambda g: (-round(dur.get(g, 0.0)), -pix.get(g, 0), -rate.get(g, 0), g))[0]
 
     def oriented(d, orig, copy):
         """d re-expressed with a = orig side, b = copy side."""
@@ -1403,7 +1451,9 @@ def write_outputs(report: dict, json_path: str | None = None, html_path: str | N
             w.writerow(["file", "contributor", "status", "duration_s", "usable_s", "issues"])
             for f in clean["files"]:
                 w.writerow([f["path"], f["contributor"], f["status"], f["duration_s"], f["usable_s"],
-                            "; ".join(f"{i['check']}: {i['message']}" for i in f["issues"])])
+                            "; ".join(f"{i['check']}: {i['message']}" + (
+                                " at " + ", ".join(f"{_clock(x)}-{_clock(y)}" for x, y in i["spans"][:6])
+                                if i.get("spans") else "") for i in f["issues"])])
 
 
 def format_terminal(report: dict, color: bool = False) -> str:
@@ -1445,6 +1495,20 @@ def format_terminal(report: dict, color: bool = False) -> str:
     return "\n".join(lines)
 
 
+def _clock(x: float) -> str:
+    x = int(round(x))
+    return f"{x // 3600}:{x % 3600 // 60:02d}:{x % 60:02d}" if x >= 3600 else f"{x // 60}:{x % 60:02d}"
+
+
+def _when(spans) -> str:
+    """' at 0:04–0:07, 0:12–0:15 (+3 more)' for an issue's spans, as HTML."""
+    if not spans:
+        return ""
+    parts = [f"{_clock(a)}–{_clock(b)}" for a, b in spans[:4]]
+    more = f" (+{len(spans) - 4} more)" if len(spans) > 4 else ""
+    return f" <small class=muted>at {', '.join(parts)}{more}</small>"
+
+
 def render_html(report: dict) -> str:
     import html as H
 
@@ -1469,7 +1533,8 @@ def render_html(report: dict) -> str:
         f"<td>{'yes' if d.get('cross_contributor') else ''}</td></tr>" for d in report["duplicates"])
     file_rows = []
     for f in report["files"]:
-        issues = "".join(f"<li class={i['severity']}>{esc(i['message'])}</li>" for i in f["issues"]) or "<li class=ok>no findings</li>"
+        issues = "".join(f"<li class={i['severity']}>{esc(i['message'])}{_when(i.get('spans'))}</li>"
+                         for i in f["issues"]) or "<li class=ok>no findings</li>"
         m = f["meta"]
         file_rows.append(
             f"<tr class={f['status']}><td><b>{esc(Path(f['path']).name)}</b><br><small>{esc(f['contributor'])} · "
@@ -1494,7 +1559,7 @@ li.warning{{color:var(--warn)}} li.info{{color:var(--muted)}} li.ok{{color:var(-
 <div class=tile><b>{s['files_critical']}</b>files with critical findings</div><div class=tile><b>{s['cross_contributor_duplicates']}</b>duplicates across contributors</div></div>
 <p>Unusable time by reason: {esc(unusable)}.</p>
 <h2>Contributors, worst first</h2><div class=wrap><table><tr><th>Contributor</th><th>Files</th><th>Hours</th><th>Usable h</th><th>Usable</th><th>Critical files</th><th>Cross-contrib. dups</th><th>Main losses</th></tr>{rows}</table></div>
-<h2>Duplicates and overlaps</h2>{'<div class=wrap><table><tr><th>Kind</th><th>File A</th><th>File B (copy)</th><th>Overlap s</th><th>Across contributors</th></tr>' + dup_rows + '</table></div>' if dup_rows else '<p class=muted>None found.</p>'}
+<h2>Duplicates and overlaps</h2>{'<div class=wrap><table><tr><th>Kind</th><th>Original</th><th>Copy</th><th>Overlap s</th><th>Across contributors</th></tr>' + dup_rows + '</table></div>' if dup_rows else '<p class=muted>None found.</p>'}
 <h2>Files</h2><div class=wrap><table><tr><th>File</th><th>Usable</th><th>Findings</th></tr>{''.join(file_rows)}</table></div>
-<p class=muted>Thresholds are calibrated on test clips. Check a few flagged files by eye before using a finding to reject work.</p>
+<p class=muted>Thresholds were set on synthetic footage with known defects and on public robot footage (see docs/raw-video.md). Check a few flagged files by eye before using a finding to reject work or withhold payment.</p>
 </main></body></html>"""

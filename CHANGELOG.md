@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New: `rdq check-video` audits raw video deliveries (folders of mp4/mov/mkv, as bought from collection vendors or contributors): usable hours, black/covered/washed-out, frozen, idle and blurry stretches with their times, truncated and corrupt files, timing problems, spec violations, copies (re-encoded, cut, mirrored, remuxed, looped, or from an earlier batch via `--store`) and a per-contributor scorecard. JSON, HTML and CSV output; install with `pip install "rdq[video]"`. Method and validation: [docs/raw-video.md](docs/raw-video.md).
 - New: when a copy's tag differs from a clearly identified original, rdq suggests the card fix (`license:` and `source_datasets:` lines to paste into the YAML header), in the CLI report, the HTML report, the JSON (`card_fix`) and the browser Space. rdq reads a fixed card back as consistent: this holds for 192 of the 196 Hub datasets that get a suggestion. The other 4 are custom or non-commercial terms, which still say to read the terms.
 - Licence check: a card that names a source only to say it was *not* used ("we do not use BridgeData V2") no longer counts as evidence. One Hub dataset was wrongly matched this way; the scan figures are now 304 matched and 200 differing (were 305 and 201).
 - When the only evidence is a mention on the card, the bottom line says "check first" and gives the original's licence, instead of "usable" with an empty licence.
