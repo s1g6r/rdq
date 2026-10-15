@@ -616,7 +616,9 @@ def file_issues(rec: dict, spec: Spec, sharp_baseline: float) -> tuple[list[Issu
                 "frozen": sp.get("frozen", []), "idle": win["idle"], "blur": win["blur"]}
     bad = _union(*unusable.values())
     trunc = max(0.0, hdr - decd) if hdr and decd < 0.98 * hdr - 0.5 else 0.0
-    acct["usable_s"] = max(0.0, decd - _span_len(bad))
+    gap_s = float(ts.get("recording_gap_s") or 0.0)   # time on the clock with no frames: not footage
+    acct["footage_s"] = max(0.0, decd - gap_s)
+    acct["usable_s"] = max(0.0, decd - gap_s - _span_len(bad))
     acct["unusable"] = {k: _span_len(v) for k, v in unusable.items() if v}
     acct["bad_spans"] = bad
     acct["idle_spans"] = win["idle"]
@@ -1095,7 +1097,7 @@ def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, 
             bad = _union(a.get("bad_spans", []), a["dup_spans"])
             dup_only = _span_len(_union(a["dup_spans"]))
             a["usable_s"] = 0.0 if any(i.check in ("video.identical_file", "video.same_stream_remuxed") for i in fo["issues"]) \
-                else max(0.0, a["decoded_s"] - _span_len(bad))
+                else max(0.0, a.get("footage_s", a["decoded_s"]) - _span_len(bad))
             a["unusable"]["duplicate"] = dup_only
         if any(i.severity == CRITICAL and i.check in ("video.unreadable", "video.corrupt_frames") for i in fo["issues"]):
             a["usable_s"] = 0.0
@@ -1106,7 +1108,7 @@ def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, 
     for fo in files_out:
         c = cards[fo["record"]["contributor"]]
         c["files"] += 1
-        c["hours"] += (fo["acct"].get("decoded_s") or fo["acct"].get("header_s") or 0) / 3600
+        c["hours"] += (fo["acct"].get("footage_s", fo["acct"].get("decoded_s")) or fo["acct"].get("header_s") or 0) / 3600
         c["usable_hours"] += (fo["acct"].get("usable_s") or 0) / 3600
         sevs = {i.severity for i in fo["issues"]}
         c["critical_files"] += CRITICAL in sevs
@@ -1156,7 +1158,7 @@ def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, 
         "duplicates": dups,
         "files": [{
             "path": fo["record"]["path"], "contributor": fo["record"]["contributor"],
-            "duration_s": round(fo["acct"].get("decoded_s") or 0, 2),
+            "duration_s": round(fo["acct"].get("footage_s", fo["acct"].get("decoded_s")) or 0, 2),
             "usable_s": round(fo["acct"].get("usable_s") or 0, 2),
             "status": ("critical" if any(i.severity == CRITICAL for i in fo["issues"]) else
                        "warning" if any(i.severity == WARNING for i in fo["issues"]) else "ok"),

@@ -21,7 +21,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev,video]"
-          ffmpeg -version | head -1
+          sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
       - name: Test
         run: pytest -q
       - name: False-alarm check on clean synthetic data

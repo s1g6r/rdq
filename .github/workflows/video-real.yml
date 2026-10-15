@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[video]"
-      - run: ffmpeg -version | head -1
+      - run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg && ffmpeg -version | head -1
       - name: Check real robot footage
         run: python experiments/video_real.py --out vreal
       - run: cat vreal/summary.txt >> "$GITHUB_STEP_SUMMARY"
