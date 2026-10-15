@@ -15,6 +15,11 @@ jobs:
           python-version: "3.12"
       - run: pip install -e .
       - run: python experiments/leboard_licences.py
+        env: {PART: "0", PARTS: "3"}
+      - run: python experiments/leboard_licences.py
+        env: {PART: "1", PARTS: "3"}
+      - run: python experiments/leboard_licences.py
+        env: {PART: "2", PARTS: "3"}
       - uses: actions/upload-artifact@v4
         with:
           name: leboard-licences

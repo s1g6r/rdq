@@ -47,20 +47,23 @@ def main() -> int:
         w.writeheader()
         w.writerows(rows)
     if os.environ.get("GITHUB_ACTIONS"):
+        # full rows as annotations (artifacts may be unreadable from where the results are read)
+        part = int(os.environ.get("PART", "0"))
+        parts = int(os.environ.get("PARTS", "1"))
+        sel = rows[part::parts]
         buf = io.StringIO()
-        w = csv.writer(buf)
-        for r in rows:  # compact rows for annotations
-            w.writerow([r["dataset"], r["declared_licence"], r["result"], r["status"], r["original_dataset"],
-                        r["original_licence"], r["matched_by"]])
+        w = csv.DictWriter(buf, fieldnames=list(rows[0]))
+        for r in sel:
+            w.writerow(r)
         lines = buf.getvalue().splitlines()
         chunk, k = [], 0
         for ln in lines:
-            chunk.append(ln)
-            if sum(len(x) + 3 for x in chunk) > 2800:
-                print(f"::notice title=leboard-{k}::" + " %0A".join(chunk))
+            chunk.append(ln.replace("%", "%25"))
+            if sum(len(x) + 3 for x in chunk) > 9000:
+                print(f"::notice title=leboard-p{part}-{k}::" + " %0A".join(chunk))
                 chunk, k = [], k + 1
         if chunk:
-            print(f"::notice title=leboard-{k}::" + " %0A".join(chunk))
+            print(f"::notice title=leboard-p{part}-{k}::" + " %0A".join(chunk))
     print(f"{len(rows)} datasets -> {out}")
     return 0
 
