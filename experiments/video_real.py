@@ -37,7 +37,7 @@ def fetch(repo: str, dest: Path, n: int, max_seconds: float) -> list[Path]:
         try:
             files = api.list_repo_files(repo, repo_type="dataset", revision=rev)
         except Exception as exc:  # noqa: BLE001
-            print(f"  {repo}@{rev}: {type(exc).__name__}", file=sys.stderr)
+            print(f"::notice title=fetch {repo}@{rev}::{type(exc).__name__}: {str(exc)[:200]}")
             continue
         vids = sorted(f for f in files if f.endswith(".mp4"))
         if not vids:
@@ -76,9 +76,10 @@ def main() -> int:
         try:
             got[repo] = fetch(repo, d, args.per_dataset, 30.0)
         except Exception as exc:  # noqa: BLE001
-            print(f"skip {repo}: {type(exc).__name__}: {exc}", file=sys.stderr)
+            print(f"::notice title=skip {repo}::{type(exc).__name__}: {str(exc)[:300]}")
             got[repo] = []
         print(f"{repo}: {len(got[repo])} files", file=sys.stderr)
+    print("::notice title=fetched::" + " ".join(f"{r.split('/')[1]}={len(v)}" for r, v in got.items()))
     # two known copies of one real episode, filed under another "contributor"
     src = next((fs[1] for fs in got.values() if len(fs) > 1), None)
     if src:
@@ -130,4 +131,13 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except SystemExit:
+        raise
+    except BaseException:  # noqa: BLE001 - surface the traceback as an annotation (logs may be unreadable)
+        import traceback
+
+        tb = traceback.format_exc()
+        print("::error title=video_real crashed::" + tb[-3000:].replace("\n", " %0A"))
+        raise
