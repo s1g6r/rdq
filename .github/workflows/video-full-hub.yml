@@ -1,0 +1,36 @@
+name: video-full-hub
+
+# Run by hand: rdq check --video-full on Hub datasets (named, or the most-downloaded community ones).
+# Results appear as annotations; nothing is written back to the Hub.
+on:
+  workflow_dispatch:
+    inputs:
+      datasets:
+        description: "space-separated dataset ids (optional)"
+        required: false
+        default: ""
+      auto:
+        description: "also check this many popular community datasets"
+        required: false
+        default: "0"
+      max_mb:
+        description: "skip datasets larger than this (MB)"
+        required: false
+        default: "600"
+
+jobs:
+  vfull:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[video]" huggingface_hub
+      - run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - env:
+          DATASETS: ${{ github.event.inputs.datasets }}
+          AUTO: ${{ github.event.inputs.auto }}
+          MAXMB: ${{ github.event.inputs.max_mb }}
+        run: python experiments/video_full_hub.py --out vfull --auto "${AUTO:-0}" --max-mb "${MAXMB:-600}" $DATASETS

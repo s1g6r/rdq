@@ -23,15 +23,21 @@ def audit(
     readme: str | None = None,
     repo_id: str | None = None,
     video: bool = False,
+    video_full: bool = False,
 ) -> dict:
     """Run every check on a local dataset folder and return a JSON-ready dict.
 
-    With video=True, a few frames per episode and camera are decoded as well (needs PyAV).
+    With video=True, a few frames per episode and camera are decoded as well (needs PyAV). With
+    video_full=True, every frame is decoded and episodes that repeat another episode's footage are found.
     """
     path = Path(path)
     ds = load_dataset(path, max_frames=max_frames)
     findings = run_checks(ds, Thresholds())
-    if video:
+    if video_full:
+        from .video import check_videos_full
+
+        findings += check_videos_full(ds)
+    elif video:
         from .video import check_videos
 
         findings += check_videos(ds)

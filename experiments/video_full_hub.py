@@ -1,0 +1,92 @@
+"""rdq check --video-full on Hub datasets: defects and duplicated episodes in real LeRobot data.
+
+    python experiments/video_full_hub.py --out vfull lerobot/svla_so101_pickplace ...
+    python experiments/video_full_hub.py --out vfull --auto 20 --max-mb 600   # popular community datasets
+
+--auto picks the most-downloaded datasets tagged LeRobot outside the lerobot org whose data and videos
+fit under --max-mb. Results go to OUT/summary.json and, in CI, to annotations.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+def pick_auto(n: int, max_mb: float, scan: int = 400) -> list[str]:
+    from huggingface_hub import HfApi
+
+    api = HfApi()
+    out = []
+    for d in api.list_datasets(filter="LeRobot", sort="downloads", limit=scan):
+        if d.id.startswith("lerobot/"):
+            continue
+        try:
+            info = api.dataset_info(d.id, files_metadata=True)
+        except Exception:  # noqa: BLE001
+            continue
+        files = [f for f in info.siblings if f.rfilename.startswith(("data/", "meta/", "videos/"))]
+        if not any(f.rfilename.startswith("videos/") and f.rfilename.endswith(".mp4") for f in files):
+            continue
+        if not any(f.rfilename == "meta/info.json" for f in files):
+            continue
+        size = sum((f.size or 0) for f in files) / 1e6
+        if 5 < size <= max_mb:
+            out.append(d.id)
+        if len(out) >= n:
+            break
+    return out
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("datasets", nargs="*")
+    ap.add_argument("--out", default="vfull")
+    ap.add_argument("--auto", type=int, default=0)
+    ap.add_argument("--max-mb", type=float, default=600)
+    args = ap.parse_args()
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    ids = list(args.datasets) + (pick_auto(args.auto, args.max_mb) if args.auto else [])
+    print("::notice title=datasets::" + " ".join(ids))
+    rows = []
+    for ds in ids:
+        j = out / (ds.replace("/", "__") + ".json")
+        t0 = time.time()
+        p = subprocess.run([sys.executable, "-m", "rdq.cli", "check", ds, "--video-full", "--json", str(j),
+                            "--max-mb", str(args.max_mb), "--no-color"], capture_output=True, text=True)
+        el = time.time() - t0
+        row = {"dataset": ds, "seconds": round(el), "exit": p.returncode}
+        if j.exists():
+            r = json.loads(j.read_text())
+            row["episodes"] = (r.get("dataset") or {}).get("episodes") or (r.get("counts") or {}).get("episodes")
+            row["video"] = {f["check"]: f.get("episodes", [])[:30] for f in r.get("findings", [])
+                            if f["check"].startswith("video.")}
+            dup = next((f for f in r.get("findings", []) if f["check"] == "video.duplicate_episode"), None)
+            if dup:
+                row["dup_pairs"] = (dup.get("details") or {}).get("pairs", [])[:20]
+        else:
+            row["error"] = (p.stderr or p.stdout)[-300:]
+        rows.append(row)
+        print(json.dumps(row), flush=True)
+    (out / "summary.json").write_text(json.dumps(rows, indent=1))
+    if os.environ.get("GITHUB_ACTIONS"):
+        lines = [json.dumps(r, separators=(",", ":")) for r in rows]
+        chunk, k = [], 0
+        for ln in lines:
+            chunk.append(ln.replace("%", "%25"))
+            if sum(len(x) + 3 for x in chunk) > 3000:
+                print(f"::notice title=vfull-{k}::" + " %0A".join(chunk))
+                chunk, k = [], k + 1
+        if chunk:
+            print(f"::notice title=vfull-{k}::" + " %0A".join(chunk))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -66,8 +66,9 @@ def _cmd_check(args) -> int:
     from .report import audit, format_terminal, write_filter, write_html, write_json
 
     try:
-        path, repo_id = _resolve_path(args.path, args.repo_id, args.video, args.max_mb)
-        result = audit(path, max_frames=args.max_frames, repo_id=repo_id, video=args.video)
+        want_video = args.video or args.video_full
+        path, repo_id = _resolve_path(args.path, args.repo_id, want_video, args.max_mb)
+        result = audit(path, max_frames=args.max_frames, repo_id=repo_id, video=args.video, video_full=args.video_full)
         if repo_id:
             result["dataset"]["path"] = repo_id
     except DatasetLoadError as exc:
@@ -334,6 +335,8 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--repo-id", help="hub id of the dataset (enables upstream-licence matching by name)")
     c.add_argument("--max-mb", type=float, default=2000, help="refuse to fetch a Hub dataset larger than this (default 2000 MB)")
     c.add_argument("--video", action="store_true", help="also decode a few frames per episode (frozen/black/blur/decode checks; needs PyAV)")
+    c.add_argument("--video-full", action="store_true",
+                   help="decode every frame: frozen/black/blurry stretches, timing gaps and duplicated episodes (needs rdq[video])")
     c.set_defaults(fn=_cmd_check)
 
     r = sub.add_parser("rank", help="score and rank episodes with literature-based quality signals (no training)")

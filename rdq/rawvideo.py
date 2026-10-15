@@ -463,6 +463,62 @@ def measure_file(path: str) -> dict:
     return rec
 
 
+def segment_record(rec: dict, start: float, end: float, name: str) -> dict:
+    """The measurements of one stretch [start, end) of a measured file, as if it were a file of its own
+    (times from 0). LeRobot v3 datasets keep many episodes in one video file; each episode is checked as
+    a segment, so the file is decoded once."""
+    key = f"{rec['path']}{SEGMENT_SEP}{start:.3f}-{end:.3f}"
+    out: dict = {"path": key, "name": name, "meta": dict(rec.get("meta") or {}, header_duration_s=max(0.0, end - start))}
+    if rec.get("error"):
+        out["error"] = rec["error"]
+        return out
+    dec = rec.get("dec") or {}
+    if dec.get("open_error") or not dec.get("frames"):
+        out["dec"] = {k: dec[k] for k in ("open_error", "frames", "corrupt_frames", "decode_errors") if k in dec}
+        out["ts"] = {}
+        return out
+    t = dec["t"]
+    m = (t >= start - 1e-6) & (t < end - 1e-6)
+    seg = {"frames": int(m.sum()), "corrupt_frames": 0, "decode_errors": 0, "t": t[m] - start}
+    for k in ("mean", "std", "dark", "mad", "ident", "exact"):
+        if k in dec:
+            seg[k] = dec[k][m]
+    if len(seg["mad"]):
+        seg["mad"] = seg["mad"].copy()
+        seg["mad"][0] = np.nan                      # no previous frame inside the segment
+        seg["ident"] = seg["ident"].copy()
+        seg["ident"][0] = False
+        if "exact" in seg:
+            seg["exact"] = seg["exact"].copy()
+            seg["exact"][0] = False
+    lm = (dec["lap_t"] >= start - 1e-6) & (dec["lap_t"] < end - 1e-6)
+    seg["lap_t"], seg["lap"] = dec["lap_t"][lm] - start, dec["lap"][lm]
+    seg["lapr"] = dec["lapr"][lm] if "lapr" in dec else np.full(int(lm.sum()), np.nan)
+    sm = dec.get("samples") or {}
+    if sm.get("t") is not None and len(sm["t"]):
+        sm_m = (sm["t"] >= start - 1e-6) & (sm["t"] < end - 1e-6)
+        seg["samples"] = {k: (v[sm_m] if hasattr(v, "__len__") and len(v) == len(sm["t"]) else v) for k, v in sm.items()}
+        seg["samples"]["t"] = sm["t"][sm_m] - start
+        if len(seg["samples"].get("flow_g", [])):        # flow and change against a frame outside the segment
+            seg["samples"]["flow_g"] = seg["samples"]["flow_g"].copy()
+            seg["samples"]["flow_g"][0] = np.nan
+            seg["samples"]["flow_r"] = seg["samples"]["flow_r"].copy()
+            seg["samples"]["flow_r"][0] = np.nan
+    else:
+        seg["samples"] = {}
+    if seg["frames"]:
+        last = float(seg["t"][-1])
+        step = float(np.median(np.diff(seg["t"]))) if seg["frames"] > 1 else 1 / 30
+        seg["decoded_duration_s"] = last + step
+    else:
+        seg["decoded_duration_s"] = 0.0
+    out["dec"] = seg
+    gaps = np.diff(seg["t"]) if seg["frames"] > 1 else np.array([])
+    big = gaps[gaps > 1.0]
+    out["ts"] = {"recording_gaps": int(len(big)), "recording_gap_s": float(big.sum()) if len(big) else 0.0}
+    return out
+
+
 # --------------------------------------------------------------------------------------------- #
 # Turning measurements into findings
 
@@ -882,11 +938,24 @@ FINE_FPS = 6.0           # grid for the frame-accurate re-check of candidate pai
 FINE_MAX_S = 30.0        # longest stretch re-decoded per candidate pair
 
 
+SEGMENT_SEP = "#t="     # "<file>#t=<start>-<end>": one stretch of a longer file (an episode in a LeRobot video)
+
+
+def split_segment(key: str) -> tuple[str, float]:
+    """(file path, offset in seconds) for a record key that may name a stretch of a file."""
+    if SEGMENT_SEP in key:
+        path, rng = key.rsplit(SEGMENT_SEP, 1)
+        return path, float(rng.split("-")[0])
+    return key, 0.0
+
+
 def _fine_thumbs(path: str, t0: float, t1: float) -> tuple[np.ndarray, np.ndarray]:
-    """Every frame's 32x18 thumbnail between t0 and t1 (seconds from the first frame)."""
+    """Every frame's 32x18 thumbnail between t0 and t1 (seconds from the first frame of the file or segment)."""
     import av
     import cv2
 
+    path, off = split_segment(path)
+    t0, t1 = t0 + off, t1 + off
     ts, th = [], []
     try:
         c = av.open(path)
@@ -894,6 +963,10 @@ def _fine_thumbs(path: str, t0: float, t1: float) -> tuple[np.ndarray, np.ndarra
         s.thread_type = "AUTO"
         tb = float(s.time_base)
         first = None
+        if s.start_time is not None:
+            first = s.start_time * tb
+        if t0 > 3 and first is not None:          # long shared files: jump near the stretch instead of decoding from 0
+            c.seek(int((t0 - 2 + first) / tb), stream=s, backward=True, any_frame=False)
         for fr in c.decode(s):
             if fr.pts is None:
                 continue
@@ -912,7 +985,7 @@ def _fine_thumbs(path: str, t0: float, t1: float) -> tuple[np.ndarray, np.ndarra
         c.close()
     except Exception:  # noqa: BLE001
         pass
-    return np.array(ts), (np.stack(th).astype(np.float32) if th else np.zeros((0, 18, 32), np.float32))
+    return np.array(ts) - off, (np.stack(th).astype(np.float32) if th else np.zeros((0, 18, 32), np.float32))
 
 
 def refine(path_a: str, path_b: str, res: dict) -> dict:
@@ -1195,15 +1268,23 @@ def _robust_outliers(values: dict[str, float], z: float = 3.5) -> set[str]:
 
 def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, by_folder: bool = False,
                       spec: Spec | None = None, store: str | None = None, workers: int | None = None,
-                      progress=None, debug: bool = False) -> dict:
+                      progress=None, debug: bool = False, records: list[dict] | None = None) -> dict:
+    """Check a delivery. `records` (from measure_file or segment_record) skips finding and measuring files:
+    rdq check --video-full uses it to check each episode's stretch of a shared LeRobot video file."""
     spec = spec or Spec()
-    files, root = find_videos(paths)
     mapping = load_contributors(contributors_csv) if contributors_csv else None
-    if not files:
-        raise ValueError("no video files found (looked for " + ", ".join(sorted(VIDEO_EXTENSIONS)) + ")")
     workers = workers or min(4, os.cpu_count() or 1)
-    records: list[dict] = []
-    if workers > 1 and len(files) > 1:
+    if records is not None:
+        files, root = [Path(r["path"]) for r in records], None
+        records = list(records)
+    else:
+        files, root = find_videos(paths)
+        if not files:
+            raise ValueError("no video files found (looked for " + ", ".join(sorted(VIDEO_EXTENSIONS)) + ")")
+        records = []
+    if records and len(records) == len(files):
+        pass
+    elif workers > 1 and len(files) > 1:
         import multiprocessing as mp
 
         # spawn, not fork: the decoder threads of the parent must not be copied into the workers
@@ -1218,7 +1299,7 @@ def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, 
             if progress:
                 progress(k + 1, len(files), f.name)
     for r in records:
-        r["contributor"] = contributor_of(Path(r["path"]), root, mapping, by_folder)
+        r.setdefault("contributor", contributor_of(Path(r["path"]), root, mapping, by_folder))
 
     # typical sharpness per camera (contributor and resolution): the median over its files of each file's
     # median, so a few blurry files or blurry stretches don't set the bar

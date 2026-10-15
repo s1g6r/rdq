@@ -14,6 +14,7 @@ decode. They catch what tables cannot:
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -152,3 +153,124 @@ def check_videos(ds: Dataset, samples: int = SAMPLES, max_episodes: int | None =
                                    "(focus, motion blur or a smudged lens)", episodes=sorted(low),
                                    details={"video_key": vkey, "median_sharpness": round(med, 2)}))
     return out
+
+
+# --------------------------------------------------------------------------------------------- #
+# Full decode (rdq check --video-full): every frame of every episode, plus duplicate episodes
+
+FULL_CHECKS = {
+    # rawvideo check -> (rdq check id, severity floor, what it means for an episode)
+    "video.frozen": ("video.frozen_span", WARNING, "the camera image stops changing for a while (stalled feed)"),
+    "video.black": ("video.black_span", WARNING, "black frames (covered lens, unplugged camera, failed exposure)"),
+    "video.covered": ("video.covered_span", WARNING, "featureless frames (something over the lens)"),
+    "video.overexposed": ("video.overexposed_span", WARNING, "washed-out frames"),
+    "video.blur": ("video.blur_span", INFO, "blurry stretches without camera motion"),
+    "video.idle": ("video.idle_span", INFO, "nothing moving in view for 5 s or more"),
+    "video.recording_gap": ("video.recording_gap", WARNING, "gaps of more than a second in the frame timestamps"),
+    "video.truncated": ("video.decode_error", CRITICAL, "the video ends before the episode does"),
+    "video.unreadable": ("video.decode_error", CRITICAL, "the video can't be decoded"),
+    "video.corrupt_frames": ("video.decode_error", CRITICAL, "corrupt frames"),
+}
+COPY_CHECKS = ("video.near_duplicate", "video.trimmed_copy", "video.same_stream_remuxed", "video.identical_file",
+               "video.partial_overlap", "video.loop_within_file")
+
+
+def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episodes: int | None = None,
+                      workers: int | None = None) -> list[Finding]:
+    """Decode every frame of each episode's video (each shared file once) and report, per camera, the
+    episodes with frozen, black, covered or blurry stretches, timing gaps, decode problems, and episodes
+    whose footage repeats another episode's (a duplicated episode, often from merging datasets)."""
+    try:
+        import av  # noqa: F401
+        import cv2  # noqa: F401
+    except ImportError:
+        return [Finding("video.not_checked", INFO, "--video-full needs PyAV and OpenCV (pip install \"rdq[video]\")")]
+    from . import rawvideo as rv
+
+    eps = sorted(ds.episodes.values(), key=lambda e: e.index)
+    if max_episodes:
+        eps = eps[:max_episodes]
+    out: list[Finding] = []
+    for vkey in (cameras or ds.video_keys):
+        segs, missing = [], {}
+        for ep in eps:
+            path, start, end = _video_file(ds, vkey, ep)
+            if path is None:
+                continue
+            if not path.exists():
+                missing[ep.index] = f"missing file {path.relative_to(ds.root)}"
+                continue
+            segs.append((ep.index, path, start, end))
+        files = sorted({str(p) for _, p, _, _ in segs})
+        measured: dict[str, dict] = {}
+        n_workers = workers or min(4, os.cpu_count() or 1)
+        if n_workers > 1 and len(files) > 1:
+            import multiprocessing as mp
+            from concurrent.futures import ProcessPoolExecutor
+
+            with ProcessPoolExecutor(max_workers=n_workers, mp_context=mp.get_context("spawn")) as ex:
+                for f, rec in zip(files, ex.map(rv.measure_file, files)):
+                    measured[f] = rec
+        else:
+            for f in files:
+                measured[f] = rv.measure_file(f)
+        records = []
+        for idx, path, start, end in segs:
+            r = rv.segment_record(measured[str(path)], start, end, f"episode {idx}")
+            r["contributor"] = vkey
+            r["episode"] = idx
+            records.append(r)
+        if not records:
+            if missing:
+                out.append(Finding("video.decode_error", CRITICAL, f"camera '{vkey}': video missing for {_eps(len(missing))}",
+                                   episodes=sorted(missing), details={"video_key": vkey}))
+            continue
+        rep = rv.check_video_batch([], records=records, workers=1)
+        ep_of = {r["path"]: r["episode"] for r in records}
+        by_check: dict[str, dict[int, float]] = {}
+        decode_err = dict(missing)
+        for f in rep["files"]:
+            e = ep_of[f["path"]]
+            for i in f["issues"]:
+                if i["check"] not in FULL_CHECKS:
+                    continue
+                cid, floor, _ = FULL_CHECKS[i["check"]]
+                if cid == "video.decode_error":
+                    decode_err[e] = i["message"]
+                    continue
+                by_check.setdefault(i["check"], {})[e] = by_check.get(i["check"], {}).get(e, 0.0) + (i.get("seconds") or 0.0)
+        for check, per_ep in by_check.items():
+            cid, sev, what = FULL_CHECKS[check]
+            if check == "video.blur":   # warn only where blur takes a large share of the episode
+                sev = WARNING if any(v > 0.1 * max(1e-9, _dur(rep, ep_of, e)) for e, v in per_ep.items()) else INFO
+            total = sum(per_ep.values())
+            out.append(Finding(cid, sev, f"camera '{vkey}': {what} in {_eps(len(per_ep))} ({total:.0f} s in all)",
+                               episodes=sorted(per_ep), details={"video_key": vkey,
+                                                                 "seconds_by_episode": {str(k): round(v, 1) for k, v in per_ep.items()}}))
+        if decode_err:
+            out.append(Finding("video.decode_error", CRITICAL,
+                               f"camera '{vkey}': video for {_eps(len(decode_err))} is missing, can't be decoded or ends early",
+                               episodes=sorted(decode_err), details={"video_key": vkey,
+                                                                     "errors": {str(k): v for k, v in list(decode_err.items())[:20]}}))
+        copies, pairs = [], []
+        for d in rep["duplicates"]:
+            if d["kind"] == "loop_within_file":
+                continue
+            a, b = ep_of.get(d["a"]), ep_of.get(d["b"])
+            if a is None or b is None:
+                continue
+            copies.append(b)
+            pairs.append({"original": a, "copy": b, "kind": d["kind"], "overlap_s": d.get("overlap_s")})
+        if copies:
+            out.append(Finding("video.duplicate_episode", WARNING,
+                               f"camera '{vkey}': {_eps(len(set(copies)))} repeat footage from another episode "
+                               "(the same movements at the same moments; often a merge or upload mistake)",
+                               episodes=sorted(set(copies)), details={"video_key": vkey, "pairs": pairs[:50]}))
+    return out
+
+
+def _dur(rep: dict, ep_of: dict, e: int) -> float:
+    for f in rep["files"]:
+        if ep_of.get(f["path"]) == e:
+            return f["duration_s"] or 0.0
+    return 0.0
