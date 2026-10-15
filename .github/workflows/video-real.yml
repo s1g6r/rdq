@@ -1,0 +1,30 @@
+name: video-real
+
+# Run by hand from the Actions tab: rdq check-video on real robot camera footage from public
+# LeRobot datasets, plus two known copies of one episode. Results appear as annotations on the
+# run and as an artifact. Nothing is written back to the Hub.
+on:
+  workflow_dispatch:
+
+jobs:
+  check-video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[video]"
+      - run: ffmpeg -version | head -1
+      - name: Check real robot footage
+        run: python experiments/video_real.py --out vreal
+      - run: cat vreal/summary.txt >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: video-real
+          path: |
+            vreal/report.json
+            vreal/report.html
+            vreal/summary.txt
