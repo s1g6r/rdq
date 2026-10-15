@@ -356,7 +356,11 @@ def decode_pass(path: Path) -> dict:
         dark_l.append(float((g < DARK_LEVEL).mean()))
         g16 = g.astype(np.int16)
         mad_l.append(float(np.abs(g16 - prev).mean() / 255) if prev is not None else np.nan)
-        ident_l.append(bool(prev_id is not None and np.array_equal(gid, prev_id)))
+        # a repeated frame: the same picture re-encoded comes back with tiny refinements on a handful of
+        # pixels, so "identical" means no more than 0.05% of pixels differ by more than 2 grey levels
+        # (sensor noise alone changes far more than that between two real frames)
+        ident_l.append(bool(prev_id is not None and prev_id.shape == gid.shape and
+                            np.count_nonzero(cv2.absdiff(gid, prev_id) > 2) <= 0.0005 * gid.size))
         if i % BLUR_EVERY == 0:
             lap_t.append(t)
             lv = float(cv2.Laplacian(g, cv2.CV_64F).var())
@@ -805,7 +809,8 @@ def _band_candidates(store: dict[str, dict], max_bucket: int = 500, min_votes: i
 
 
 DUP_NORM_DIFF = 0.45     # normalised thumbnail difference below which aligned frames are the same footage
-DUP_MOTION_CORR = 0.5    # correlation of frame-to-frame changes above which aligned runs are the same recording
+DUP_MOTION_CORR = 0.75   # correlation of frame-to-frame changes above which aligned runs are the same recording
+                         # (real robot footage: copies 0.90-0.94; other takes of the same task, same camera: at most 0.55)
 DUP_LOW_MOTION = 0.4     # grey levels; below this there is too little movement to compare changes
 DUP_STILL_FG_CORR = 0.85
 
