@@ -872,8 +872,8 @@ def _band_candidates(store: dict[str, dict], max_bucket: int = 500, min_votes: i
 
 
 DUP_NORM_DIFF = 0.45     # normalised thumbnail difference below which aligned frames are the same footage
-DUP_MOTION_CORR = 0.75   # correlation of frame-to-frame changes above which aligned runs are the same recording
-                         # (real robot footage: copies 0.90-0.94; other takes of the same task, same camera: at most 0.55)
+DUP_MOTION_CORR = 0.8    # correlation of frame-to-frame changes above which aligned runs are the same recording
+                         # (real robot footage: copies 0.88-0.94; other takes of the same task, same camera: up to 0.70)
 DUP_LOW_MOTION = 0.4     # grey levels; below this there is too little movement to compare changes
 DUP_STILL_FG_CORR = 0.85
 
