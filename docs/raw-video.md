@@ -96,7 +96,7 @@ re-encoded, cut, mirrored and brightened, or converted to 25 fps).
 
 Copies include every mode (re-encoded at lower resolution, cut, mirrored and brightened, 25 fps), and
 the truncated file was caught in every seed. The usable-hours estimate is slightly optimistic because
-span edges are found up to about a second late. Analysis took 2.4-3.1 s per minute of video on 2
+span edges are found up to about a second late. Analysis took about 2.4 s per minute of video on 2
 cores. Results: `experiments/results/video_benchmark_seed*.json`.
 
 **Many takes of one scene** (`experiments/video_scale.py`): 80 takes of one task from one fixed

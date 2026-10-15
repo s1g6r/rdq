@@ -75,9 +75,9 @@
     "clips_per_contributor": 8,
     "seconds_per_clip": 20.0,
     "seed": 0,
-    "render_s": 206.8,
-    "analysis_s": 34.2,
-    "analysis_s_per_video_minute": 2.55,
+    "render_s": 205.2,
+    "analysis_s": 32.1,
+    "analysis_s_per_video_minute": 2.39,
     "workers": 2
   }
 }
