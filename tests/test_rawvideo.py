@@ -137,3 +137,14 @@ def test_cli_writes_reports(delivery, tmp_path, capsys):
     assert "Video delivery report" in (tmp_path / "r.html").read_text()
     assert "truncated.mp4" in (tmp_path / "r.csv").read_text()
     assert "usable" in capsys.readouterr().out
+
+
+def test_takes_in_one_fixed_scene_are_not_copies_but_an_off_grid_cut_is(tmp_path):
+    # four takes of one scene from a fixed camera share every background pixel; only movement differs
+    for k in range(3):
+        sv.render_clip(tmp_path / f"take{k}.mp4", sv.ClipSpec(seconds=16, seed=20 + k, scene_seed=7, static_camera=True))
+    # a mirrored cut starting 3.3 s in: its 2 fps samples fall between the original's
+    sv.reencode(tmp_path / "take1.mp4", tmp_path / "cut.mp4", trim=(3.3, 13.1), mirror=True, crf=30)
+    r = check_video_batch([str(tmp_path)], workers=1)
+    pairs = {tuple(sorted((d["a"].split("/")[-1], d["b"].split("/")[-1]))) for d in r["duplicates"]}
+    assert pairs == {("cut.mp4", "take1.mp4")}, pairs

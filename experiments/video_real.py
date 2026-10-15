@@ -125,7 +125,8 @@ def main() -> int:
     lines.append(f"DEBUG blur_threshold={dbg['blur_threshold']} sharpness_baseline={dbg['sharpness_baseline']}")
     for path, v in dbg["files"].items():
         lines.append(f"F {Path(path).parent.name[:12]}/{Path(path).stem[-10:]} lap={v['lap_p10']}/{v['lap_median']}/{v['lap_p90']} "
-                     f"chg={v['change_1s_p10']}/{v['change_1s_median']}")
+                     f"chg={v['change_1s_p10']}/{v['change_1s_median']} ratio={v['ratio_p10']}/{v['ratio_median']} "
+                     f"cam={v['camera_lap']}/{v['camera_ratio']}")
     for d in dbg["pairs"]:
         lines.append(f"P {'Y' if d['verified'] else 'n'} {Path(d['a']).parent.name[:10]}/{Path(d['a']).stem[-6:]} "
                      f"{Path(d['b']).parent.name[:10]}/{Path(d['b']).stem[-6:]} ov={d['overlap_s']} dens={d['density']} "

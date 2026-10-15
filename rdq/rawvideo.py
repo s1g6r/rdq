@@ -52,8 +52,11 @@ COVERED_STD = 8.0             # low detail: flat image ...
 COVERED_LAP = 20.0            # ... with almost no edges
 OVER_MEAN, OVER_STD = 235.0, 10.0
 LOW_LIGHT_MEAN = 45.0
-BLUR_ABS = 40.0               # Laplacian variance at 320 px below which a frame is soft
-BLUR_REL = 0.25               # ... or below this share of the batch's typical sharpness
+BLUR_REL = 0.25               # soft: Laplacian variance below this share of the camera's typical value ...
+BLUR_RATIO_REL = 0.8          # ... and fine detail relative to edges (Laplacian/gradient energy) below this share
+# Sharpness is judged against the same camera's (contributor and resolution) typical footage, never a fixed
+# number: a white wall, a smooth towel or an upscaled low-resolution camera has little fine detail yet is in
+# focus. The detail-to-edge ratio does not depend on how much texture is in view, so both must drop.
 IDLE_CHANGE = 2.0             # grey levels: 98th-percentile change of the 32x18 thumbnail over 1 s below which nothing moves
 WINDOW_S = 10.0               # idle / blur windows
 HASH_THR = 10                 # Hamming distance at which two 64-bit pHashes count as the same frame
@@ -313,7 +316,7 @@ def decode_pass(path: Path) -> dict:
     s.thread_type = "AUTO"
     tb = float(s.time_base) if s.time_base else None
     t_list, mean_l, std_l, dark_l, mad_l, ident_l = [], [], [], [], [], []
-    lap_t, lap_v = [], []
+    lap_t, lap_v, lapr_v = [], [], []
     samp = defaultdict(list)
     prev = prev_id = prev_small = None
     t0 = None
@@ -356,7 +359,11 @@ def decode_pass(path: Path) -> dict:
         ident_l.append(bool(prev_id is not None and np.array_equal(gid, prev_id)))
         if i % BLUR_EVERY == 0:
             lap_t.append(t)
-            lap_v.append(float(cv2.Laplacian(g, cv2.CV_64F).var()))
+            lv = float(cv2.Laplacian(g, cv2.CV_64F).var())
+            gf = g.astype(np.float32)
+            ge = float((cv2.Sobel(gf, cv2.CV_32F, 1, 0, ksize=3) ** 2 + cv2.Sobel(gf, cv2.CV_32F, 0, 1, ksize=3) ** 2).mean()) / 16
+            lap_v.append(lv)
+            lapr_v.append(lv / ge if ge > 1e-3 else np.nan)
         if t + 1e-6 >= t_next:
             hsm = cv2.resize(g, (256, 144), interpolation=cv2.INTER_AREA)
             sm = cv2.resize(g, (160, max(2, 160 * H // aw)), interpolation=cv2.INTER_AREA)
@@ -390,6 +397,7 @@ def decode_pass(path: Path) -> dict:
     out["ident"] = np.array(ident_l, dtype=bool)
     out["lap_t"] = np.array(lap_t)
     out["lap"] = np.array(lap_v)
+    out["lapr"] = np.array(lapr_v)
     out["samples"] = {k: (np.array(v, dtype=np.uint64) if k in ("h", "hf") else
                           (np.stack(v) if k == "thumb" and v else np.array(v))) for k, v in samp.items()}
     out["decoded_duration_s"] = float(t_list[-1] + (np.median(np.diff(t_list)) if len(t_list) > 1 else 0)) if t_list else 0.0
@@ -499,7 +507,7 @@ def change_1s(sm: dict) -> np.ndarray:
     return out
 
 
-def windowed(dec: dict, spans: dict, sharp_baseline: float) -> dict:
+def windowed(dec: dict, spans: dict, base: dict | None) -> dict:
     """Idle (static scene) and persistent blur from the 2 fps samples, each judged on a rolling
     4 s neighbourhood, kept when they last at least 5 s (idle) or 3 s (blur)."""
     sm = dec.get("samples") or {}
@@ -510,8 +518,12 @@ def windowed(dec: dict, spans: dict, sharp_baseline: float) -> dict:
                         spans.get("frozen", []))
     in_flat = np.array([any(a <= x < b for a, b in flat_spans) for x in t], dtype=bool)
     lap_t, lap = dec.get("lap_t", np.array([])), dec.get("lap", np.array([]))
-    thr = max(BLUR_ABS, BLUR_REL * sharp_baseline) if sharp_baseline else BLUR_ABS
-    lap_at = np.interp(t, lap_t, lap) if len(lap) else np.full(len(t), np.inf)
+    lapr = dec.get("lapr", np.full(len(lap), np.nan))
+    base = base or {}
+    thr = BLUR_REL * base["lap"] if base.get("lap") else 0.0
+    rthr = BLUR_RATIO_REL * base["ratio"] if base.get("ratio") else np.inf
+    soft_frame = (lap < thr) & ~(np.nan_to_num(lapr, nan=np.inf) >= rthr) if len(lap) else np.zeros(0, bool)
+    soft_at = (np.interp(t, lap_t, soft_frame.astype(float)) > 0.5) if len(lap) else np.zeros(len(t), bool)
     fg = sm["flow_g"]
     chg = change_1s(sm)
     static = np.zeros(len(t), bool)
@@ -525,7 +537,7 @@ def windowed(dec: dict, spans: dict, sharp_baseline: float) -> dict:
         g_ = np.nanmedian(fg[m]) if np.isfinite(fg[m]).any() else np.nan
         c_ = np.nanmedian(chg[m]) if np.isfinite(chg[m]).any() else np.nan
         static[k] = bool(np.isfinite(c_) and c_ < IDLE_CHANGE)
-        soft[k] = bool(np.mean(lap_at[m] < thr) >= 0.6)
+        soft[k] = bool(np.mean(soft_at[m]) >= 0.6)
         moving[k] = bool(np.isfinite(g_) and g_ > 1.0)
     dt = 1.0 / SAMPLE_FPS
     dur = dec.get("decoded_duration_s") or float(t[-1] + dt)
@@ -533,14 +545,14 @@ def windowed(dec: dict, spans: dict, sharp_baseline: float) -> dict:
     idle = clip(runs(t, static & ~in_flat, 5.0, dt))
     blur = clip(runs(t, soft & ~moving & ~in_flat, 3.0, dt))
     motion_blur = _span_len(runs(t, soft & moving & ~in_flat, 3.0, dt))
-    return {"idle": idle, "blur": blur, "motion_blur_s": motion_blur, "blur_threshold": thr}
+    return {"idle": idle, "blur": blur, "motion_blur_s": motion_blur, "blur_threshold": thr, "ratio_threshold": rthr}
 
 
 def _merge(spans):
     return _union(spans)
 
 
-def file_issues(rec: dict, spec: Spec, sharp_baseline: float) -> tuple[list[Issue], dict]:
+def file_issues(rec: dict, spec: Spec, sharp_baseline: dict | None) -> tuple[list[Issue], dict]:
     """Findings for one file and its usable-time accounting."""
     issues: list[Issue] = []
     meta, ts, dec = rec.get("meta") or {}, rec.get("ts") or {}, rec.get("dec") or {}
@@ -1136,18 +1148,25 @@ def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, 
     for r in records:
         r["contributor"] = contributor_of(Path(r["path"]), root, mapping, by_folder)
 
-    # batch-relative sharpness: median of each file's sharper half, so blurry files don't set the bar
-    file_sharp = []
+    # typical sharpness per camera (contributor and resolution): the median over its files of each file's
+    # median, so a few blurry files or blurry stretches don't set the bar
+    groups: dict = defaultdict(lambda: {"lap": [], "ratio": []})
+    gkey = {}
     for r in records:
-        lap = (r.get("dec") or {}).get("lap")
+        dec, m = r.get("dec") or {}, r.get("meta") or {}
+        gkey[r["path"]] = (r["contributor"], m.get("width"), m.get("height"))
+        lap, lapr = dec.get("lap"), dec.get("lapr")
         if lap is not None and len(lap) >= 5:
-            top = np.sort(lap)[len(lap) // 2:]
-            file_sharp.append(float(np.median(top)))
-    sharp_baseline = float(np.median(file_sharp)) if file_sharp else 0.0
+            groups[gkey[r["path"]]]["lap"].append(float(np.median(lap)))
+            if lapr is not None and np.isfinite(lapr).any():
+                groups[gkey[r["path"]]]["ratio"].append(float(np.nanmedian(lapr)))
+    bases = {k: {"lap": float(np.median(v["lap"])) if v["lap"] else 0.0,
+                 "ratio": float(np.median(v["ratio"])) if v["ratio"] else 0.0} for k, v in groups.items()}
+    sharp_baseline = float(np.median([b["lap"] for b in bases.values()])) if bases else 0.0
 
     files_out = []
     for r in records:
-        issues, acct = file_issues(r, spec, sharp_baseline)
+        issues, acct = file_issues(r, spec, bases.get(gkey[r["path"]]))
         files_out.append({"record": r, "issues": issues, "acct": acct})
 
     # batch outliers (bitrate per pixel, duration) and re-encode hints
@@ -1310,14 +1329,14 @@ def check_video_batch(paths: list[str], *, contributors_csv: str | None = None, 
             "timing": {k: v for k, v in (fo["record"].get("ts") or {}).items() if k not in ("gap_spans", "stream_hash")},
             "issues": [i.to_dict() for i in sorted(fo["issues"], key=lambda i: (["critical", "warning", "info"].index(i.severity), -i.seconds))],
         } for fo in files_out],
-        **({"debug": _debug_info(files_out, dbg_pairs, sharp_baseline)} if debug else {}),
+        **({"debug": _debug_info(files_out, dbg_pairs, sharp_baseline, bases, gkey)} if debug else {}),
         "_records": records,
         "_store": store,
         "_history": history,
     }
 
 
-def _debug_info(files_out: list, pairs: list, sharp_baseline: float) -> dict:
+def _debug_info(files_out: list, pairs: list, sharp_baseline: float, bases: dict, gkey: dict) -> dict:
     """Raw measurements behind the findings, for tuning thresholds on new footage."""
     def num(x):
         return round(float(x), 3) if isinstance(x, (int, float, np.floating, np.integer)) and not isinstance(x, bool) else x
@@ -1334,8 +1353,12 @@ def _debug_info(files_out: list, pairs: list, sharp_baseline: float) -> dict:
             "lap_p90": num(np.percentile(lap, 90)) if lap is not None and len(lap) else None,
             "change_1s_median": num(np.nanmedian(chg)) if np.isfinite(chg).any() else None,
             "change_1s_p10": num(np.nanpercentile(chg, 10)) if np.isfinite(chg).any() else None,
+            "ratio_p10": num(np.nanpercentile(dec["lapr"], 10)) if dec.get("lapr") is not None and np.isfinite(dec["lapr"]).any() else None,
+            "ratio_median": num(np.nanmedian(dec["lapr"])) if dec.get("lapr") is not None and np.isfinite(dec["lapr"]).any() else None,
+            "camera_lap": num((bases.get(gkey.get(fo["record"]["path"])) or {}).get("lap", 0)),
+            "camera_ratio": num((bases.get(gkey.get(fo["record"]["path"])) or {}).get("ratio", 0)),
         }
-    return {"sharpness_baseline": num(sharp_baseline), "blur_threshold": num(max(BLUR_ABS, BLUR_REL * sharp_baseline)),
+    return {"sharpness_baseline": num(sharp_baseline), "blur_threshold": num(BLUR_REL * sharp_baseline),
             "files": files, "pairs": [{k: num(v) for k, v in d.items()} for d in (pairs or [])]}
 
 
