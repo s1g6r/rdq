@@ -74,17 +74,10 @@ def main() -> int:
             row["error"] = (p.stderr or p.stdout)[-300:]
         rows.append(row)
         print(json.dumps(row), flush=True)
+        if os.environ.get("GITHUB_ACTIONS"):      # one annotation per dataset, as it finishes (a timeout keeps the rest)
+            print(f"::notice title=vfull-{len(rows)}::" + json.dumps(row, separators=(",", ":"))[:3800].replace("%", "%25"),
+                  flush=True)
     (out / "summary.json").write_text(json.dumps(rows, indent=1))
-    if os.environ.get("GITHUB_ACTIONS"):
-        lines = [json.dumps(r, separators=(",", ":")) for r in rows]
-        chunk, k = [], 0
-        for ln in lines:
-            chunk.append(ln.replace("%", "%25"))
-            if sum(len(x) + 3 for x in chunk) > 3000:
-                print(f"::notice title=vfull-{k}::" + " %0A".join(chunk))
-                chunk, k = [], k + 1
-        if chunk:
-            print(f"::notice title=vfull-{k}::" + " %0A".join(chunk))
     return 0
 
 
