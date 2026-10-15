@@ -1096,7 +1096,9 @@ def find_duplicates(records: list[dict], history: dict | None = None, debug: lis
             res = dict(res, start_a=res["start_b"], start_b=res["start_a"], offset_s=-res["offset_s"])
         out.append(dict(kind=kind, a=a, b=b, overlap_s=round(res["overlap_s"], 1), share_of_shorter=round(frac, 2),
                         offset_s=res["offset_s"], start_a=res["start_a"], start_b=res["start_b"],
-                        mirrored=res["mirrored"], evidence=dict(density=res["density"], norm_diff=res["norm_diff"])))
+                        mirrored=res["mirrored"], evidence=dict(density=res["density"], norm_diff=res["norm_diff"],
+                                                                            motion_corr=res.get("motion_corr"),
+                                                                            foreground_corr=res.get("foreground_corr"))))
     for path, s in store.items():
         res = align(s, s, same_file=True)
         if debug is not None and res:
@@ -1104,7 +1106,9 @@ def find_duplicates(records: list[dict], history: dict | None = None, debug: lis
         if _verified(res) and res["overlap_s"] >= 10:
             out.append(dict(kind="loop_within_file", a=path, b=path, overlap_s=round(res["overlap_s"], 1),
                             start_a=res["start_a"], start_b=res["start_b"], offset_s=res["offset_s"],
-                            mirrored=res["mirrored"], evidence=dict(density=res["density"], norm_diff=res["norm_diff"])))
+                            mirrored=res["mirrored"], evidence=dict(density=res["density"], norm_diff=res["norm_diff"],
+                                                                            motion_corr=res.get("motion_corr"),
+                                                                            foreground_corr=res.get("foreground_corr"))))
     return out
 
 

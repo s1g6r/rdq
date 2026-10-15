@@ -191,6 +191,7 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
     if max_episodes:
         eps = eps[:max_episodes]
     out: list[Finding] = []
+    dup_pairs: dict[tuple[int, int], list[dict]] = {}
     for vkey in (cameras or ds.video_keys):
         segs, missing = [], {}
         for ep in eps:
@@ -252,20 +253,40 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
                                f"camera '{vkey}': video for {_eps(len(decode_err))} is missing, can't be decoded or ends early",
                                episodes=sorted(decode_err), details={"video_key": vkey,
                                                                      "errors": {str(k): v for k, v in list(decode_err.items())[:20]}}))
-        copies, pairs = [], []
         for d in rep["duplicates"]:
             if d["kind"] == "loop_within_file":
                 continue
             a, b = ep_of.get(d["a"]), ep_of.get(d["b"])
             if a is None or b is None:
                 continue
-            copies.append(b)
-            pairs.append({"original": a, "copy": b, "kind": d["kind"], "overlap_s": d.get("overlap_s")})
-        if copies:
-            out.append(Finding("video.duplicate_episode", WARNING,
-                               f"camera '{vkey}': {_eps(len(set(copies)))} repeat footage from another episode "
-                               "(the same movements at the same moments; often a merge or upload mistake)",
-                               episodes=sorted(set(copies)), details={"video_key": vkey, "pairs": pairs[:50]}))
+            ev = d.get("evidence") or {}
+            dup_pairs.setdefault((a, b), []).append({"camera": vkey, "kind": d["kind"], "overlap_s": d.get("overlap_s"),
+                                                     "share_of_shorter": d.get("share_of_shorter"),
+                                                     "motion_corr": ev.get("motion_corr")})
+    # A duplicated episode is duplicated in every camera (they record together). A match in one camera of
+    # a multi-camera dataset, or one covering a small part of the episode, is only a lead.
+    n_cams = len(cameras or ds.video_keys)
+    confirmed, leads = [], []
+    for (a, b), hits in sorted(dup_pairs.items()):
+        cams = {h["camera"] for h in hits}
+        share = max((h.get("share_of_shorter") or (1.0 if h["kind"] in rv.STRONG_DUP else 0.0)) for h in hits)
+        entry = {"original": a, "copy": b, "cameras": sorted(cams), "kind": hits[0]["kind"],
+                 "overlap_s": max((h.get("overlap_s") or 0) for h in hits), "share_of_shorter": share,
+                 "motion_corr": max((h.get("motion_corr") or 0) for h in hits)}
+        if (len(cams) >= min(2, n_cams)) and share >= 0.5:
+            confirmed.append(entry)
+        else:
+            leads.append(entry)
+    if confirmed:
+        eps_c = sorted({e["copy"] for e in confirmed})
+        out.append(Finding("video.duplicate_episode", WARNING,
+                           f"{_eps(len(eps_c))} repeat footage from another episode in every camera checked "
+                           "(the same movements at the same moments; often a merge or upload mistake)",
+                           episodes=eps_c, details={"pairs": confirmed[:50]}))
+    if leads:
+        out.append(Finding("video.possible_duplicate", INFO,
+                           f"{len(leads)} pair(s) of episodes share a stretch of matching footage in one camera only, "
+                           "or over less than half an episode; worth a look, not counted", details={"pairs": leads[:50]}))
     return out
 
 
