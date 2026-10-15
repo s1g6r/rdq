@@ -49,10 +49,13 @@ def main() -> int:
     ap.add_argument("--out", default="vfull")
     ap.add_argument("--auto", type=int, default=0)
     ap.add_argument("--max-mb", type=float, default=600)
+    ap.add_argument("--shard", default="0/1", help="k/n: check every n-th dataset starting at k (parallel jobs)")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     ids = list(args.datasets) + (pick_auto(args.auto, args.max_mb) if args.auto else [])
+    k, n = (int(x) for x in args.shard.split("/"))
+    ids = ids[k::n]
     print("::notice title=datasets::" + " ".join(ids))
     rows = []
     for ds in ids:
@@ -75,7 +78,7 @@ def main() -> int:
         rows.append(row)
         print(json.dumps(row), flush=True)
         if os.environ.get("GITHUB_ACTIONS"):      # one annotation per dataset, as it finishes (a timeout keeps the rest)
-            print(f"::notice title=vfull-{len(rows)}::" + json.dumps(row, separators=(",", ":"))[:3800].replace("%", "%25"),
+            print(f"::notice title=vfull-{k}-{len(rows)}::" + json.dumps(row, separators=(",", ":"))[:3800].replace("%", "%25"),
                   flush=True)
     (out / "summary.json").write_text(json.dumps(rows, indent=1))
     return 0

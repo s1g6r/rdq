@@ -22,6 +22,10 @@ jobs:
   vfull:
     runs-on: ubuntu-latest
     timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,4 +37,4 @@ jobs:
           DATASETS: ${{ github.event.inputs.datasets }}
           AUTO: ${{ github.event.inputs.auto }}
           MAXMB: ${{ github.event.inputs.max_mb }}
-        run: python experiments/video_full_hub.py --out vfull --auto "${AUTO:-0}" --max-mb "${MAXMB:-600}" $DATASETS
+        run: python experiments/video_full_hub.py --out vfull --auto "${AUTO:-0}" --max-mb "${MAXMB:-600}" --shard "${{ matrix.shard }}/5" $DATASETS
