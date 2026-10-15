@@ -5,6 +5,15 @@ name: video-real
 # run and as an artifact. Nothing is written back to the Hub.
 on:
   workflow_dispatch:
+    inputs:
+      datasets:
+        description: "space-separated LeRobot dataset ids (empty = the default tuning set)"
+        required: false
+        default: ""
+      copy_from:
+        description: "index of the dataset whose second episode gets the planted copies"
+        required: false
+        default: "0"
 
 jobs:
   check-video:
@@ -18,7 +27,10 @@ jobs:
       - run: pip install -e ".[video]"
       - run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg && ffmpeg -version | head -1
       - name: Check real robot footage
-        run: python experiments/video_real.py --out vreal
+        env:
+          DATASETS: ${{ github.event.inputs.datasets }}
+          COPY_FROM: ${{ github.event.inputs.copy_from }}
+        run: python experiments/video_real.py --out vreal ${DATASETS:+--datasets $DATASETS} --copy-from "${COPY_FROM:-0}"
       - run: cat vreal/summary.txt >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()

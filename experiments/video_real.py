@@ -71,11 +71,14 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="vreal")
     ap.add_argument("--per-dataset", type=int, default=6)
+    ap.add_argument("--datasets", nargs="*", default=None, help="replace the default dataset list (e.g. a held-out set)")
+    ap.add_argument("--copy-from", type=int, default=0, help="which dataset's second episode gets the planted copies")
     args = ap.parse_args()
+    datasets = args.datasets or DATASETS
     root = Path(args.out) / "delivery"
     root.mkdir(parents=True, exist_ok=True)
     got = {}
-    for repo in DATASETS:
+    for repo in datasets:
         d = root / repo.split("/")[1]
         d.mkdir(exist_ok=True)
         try:
@@ -86,7 +89,8 @@ def main() -> int:
         print(f"{repo}: {len(got[repo])} files", file=sys.stderr)
     print("::notice title=fetched::" + " ".join(f"{r.split('/')[1]}={len(v)}" for r, v in got.items()))
     # two known copies of one real episode, filed under another "contributor"
-    src = next((fs[1] for fs in got.values() if len(fs) > 1), None)
+    cands = [fs[1] for fs in got.values() if len(fs) > 1]
+    src = cands[min(args.copy_from, len(cands) - 1)] if cands else None
     if src:
         cp = root / "copier"
         cp.mkdir(exist_ok=True)
