@@ -59,7 +59,7 @@ def main() -> int:
         chunk, k = [], 0
         for ln in lines:
             chunk.append(ln.replace("%", "%25"))
-            if sum(len(x) + 3 for x in chunk) > 9000:
+            if sum(len(x) + 3 for x in chunk) > 3000:
                 print(f"::notice title=leboard-p{part}-{k}::" + " %0A".join(chunk))
                 chunk, k = [], k + 1
         if chunk:
