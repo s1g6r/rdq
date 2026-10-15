@@ -315,7 +315,7 @@ def decode_pass(path: Path) -> dict:
     s = c.streams.video[0]
     s.thread_type = "AUTO"
     tb = float(s.time_base) if s.time_base else None
-    t_list, mean_l, std_l, dark_l, mad_l, ident_l = [], [], [], [], [], []
+    t_list, mean_l, std_l, dark_l, mad_l, ident_l, exact_l = [], [], [], [], [], [], []
     lap_t, lap_v, lapr_v = [], [], []
     samp = defaultdict(list)
     prev = prev_id = prev_small = None
@@ -359,8 +359,10 @@ def decode_pass(path: Path) -> dict:
         # a repeated frame: the same picture re-encoded comes back with tiny refinements on a handful of
         # pixels, so "identical" means no more than 0.05% of pixels differ by more than 2 grey levels
         # (sensor noise alone changes far more than that between two real frames)
-        ident_l.append(bool(prev_id is not None and prev_id.shape == gid.shape and
-                            np.count_nonzero(cv2.absdiff(gid, prev_id) > 2) <= 0.0005 * gid.size))
+        same = prev_id is not None and prev_id.shape == gid.shape
+        dif = cv2.absdiff(gid, prev_id) if same else None
+        ident_l.append(bool(same and np.count_nonzero(dif > 2) <= 0.0005 * gid.size))
+        exact_l.append(bool(same and not dif.any()))
         if i % BLUR_EVERY == 0:
             lap_t.append(t)
             lv = float(cv2.Laplacian(g, cv2.CV_64F).var())
@@ -399,6 +401,7 @@ def decode_pass(path: Path) -> dict:
     out["dark"] = np.array(dark_l)
     out["mad"] = np.array(mad_l)
     out["ident"] = np.array(ident_l, dtype=bool)
+    out["exact"] = np.array(exact_l, dtype=bool)
     out["lap_t"] = np.array(lap_t)
     out["lap"] = np.array(lap_v)
     out["lapr"] = np.array(lapr_v)
@@ -464,6 +467,22 @@ def measure_file(path: str) -> dict:
 # Turning measurements into findings
 
 
+def _frozen_runs(t, near, exact, dt) -> list[tuple[float, float]]:
+    """Runs of repeated frames. A stalled camera's frames come back bit-identical much of the time (the
+    encoder only refines a few pixels); a still scene recorded live is near-identical after compression
+    but almost never bit-identical, and is reported as idle instead. So a run of near-identical frames
+    counts as frozen when at least a quarter of its frames are exact repeats."""
+    spans = runs(t, near, 1.0, dt)
+    if exact is None or not len(exact):
+        return spans
+    keep = []
+    for a, b in spans:
+        m = (t >= a) & (t < b)
+        if m.any() and exact[m].mean() >= 0.25:
+            keep.append((a, b))
+    return keep
+
+
 def content_spans(dec: dict) -> dict:
     """Black, covered, over-exposed, frozen and low-light spans from per-frame stats."""
     t = dec.get("t")
@@ -481,7 +500,7 @@ def content_spans(dec: dict) -> dict:
         "black": runs(t, black_f, 0.5, dt),
         "covered": runs(t, covered_f, 1.0, dt),
         "overexposed": runs(t, over_f, 1.0, dt),
-        "frozen": runs(t, ident, 1.0, dt),
+        "frozen": _frozen_runs(t, ident, dec.get("exact"), dt),
         "low_light_share": float(np.mean((dec["mean"] < LOW_LIGHT_MEAN) & ~flat)),
         "flat_frames": flat,
     }
