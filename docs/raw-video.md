@@ -164,6 +164,21 @@ Two rules specific to datasets:
   groups with different backgrounds (the median of each episode's thumbnails). rdq reports the groups and
   judges sharpness within each viewpoint, so a new framing is not mistaken for blur.
 
+**On the Hub (October 2026).** `--video-full` on 20 datasets (2 from the lerobot org and the 18
+most-downloaded community datasets with videos under 600 MB, about 5,000 episodes). What held up after
+looking at the frames:
+
+| Dataset | Finding | How it was checked |
+|---|---|---|
+| IPEC-COMMUNITY/nyu_franka_play_dataset_lerobot | the second camera repeats frames for 1.3-1.8 s at the start of 6 episodes while the main camera moves | frame differences recomputed in the browser; a control episode is clean |
+| EPITECH-LILLE/eval_training | the camera was moved after episode 19 (two viewpoints in one dataset) | frames seen side by side |
+| cloudwalk-research/gr00t-g1-grab-bottle-right-hand-v11 | episodes 342, 350, 351 nearly repeat 343 and 349: 5 s clips of the floor with no task in them | frames seen side by side |
+
+Three false alarms surfaced on the way and were fixed before these results: duplicates matched in one camera
+only (now leads), duplicates accepted on matching foregrounds in slow play data (CMU Play Fusion; now the
+movement must match too), and a moved camera reported as blur (now a viewpoint change). The other datasets
+had no warnings. Results: `experiments/video_full_hub.py` and the `video-full-hub` workflow.
+
 ## Limits
 
 - A contributor whose camera is blurry all the time is compared with its own norm, so that blur is
