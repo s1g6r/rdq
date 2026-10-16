@@ -6,6 +6,8 @@
 2. **Is anything broken?** It finds desynced streams, frozen logs, glitches, idle padding, duplicates, stale normalisation stats, schema errors and (optionally) bad camera footage.
 3. **Which episodes are worth training on?** It ranks episodes with training-free quality scores from the curation literature, and it says honestly where those scores help and where they don't.
 
+**What it found on the Hub (October 2026):** [docs/findings-2026-10.md](docs/findings-2026-10.md)
+
 **Try the licence check in your browser, no install:** [huggingface.co/spaces/rs1g6r/rdq](https://huggingface.co/spaces/rs1g6r/rdq)
 
 It reads tables, not videos (unless you ask), and runs on a laptop for typical datasets: about 1.4 GB of memory for 600,000 frames. For DROID-scale corpora, audit a sample of episodes.
