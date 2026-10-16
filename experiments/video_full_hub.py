@@ -68,8 +68,12 @@ def main() -> int:
         if j.exists():
             r = json.loads(j.read_text())
             row["episodes"] = (r.get("dataset") or {}).get("episodes") or (r.get("counts") or {}).get("episodes")
-            row["video"] = {f["check"]: f.get("episodes", [])[:30] for f in r.get("findings", [])
-                            if f["check"].startswith("video.")}
+            row["video"] = {f["check"] + (":" + f["details"]["video_key"].split(".")[-1]
+                                          if (f.get("details") or {}).get("video_key") else ""): f.get("episodes", [])[:30]
+                            for f in r.get("findings", []) if f["check"].startswith("video.")}
+            vp = [f for f in r.get("findings", []) if f["check"] == "video.viewpoint_change"]
+            if vp:
+                row["viewpoints"] = [(f["details"]["video_key"], f["details"]["groups"]) for f in vp]
             dup = next((f for f in r.get("findings", []) if f["check"] == "video.duplicate_episode"), None)
             if dup:
                 row["dup_pairs"] = (dup.get("details") or {}).get("pairs", [])[:20]
