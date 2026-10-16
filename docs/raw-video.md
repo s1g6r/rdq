@@ -155,6 +155,15 @@ report with episode numbers, so they also drop episodes from `--filter keep.json
 `video.blur_span`, `video.idle_span` (info), `video.recording_gap`, `video.decode_error` and
 `video.duplicate_episode` (an episode whose footage repeats another's). Every camera is checked.
 
+Two rules specific to datasets:
+
+- **A duplicated episode must match in every camera** (at least two, when the dataset has two or more) and over
+  at least half the episode. Cameras record together, so a real copy shows in all of them; a match in one
+  camera, or over a small part of an episode, is reported as `video.possible_duplicate` (info, not counted).
+- **`video.viewpoint_change`**: when the camera was moved between sessions, episodes fall into contiguous
+  groups with different backgrounds (the median of each episode's thumbnails). rdq reports the groups and
+  judges sharpness within each viewpoint, so a new framing is not mistaken for blur.
+
 ## Limits
 
 - A contributor whose camera is blurry all the time is compared with its own norm, so that blur is
