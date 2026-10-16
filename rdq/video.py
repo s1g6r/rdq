@@ -226,6 +226,16 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
                 out.append(Finding("video.decode_error", CRITICAL, f"camera '{vkey}': video missing for {_eps(len(missing))}",
                                    episodes=sorted(missing), details={"video_key": vkey}))
             continue
+        views = viewpoints(records)
+        if views:
+            for r in records:
+                r["contributor"] = f"{vkey}#view{views['of'][r['episode']]}"   # sharpness is judged per viewpoint
+            out.append(Finding("video.viewpoint_change", WARNING,
+                               f"camera '{vkey}': the camera was moved between episodes, so the dataset mixes "
+                               f"{len(views['groups'])} viewpoints ({'; '.join(views['ranges'])}). A policy trained on one "
+                               "framing can fail on the other; keep the camera fixed or record enough of each.",
+                               episodes=sorted(e for g in views["groups"][1:] for e in g),
+                               details={"video_key": vkey, "groups": views["ranges"]}))
         rep = rv.check_video_batch([], records=records, workers=1)
         ep_of = {r["path"]: r["episode"] for r in records}
         by_check: dict[str, dict[int, float]] = {}
@@ -289,6 +299,45 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
                            f"{len(leads)} pair(s) of episodes share a stretch of matching footage in one camera only, "
                            "or over less than half an episode; worth a look, not counted", details={"pairs": leads[:50]}))
     return out
+
+
+VIEW_SAME_CORR = 0.6     # correlation of two episodes' background thumbnails above which they share a viewpoint
+
+
+def viewpoints(records: list[dict]) -> dict | None:
+    """Groups of episodes filmed from clearly different camera positions. Each episode's background is the
+    median of its 2 fps thumbnails (what stays put while the arm moves). Episodes join the group whose first
+    episode's background they correlate with best, if that correlation is at least 0.6. Reported only when the groups are few, each holds at least
+    three episodes and a tenth of the dataset, and each is a contiguous run of episode numbers (a camera
+    moved between sessions); a hand-held or wrist camera scatters into many small groups and is left alone."""
+    bgs = {}
+    for r in records:
+        th = ((r.get("dec") or {}).get("samples") or {}).get("thumb")
+        if th is not None and len(th) >= 4:
+            b = np.median(th.astype(np.float32), axis=0).ravel()
+            b = (b - b.mean()) / (b.std() + 1e-6)
+            bgs[r["episode"]] = b
+    if len(bgs) < 6:
+        return None
+    groups: list[list[int]] = []
+    heads: list[np.ndarray] = []
+    for e in sorted(bgs):
+        cs = [float(np.mean(bgs[e] * h)) for h in heads]
+        if cs and max(cs) >= VIEW_SAME_CORR:
+            groups[int(np.argmax(cs))].append(e)
+        else:
+            groups.append([e])
+            heads.append(bgs[e])
+    big = [g for g in groups if len(g) >= max(3, 0.1 * len(bgs))]
+    if len(big) < 2 or len(groups) > 4 or sum(len(g) for g in big) < 0.9 * len(bgs):
+        return None
+    eps_sorted = sorted(bgs)
+    for g in big:   # contiguous in episode order (allowing the episodes we could not measure)
+        lo, hi = eps_sorted.index(g[0]), eps_sorted.index(g[-1])
+        if hi - lo + 1 != len(g):
+            return None
+    of = {e: k for k, g in enumerate(groups) for e in g}
+    return {"groups": big, "of": of, "ranges": [f"episodes {g[0]}-{g[-1]}" for g in big]}
 
 
 def _dur(rep: dict, ep_of: dict, e: int) -> float:

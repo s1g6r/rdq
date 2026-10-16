@@ -52,6 +52,7 @@ def test_defects_land_on_the_right_episodes(findings):
     assert findings["video.frozen_span"].episodes == [3]
     assert findings["video.black_span"].episodes == [6]
     assert "video.decode_error" not in findings
+    assert "video.viewpoint_change" not in findings      # one fixed camera throughout
 
 
 def test_duplicated_episode_is_found_and_other_takes_are_not(findings):
@@ -65,3 +66,25 @@ def test_cli_flag(dataset, tmp_path):
 
     main(["check", str(dataset), "--video-full", "--json", str(tmp_path / "r.json"), "--no-color"])
     assert "video.duplicate_episode" in (tmp_path / "r.json").read_text()
+
+
+def test_camera_moved_between_sessions(tmp_path):
+    eps = syn.make_episodes(8, length=FPS * 6)
+    root = syn.write_dataset(tmp_path / "ds", eps, fps=FPS)
+    clips = tmp_path / "clips"
+    clips.mkdir()
+    paths = []
+    for k in range(8):   # episodes 0-3 from one camera position, 4-7 from another
+        spec = sv.ClipSpec(seconds=(len(eps[k]["action"]) + 0.5) / FPS, fps=FPS, width=320, height=180, seed=200 + k,
+                           scene_seed=1 if k < 4 else 2, static_camera=True)
+        sv.render_clip(clips / f"ep{k}.mp4", spec)
+        paths.append(clips / f"ep{k}.mp4")
+    lst = clips / "list.txt"
+    lst.write_text("".join(f"file '{p}'\n" for p in paths))
+    out = root / "videos/observation.images.front/chunk-000/file-000.mp4"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(out)],
+                   check=True)
+    found = {f.check: f for f in check_videos_full(load_dataset(root), workers=1)}
+    assert found["video.viewpoint_change"].details["groups"] == ["episodes 0-3", "episodes 4-7"]
+    assert "video.blur_span" not in found
