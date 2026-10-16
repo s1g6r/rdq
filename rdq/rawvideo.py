@@ -931,7 +931,8 @@ DUP_NORM_DIFF = 0.45     # normalised thumbnail difference below which aligned f
 DUP_MOTION_CORR = 0.8    # correlation of frame-to-frame changes above which aligned runs are the same recording
                          # (real robot footage: copies 0.88-0.94; other takes of the same task, same camera: up to 0.70)
 DUP_LOW_MOTION = 0.4     # grey levels; below this there is too little movement to compare changes
-DUP_STILL_FG_CORR = 0.85
+DUP_STILL_FG_CORR = 0.9
+DUP_LOW_MOTION_CORR = 0.6
 
 
 FINE_FPS = 6.0           # grid for the frame-accurate re-check of candidate pairs
@@ -1027,8 +1028,11 @@ def _verified(res: dict | None) -> bool:
         return False
     if res["motion_corr"] >= DUP_MOTION_CORR:
         return True
-    # too little movement to compare changes: fall back on the foregrounds lining up
-    return res["motion"] < DUP_LOW_MOTION and res["foreground_corr"] >= DUP_STILL_FG_CORR
+    # Little movement makes the change correlation noisy, so accept a somewhat lower one when the foregrounds
+    # also line up closely. Never on foregrounds alone: slow play data from one fixed camera has long stretches
+    # whose foregrounds match across different episodes (CMU Play Fusion: change correlation 0.3-0.45).
+    return (res["motion"] < DUP_LOW_MOTION and res["motion_corr"] >= DUP_LOW_MOTION_CORR
+            and res["foreground_corr"] >= DUP_STILL_FG_CORR)
 
 
 def find_duplicates(records: list[dict], history: dict | None = None, debug: list | None = None) -> list[dict]:
