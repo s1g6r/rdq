@@ -170,7 +170,7 @@ looking at the frames:
 
 | Dataset | Finding | How it was checked |
 |---|---|---|
-| IPEC-COMMUNITY/nyu_franka_play_dataset_lerobot | the second camera repeats frames for 1.3-1.8 s at the start of 6 episodes while the main camera moves | frame differences recomputed in the browser; a control episode is clean |
+| IPEC-COMMUNITY/nyu_franka_play_dataset_lerobot | the second camera repeats frames for 1.3-1.8 s at the start of 6 episodes while the main camera moves | frame differences recomputed in the browser for 4 of the 6; a control episode is clean |
 | EPITECH-LILLE/eval_training | the camera was moved after episode 19 (two viewpoints in one dataset) | frames seen side by side |
 | cloudwalk-research/gr00t-g1-grab-bottle-right-hand-v11 | episodes 342, 350, 351 nearly repeat 343 and 349: 5 s clips of the floor with no task in them | frames seen side by side |
 
