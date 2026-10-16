@@ -165,7 +165,7 @@ Two rules specific to datasets:
   judges sharpness within each viewpoint, so a new framing is not mistaken for blur.
 
 **On the Hub (October 2026).** `--video-full` on 20 datasets (2 from the lerobot org and the 18
-most-downloaded community datasets with videos under 600 MB, about 5,000 episodes). What held up after
+most-downloaded community datasets with videos under 600 MB, about 4,600 episodes). What held up after
 looking at the frames:
 
 | Dataset | Finding | How it was checked |
