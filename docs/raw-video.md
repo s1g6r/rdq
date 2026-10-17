@@ -164,7 +164,10 @@ Two rules specific to datasets:
   camera, or over a small part of an episode, is reported as `video.possible_duplicate` (info, not counted).
 - **`video.cameras_swapped`**: two cameras whose streams trade places in some episodes (camera devices that
   changed order between sessions, a common LeRobot recording problem): in those episodes each camera's view looks
-  like the other camera's view elsewhere, and neither looks like its own.
+  like the other camera's view elsewhere, and neither looks like its own. A swap must cover at least three
+  episodes in at most three runs of consecutive episodes (sessions); single or scattered matches come from a
+  wrist camera that happens to point at the other camera's view. On 12 public multi-camera datasets it finds the
+  one real swap (EPITECH-LILLE/eval_training, episodes 0-19, confirmed by eye) and nothing else.
 - **Simulated footage**: when the card's tags (robosuite, mujoco, isaac, robotwin, libero, ...) or the robot type say
   the data is rendered, frozen stretches are info: a renderer has no sensor noise, so a still scene repeats frames
   exactly, which in real footage only a stalled camera does.
