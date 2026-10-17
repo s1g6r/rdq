@@ -1,0 +1,29 @@
+name: diag
+
+# Run by hand: a diagnostic script from experiments/ with the given arguments (results as annotations).
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "script in experiments/"
+        required: true
+      args:
+        description: "arguments"
+        required: false
+        default: ""
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[video]" huggingface_hub
+      - run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - env:
+          SCRIPT: ${{ github.event.inputs.script }}
+          ARGS: ${{ github.event.inputs.args }}
+        run: python "experiments/$SCRIPT" $ARGS
