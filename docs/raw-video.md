@@ -181,7 +181,7 @@ looking at the frames:
 | Dataset | Finding | How it was checked |
 |---|---|---|
 | IPEC-COMMUNITY/nyu_franka_play_dataset_lerobot | the second camera repeats frames for 1.3-1.8 s at the start of 6 episodes while the main camera moves | frame differences recomputed in the browser for 4 of the 6; a control episode is clean |
-| EPITECH-LILLE/eval_training | the camera was moved after episode 19 (two viewpoints in one dataset) | frames seen side by side |
+| EPITECH-LILLE/eval_training | the two camera feeds are swapped in episodes 0-19 (gripper view stored as `front`, overhead view as `back`), and the overhead camera was moved after episode 39 | frames of both cameras seen side by side (episodes 5, 19, 20, 30, 39, 40, 50, 59) |
 | cloudwalk-research/gr00t-g1-grab-bottle-right-hand-v11 | episodes 342, 350, 351 nearly repeat 343 and 349: 5 s clips of an empty scene with no task in them. **Not a defect:** the owners confirmed these are deliberate no-bottle examples (the robot should not grasp) | frames seen side by side; owners' reply on the dataset's discussion #1 |
 
 Three false alarms surfaced on the way and were fixed before these results: duplicates matched in one camera

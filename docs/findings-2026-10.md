@@ -21,7 +21,7 @@ I also ran the check on every dataset on LeBoard, at the exact versions it pins:
 rdq can now decode every frame of every episode and look for frozen or black stretches, blur, timing gaps, a camera that was moved between sessions, and episodes that repeat another episode's footage. I ran it on 20 datasets (2 official, 18 of the most-downloaded community ones; about 4,600 episodes) and checked every flag by looking at the frames. Three held up:
 
 - a second camera that freezes for about 1.5 seconds at the start of six episodes while the main camera keeps moving;
-- a dataset where the camera was moved after episode 19, so it mixes two viewpoints;
+- a dataset whose two camera feeds are swapped in the first 20 episodes (the gripper view is stored as the front camera and the overhead view as the back one), and whose overhead camera was moved after episode 39;
 - a few 5-second episodes that show an empty scene with no task in them, nearly identical to each other.
 
 I let each dataset's owners know. The third turned out to be on purpose: the owners replied that those clips were recorded with no bottle on the table, to teach the model not to reach for one that isn't there. So that one is a feature, not a defect, and it's a useful reminder of what a checker can and can't do: rdq can tell you an episode is unusual, not why. The other two are the kind of thing nobody notices until a policy underperforms.
