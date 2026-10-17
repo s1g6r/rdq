@@ -215,3 +215,17 @@ def test_moved_camera_or_similar_views_are_not_a_swap():
     assert camera_swaps(moved) == []
     twins = {"left": {e: noisy(v1) for e in range(30)}, "right": {e: noisy(v1 * 0.9 + 10) for e in range(30)}}
     assert camera_swaps(twins) == []
+
+
+def test_cameras_swapped_when_the_other_camera_also_moved():
+    """The real EPITECH layout: 0-19 swapped; the overhead camera sits in one place for 20-39 and another for
+    40-59, and the first session's overhead view (stored as 'back') resembles the third session's."""
+    from rdq.video import camera_swaps
+
+    rng = np.random.default_rng(5)
+    gripper, over1, over2 = (rng.uniform(0, 255, (18, 32)) for _ in range(3))
+    over0 = over2 * 0.9 + rng.uniform(0, 25, (18, 32))          # session 1's overhead ~ session 3's
+    noisy = lambda v: _bg(v + rng.normal(0, 15, v.shape))  # noqa: E731
+    front = {e: noisy(gripper if e < 20 else over1 if e < 40 else over2) for e in range(60)}
+    back = {e: noisy(over0 if e < 20 else gripper) for e in range(60)}
+    assert camera_swaps({"front": front, "back": back}) == [("back", "front", list(range(20)))]

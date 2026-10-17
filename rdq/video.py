@@ -333,19 +333,20 @@ def episode_backgrounds(records: list[dict]) -> dict[int, np.ndarray]:
 
 
 def camera_swaps(cam_bgs: dict[str, dict[int, np.ndarray]]) -> list[tuple[str, str, list[int]]]:
-    """Pairs of cameras whose streams trade places in some episodes. An episode is swapped against a reference
-    episode r when camera A's view looks like B's view at r and B's looks like A's, while neither looks like its
-    own view at r. References are tried among episodes typical of each camera; the swapped set must be a
-    minority and the rest must agree with the reference."""
+    """Pairs of cameras whose streams trade places in some episodes. Against a reference episode r, an episode
+    "crosses" when one camera shows what the other camera showed at r while neither shows its own view from r
+    (the other view may have changed too, e.g. a camera that was also moved). The episodes split into those that
+    cross and those that keep r's assignment; the smaller side is reported as swapped. References are tried among
+    episodes typical of each camera, and the split must cover most episodes."""
     out = []
     cams = sorted(cam_bgs)
+    c = lambda x, y: float(np.mean(x * y))  # noqa: E731
     for i, a in enumerate(cams):
         for b in cams[i + 1:]:
             A, B = cam_bgs[a], cam_bgs[b]
             eps = sorted(set(A) & set(B))
             if len(eps) < 6:
                 continue
-            c = lambda x, y: float(np.mean(x * y))  # noqa: E731
             refs: list[int] = []
             for X in (A, B):                       # first episode of each view group, per camera
                 heads: list[int] = []
@@ -355,15 +356,21 @@ def camera_swaps(cam_bgs: dict[str, dict[int, np.ndarray]]) -> list[tuple[str, s
                 refs += heads[:6]
             best: list[int] = []
             for r in dict.fromkeys(refs):
-                sw = [e for e in eps if c(A[e], B[r]) >= SWAP_CORR and c(B[e], A[r]) >= SWAP_CORR
-                      and c(A[e], A[r]) < SWAP_CORR and c(B[e], B[r]) < SWAP_CORR]
-                same = [e for e in eps if c(A[e], A[r]) >= SWAP_CORR and c(B[e], B[r]) >= SWAP_CORR]
-                if sw and len(sw) < len(same) + 1 and len(same) >= 3 and len(sw) > len(best):
-                    best = sw
+                cross, keep = [], []
+                for e in eps:
+                    own_a, own_b = c(A[e], A[r]) >= SWAP_CORR, c(B[e], B[r]) >= SWAP_CORR
+                    if not own_a and not own_b and (c(A[e], B[r]) >= SWAP_CORR or c(B[e], A[r]) >= SWAP_CORR):
+                        cross.append(e)
+                    elif own_a or own_b:
+                        keep.append(e)
+                if not cross or len(keep) < 3 or len(cross) + len(keep) < 0.8 * len(eps):
+                    continue
+                minority = cross if len(cross) < len(keep) else keep if len(keep) < len(cross) else []
+                if minority and len(minority) > len(best):
+                    best = minority
             if best:
                 out.append((a, b, best))
     return out
-
 
 def judge_duplicates(dup_pairs: dict[tuple[int, int], list[dict]], n_cams: int) -> list[Finding]:
     """Turn per-camera matches between episode pairs into findings. A duplicated episode is duplicated in
