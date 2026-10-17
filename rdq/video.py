@@ -273,9 +273,18 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
             dup_pairs.setdefault((a, b), []).append({"camera": vkey, "kind": d["kind"], "overlap_s": d.get("overlap_s"),
                                                      "share_of_shorter": d.get("share_of_shorter"),
                                                      "motion_corr": ev.get("motion_corr")})
-    # A duplicated episode is duplicated in every camera (they record together). A match in one camera of
-    # a multi-camera dataset, or one covering a small part of the episode, is only a lead.
-    n_cams = len(cameras or ds.video_keys)
+    out += judge_duplicates(dup_pairs, len(cameras or ds.video_keys))
+    return out
+
+
+def judge_duplicates(dup_pairs: dict[tuple[int, int], list[dict]], n_cams: int) -> list[Finding]:
+    """Turn per-camera matches between episode pairs into findings. A duplicated episode is duplicated in
+    every camera (they record together). A match in one camera of a multi-camera dataset, one covering a
+    small part of the episode, or (with a single camera) one whose movements agree less than a copy's
+    would, is only a lead."""
+    from . import rawvideo as rv
+
+    out: list[Finding] = []
     confirmed, leads = [], []
     for (a, b), hits in sorted(dup_pairs.items()):
         cams = {h["camera"] for h in hits}
@@ -283,7 +292,11 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
         entry = {"original": a, "copy": b, "cameras": sorted(cams), "kind": hits[0]["kind"],
                  "overlap_s": max((h.get("overlap_s") or 0) for h in hits), "share_of_shorter": share,
                  "motion_corr": max((h.get("motion_corr") or 0) for h in hits)}
-        if (len(cams) >= min(2, n_cams)) and share >= 0.5:
+        strong = any(h["kind"] in ("identical_file", "same_stream_remuxed") for h in hits)
+        # with a single camera there is no second view to confirm a copy, and takes of one task from a wrist
+        # camera move alike; a copy from a merge or upload mistake matches almost exactly
+        single_ok = n_cams >= 2 or strong or entry["motion_corr"] >= DUP_SINGLE_CAM_CORR
+        if (len(cams) >= min(2, n_cams)) and share >= 0.5 and single_ok:
             confirmed.append(entry)
         else:
             leads.append(entry)
@@ -297,10 +310,12 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
     if leads:
         out.append(Finding("video.possible_duplicate", INFO,
                            f"{len(leads)} pair(s) of episodes share a stretch of matching footage in one camera only, "
-                           "or over less than half an episode; worth a look, not counted", details={"pairs": leads[:50]}))
+                           "or over less than half an episode, or (with a single camera) with movements that agree less than a "
+                           "copy's would; worth a look, not counted", details={"pairs": leads[:50]}))
     return out
 
 
+DUP_SINGLE_CAM_CORR = 0.9  # motion agreement a duplicate needs when the dataset has only one camera
 VIEW_SAME_CORR = 0.6     # correlation of two episodes' background thumbnails above which they share a viewpoint
 VIEW_STABLE_STD = 8.0    # a thumbnail pixel is background if it varies less than this (grey levels) within an episode
 VIEW_MIN_STABLE = 0.25   # share of pixels that must be background in both episodes to compare them

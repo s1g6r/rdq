@@ -133,3 +133,20 @@ def test_viewpoints_fixed_camera_moved_between_sessions_is_found():
 
     v = viewpoints(_records(ep))
     assert v is not None and v["ranges"] == ["episodes 0-9", "episodes 10-23"]
+
+
+def test_single_camera_needs_a_close_match_to_call_a_duplicate():
+    """berkeley_mvp (one wrist camera, 5 fps): other takes of the same grasp scored 0.80-0.85."""
+    from rdq.video import judge_duplicates
+
+    def hit(corr, kind="partial_overlap"):
+        return [{"camera": "wrist", "kind": kind, "overlap_s": 8.0, "share_of_shorter": 0.8, "motion_corr": corr}]
+
+    out = {f.check: f for f in judge_duplicates({(11, 52): hit(0.81), (3, 4): hit(0.97)}, n_cams=1)}
+    assert out["video.duplicate_episode"].episodes == [4]
+    assert [p["copy"] for p in out["video.possible_duplicate"].details["pairs"]] == [52]
+    out = {f.check for f in judge_duplicates({(1, 2): hit(0.5, "identical_file")}, n_cams=1)}
+    assert out == {"video.duplicate_episode"}
+    two = [{"camera": c, "kind": "partial_overlap", "overlap_s": 8.0, "share_of_shorter": 0.8, "motion_corr": 0.82}
+           for c in ("top", "wrist")]
+    assert {f.check for f in judge_duplicates({(5, 6): two}, n_cams=2)} == {"video.duplicate_episode"}

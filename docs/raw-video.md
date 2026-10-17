@@ -158,7 +158,8 @@ report with episode numbers, so they also drop episodes from `--filter keep.json
 Two rules specific to datasets:
 
 - **A duplicated episode must match in every camera** (at least two, when the dataset has two or more) and over
-  at least half the episode. Cameras record together, so a real copy shows in all of them; a match in one
+  at least half the episode. With a single camera there is no second view, so the movements must agree almost
+  exactly (0.9), unless the files are identical. Cameras record together, so a real copy shows in all of them; a match in one
   camera, or over a small part of an episode, is reported as `video.possible_duplicate` (info, not counted).
 - **`video.viewpoint_change`**: when the camera was moved between sessions, episodes fall into contiguous
   groups with different backgrounds (the median of each episode's thumbnails, counting only the pixels that
@@ -183,7 +184,9 @@ had no warnings. Results: `experiments/video_full_hub.py` and the `video-full-hu
 
 A fourth false alarm came from the next batch: a hand-held UMI gripper camera (brandonyang/umi-fold-shirt) was
 reported as moved between sessions because the operator held it differently. The viewpoint test now compares
-only the pixels that stay put within each episode, which for such a camera are the gripper fingers.
+only the pixels that stay put within each episode, which for such a camera are the gripper fingers. A fifth, in the
+same batch: two single-camera conversions (Berkeley MVP, NYU door opening; one wrist camera at 3-5 fps) where
+other takes of the same grasp agreed at 0.80-0.85. With one camera a duplicate now needs 0.9.
 
 ## Limits
 
