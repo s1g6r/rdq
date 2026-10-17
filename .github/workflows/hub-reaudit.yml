@@ -1,0 +1,27 @@
+name: hub-reaudit
+
+# Run by hand. Re-audits the 210 Hub datasets of the October 2026 integrity audit (tables only)
+# with the current rdq, so the published figure can be refreshed. Nothing is written to the Hub.
+on:
+  workflow_dispatch:
+
+jobs:
+  reaudit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e . huggingface_hub
+      - run: sleep $(( ${{ matrix.shard }} * 60 ))
+      - run: python experiments/hub_reaudit.py experiments/results/hub_audit_210.txt --shard "${{ matrix.shard }}/4" --out reaudit
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reaudit-${{ matrix.shard }}
+          path: reaudit/audit_index.jsonl
