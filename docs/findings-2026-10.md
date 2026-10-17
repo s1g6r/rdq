@@ -22,9 +22,9 @@ rdq can now decode every frame of every episode and look for frozen or black str
 
 - a second camera that freezes for about 1.5 seconds at the start of six episodes while the main camera keeps moving;
 - a dataset where the camera was moved after episode 19, so it mixes two viewpoints;
-- a few 5-second episodes that show only the floor, nearly identical to each other, with no task in them.
+- a few 5-second episodes that show an empty scene with no task in them, nearly identical to each other.
 
-None of this is dramatic, which is the point: it's the kind of thing nobody notices until a policy underperforms. I've let each dataset's owners know.
+I let each dataset's owners know. The third turned out to be on purpose: the owners replied that those clips were recorded with no bottle on the table, to teach the model not to reach for one that isn't there. So that one is a feature, not a defect, and it's a useful reminder of what a checker can and can't do: rdq can tell you an episode is unusual, not why. The other two are the kind of thing nobody notices until a policy underperforms.
 
 I also want to be upfront about false alarms. Three came up on the way and were fixed before these results: duplicates matched in only one camera, slow play data that looked alike across episodes without being copies, and a moved camera first reported as blur. The rule rdq follows now: a copy must repeat the same movements at the same moments in every camera, and sharpness is judged against the same camera's own footage.
 
