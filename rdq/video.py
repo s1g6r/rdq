@@ -302,36 +302,62 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
 
 
 VIEW_SAME_CORR = 0.6     # correlation of two episodes' background thumbnails above which they share a viewpoint
+VIEW_STABLE_STD = 8.0    # a thumbnail pixel is background if it varies less than this (grey levels) within an episode
+VIEW_MIN_STABLE = 0.25   # share of pixels that must be background in both episodes to compare them
 
 
 def viewpoints(records: list[dict]) -> dict | None:
     """Groups of episodes filmed from clearly different camera positions. Each episode's background is the
-    median of its 2 fps thumbnails (what stays put while the arm moves). Episodes join the group whose first
-    episode's background they correlate with best, if that correlation is at least 0.6. Reported only when the groups are few, each holds at least
-    three episodes and a tenth of the dataset, and each is a contiguous run of episode numbers (a camera
-    moved between sessions); a hand-held or wrist camera scatters into many small groups and is left alone."""
-    bgs = {}
+    median of its 2 fps thumbnails, and only the pixels that stay put within the episode count (the room
+    for a fixed camera; just the gripper fingers and lens edge for a hand-held or wrist camera, which do
+    not change when the operator walks somewhere else). Episodes join the group whose first episode's
+    background they correlate with best on the pixels that are background in both, if that correlation is
+    at least 0.6. Reported only when the groups are few, each holds at least three episodes and a tenth
+    of the dataset, and each is a contiguous run of episode numbers (a camera moved between sessions)."""
+    bgs, masks = {}, {}
     for r in records:
         th = ((r.get("dec") or {}).get("samples") or {}).get("thumb")
         if th is not None and len(th) >= 4:
-            b = np.median(th.astype(np.float32), axis=0).ravel()
-            b = (b - b.mean()) / (b.std() + 1e-6)
-            bgs[r["episode"]] = b
+            a = th.astype(np.float32)
+            bgs[r["episode"]] = np.median(a, axis=0).ravel()
+            masks[r["episode"]] = (a.std(axis=0) < VIEW_STABLE_STD).ravel()
     if len(bgs) < 6:
         return None
+    # a camera that moves during the episodes has little background: if most episodes are like that,
+    # a "different viewpoint" would just be a different place the camera was carried to
+    if np.median([m.mean() for m in masks.values()]) < VIEW_MIN_STABLE:
+        return None
+
+    def corr(e: int, h: int) -> float:
+        m = masks[e] & masks[h]
+        if m.mean() < VIEW_MIN_STABLE:
+            return float("nan")
+        a, b = bgs[e][m], bgs[h][m]
+        a = (a - a.mean()) / (a.std() + 1e-6)
+        b = (b - b.mean()) / (b.std() + 1e-6)
+        return float(np.mean(a * b))
+
     groups: list[list[int]] = []
-    heads: list[np.ndarray] = []
+    heads: list[int] = []
+    unsure = 0
     for e in sorted(bgs):
-        cs = [float(np.mean(bgs[e] * h)) for h in heads]
+        cs = [corr(e, h) for h in heads]
+        if cs and all(np.isnan(c) for c in cs):
+            unsure += 1
+            continue
+        cs = [(-2.0 if np.isnan(c) else c) for c in cs]
         if cs and max(cs) >= VIEW_SAME_CORR:
             groups[int(np.argmax(cs))].append(e)
         else:
             groups.append([e])
-            heads.append(bgs[e])
-    big = [g for g in groups if len(g) >= max(3, 0.1 * len(bgs))]
-    if len(big) < 2 or len(groups) > 4 or sum(len(g) for g in big) < 0.9 * len(bgs):
+            heads.append(e)
+    n = len(bgs) - unsure
+    if unsure > 0.1 * len(bgs):
         return None
-    eps_sorted = sorted(bgs)
+    big = [g for g in groups if len(g) >= max(3, 0.1 * n)]
+    if len(big) < 2 or len(groups) > 4 or sum(len(g) for g in big) < 0.9 * n:
+        return None
+    eps_sorted = sorted(e for g in groups for e in g)
     for g in big:   # contiguous in episode order (allowing the episodes we could not measure)
         lo, hi = eps_sorted.index(g[0]), eps_sorted.index(g[-1])
         if hi - lo + 1 != len(g):

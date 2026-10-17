@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: `video.viewpoint_change` no longer fires on hand-held or wrist cameras carried to another place; it compares only the pixels that stay put within each episode (found on a UMI gripper dataset).
 - New: episodes that are unusual on purpose can be listed in `meta/rdq_expected.yaml` (or passed with `rdq check --expected FILE`). Matching findings are reported as info with the owner's reason and no longer drop those episodes from the keep list. Requested by the owners of a Hub dataset whose deliberate no-object episodes rdq flagged.
 - New: `rdq check --video-full` decodes every frame of every episode (each shared LeRobot v3 video file once) and reports frozen, black, covered and blurry stretches, timing gaps, decode problems and **duplicated episodes**: episodes whose footage repeats another episode's movements at the same moments, which takes of one task from a fixed camera do not.
 - New: `rdq check-video` audits raw video deliveries (folders of mp4/mov/mkv, as bought from collection vendors or contributors): usable hours, black/covered/washed-out, frozen, idle and blurry stretches with their times, truncated and corrupt files, timing problems, spec violations, copies (re-encoded, cut, mirrored, remuxed, looped, or from an earlier batch via `--store`) and a per-contributor scorecard. JSON, HTML and CSV output; install with `pip install "rdq[video]"`. Method and validation: [docs/raw-video.md](docs/raw-video.md).

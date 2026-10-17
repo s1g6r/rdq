@@ -161,8 +161,10 @@ Two rules specific to datasets:
   at least half the episode. Cameras record together, so a real copy shows in all of them; a match in one
   camera, or over a small part of an episode, is reported as `video.possible_duplicate` (info, not counted).
 - **`video.viewpoint_change`**: when the camera was moved between sessions, episodes fall into contiguous
-  groups with different backgrounds (the median of each episode's thumbnails). rdq reports the groups and
-  judges sharpness within each viewpoint, so a new framing is not mistaken for blur.
+  groups with different backgrounds (the median of each episode's thumbnails, counting only the pixels that
+  stay put within the episode). rdq reports the groups and judges sharpness within each viewpoint, so a new
+  framing is not mistaken for blur. For a hand-held or wrist camera the only pixels that stay put are the
+  gripper and the lens edge, so carrying the camera somewhere else is not reported.
 
 **On the Hub (October 2026).** `--video-full` on 20 datasets (2 from the lerobot org and the 18
 most-downloaded community datasets with videos under 600 MB, about 4,600 episodes). What held up after
@@ -178,6 +180,10 @@ Three false alarms surfaced on the way and were fixed before these results: dupl
 only (now leads), duplicates accepted on matching foregrounds in slow play data (CMU Play Fusion; now the
 movement must match too), and a moved camera reported as blur (now a viewpoint change). The other datasets
 had no warnings. Results: `experiments/video_full_hub.py` and the `video-full-hub` workflow.
+
+A fourth false alarm came from the next batch: a hand-held UMI gripper camera (brandonyang/umi-fold-shirt) was
+reported as moved between sessions because the operator held it differently. The viewpoint test now compares
+only the pixels that stay put within each episode, which for such a camera are the gripper fingers.
 
 ## Limits
 

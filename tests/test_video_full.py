@@ -3,6 +3,7 @@
 import shutil
 import subprocess
 
+import numpy as np
 import pytest
 
 pytest.importorskip("av")
@@ -88,3 +89,47 @@ def test_camera_moved_between_sessions(tmp_path):
     found = {f.check: f for f in check_videos_full(load_dataset(root), workers=1)}
     assert found["video.viewpoint_change"].details["groups"] == ["episodes 0-3", "episodes 4-7"]
     assert "video.blur_span" not in found
+
+
+def _records(make_episode, n=24):
+    return [{"episode": e, "dec": {"samples": {"thumb": make_episode(e)}}} for e in range(n)]
+
+
+def test_viewpoints_hand_held_camera_carried_elsewhere_is_not_a_viewpoint_change():
+    """A UMI-style gripper camera: the fingers sit still in the frame, everything else moves with the hand.
+    Halfway through, the operator works in another room (different overall brightness and texture)."""
+    from rdq.video import viewpoints
+
+    rng = np.random.default_rng(0)
+    texture = np.kron(rng.uniform(-70, 70, size=(9, 16)), np.ones((4, 4)))     # 36 x 64
+    down = np.linspace(40, 200, 18)[:, None] * np.ones((1, 32))     # looking down at a bright table
+    up = down[::-1] * 0.8 + np.linspace(0, 60, 32)[None]            # held upright toward a window
+
+    def ep(e):
+        layout = down if e < 12 else up
+        th = np.empty((30, 18, 32))
+        for k in range(30):                                         # the hand drifts around
+            y, x = rng.integers(0, 18), rng.integers(0, 32)
+            th[k] = layout + texture[y:y + 18, x:x + 32]
+        th[:, 12:, 10:22] = 230                                     # gripper fingers, fixed in frame
+        th[:, :, :3] = th[:, :, -3:] = 0                            # fisheye border
+        return th.clip(0, 255).astype(np.uint8)
+
+    assert viewpoints(_records(ep)) is None
+
+
+def test_viewpoints_fixed_camera_moved_between_sessions_is_found():
+    from rdq.video import viewpoints
+
+    rng = np.random.default_rng(1)
+    room_a = rng.uniform(0, 255, size=(18, 32))
+    room_b = np.roll(room_a, 9, axis=1)[::-1]                        # the same room from another spot
+
+    def ep(e):
+        th = np.repeat((room_a if e < 10 else room_b)[None], 30, 0) + rng.normal(0, 2, size=(30, 18, 32))
+        for k in range(30):                                          # the arm moves through a small part
+            th[k, 4:9, (k % 20):(k % 20) + 6] = 255
+        return th.clip(0, 255).astype(np.uint8)
+
+    v = viewpoints(_records(ep))
+    assert v is not None and v["ranges"] == ["episodes 0-9", "episodes 10-23"]
