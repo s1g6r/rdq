@@ -229,3 +229,16 @@ def test_cameras_swapped_when_the_other_camera_also_moved():
     front = {e: noisy(gripper if e < 20 else over1 if e < 40 else over2) for e in range(60)}
     back = {e: noisy(over0 if e < 20 else gripper) for e in range(60)}
     assert camera_swaps({"front": front, "back": back}) == [("back", "front", list(range(20)))]
+
+
+def test_scattered_matches_from_a_wrist_camera_are_not_a_swap():
+    """allenai molmoact cup stacking: the left wrist camera sometimes points at what the right camera sees."""
+    from rdq.video import camera_swaps
+
+    rng = np.random.default_rng(6)
+    table, top = rng.uniform(0, 255, (18, 32)), rng.uniform(0, 255, (18, 32))
+    noisy = lambda v, n=15: _bg(v + rng.normal(0, n, v.shape))  # noqa: E731
+    odd = {7, 12, 19, 22, 25, 28, 31}
+    wrist = {e: noisy(table if e in odd else rng.uniform(0, 255, (18, 32))) for e in range(35)}
+    right = {e: noisy(table * 0.5 + top * 0.5 if e in odd else table) for e in range(35)}
+    assert camera_swaps({"left": wrist, "right": right}) == []

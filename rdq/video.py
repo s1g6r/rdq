@@ -319,6 +319,7 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
 
 
 SWAP_CORR = 0.6   # backgrounds this alike count as the same view
+SWAP_MAX_RUNS = 3  # a swap spans at most this many runs of consecutive episodes (recording sessions)
 
 
 def episode_backgrounds(records: list[dict]) -> dict[int, np.ndarray]:
@@ -333,7 +334,7 @@ def episode_backgrounds(records: list[dict]) -> dict[int, np.ndarray]:
 
 
 def camera_swaps(cam_bgs: dict[str, dict[int, np.ndarray]]) -> list[tuple[str, str, list[int]]]:
-    """Pairs of cameras whose streams trade places in some episodes. Against a reference episode r, an episode
+    """Pairs of cameras whose streams trade places in some episodes (in at most three runs of consecutive episodes, i.e. sessions). Against a reference episode r, an episode
     "crosses" when one camera shows what the other camera showed at r while neither shows its own view from r
     (the other view may have changed too, e.g. a camera that was also moved). The episodes split into those that
     cross and those that keep r's assignment; the smaller side is reported as swapped. References are tried among
@@ -366,7 +367,11 @@ def camera_swaps(cam_bgs: dict[str, dict[int, np.ndarray]]) -> list[tuple[str, s
                 if not cross or len(keep) < 3 or len(cross) + len(keep) < 0.8 * len(eps):
                     continue
                 minority = cross if len(cross) < len(keep) else keep if len(keep) < len(cross) else []
-                if minority and len(minority) > len(best):
+                pos = [eps.index(e) for e in minority]
+                runs = 1 + sum(1 for x, y in zip(pos, pos[1:]) if y != x + 1) if pos else 0
+                # devices change order between sessions, so a real swap covers a few runs of consecutive episodes;
+                # scattered matches come from a moving (wrist) camera that happens to point at the other view
+                if minority and runs <= SWAP_MAX_RUNS and len(minority) > len(best):
                     best = minority
             if best:
                 out.append((a, b, best))
