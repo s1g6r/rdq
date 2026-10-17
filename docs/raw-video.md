@@ -160,7 +160,7 @@ Two rules specific to datasets:
 
 - **A duplicated episode must match in every camera** (at least two, when the dataset has two or more) and over
   at least half the episode. With a single camera there is no second view, so the movements must agree almost
-  exactly (0.9), unless the files are identical. Cameras record together, so a real copy shows in all of them; a match in one
+  exactly (0.97), unless the files are identical. Cameras record together, so a real copy shows in all of them; a match in one
   camera, or over a small part of an episode, is reported as `video.possible_duplicate` (info, not counted).
 - **`video.cameras_swapped`**: two cameras whose streams trade places in some episodes (camera devices that
   changed order between sessions, a common LeRobot recording problem): in those episodes each camera's view looks
@@ -197,7 +197,8 @@ reported as moved between sessions because the operator held it differently. The
 picture mostly changes within episodes (17% still for that camera, 1% for a Unitree wrist camera, 82% for the fixed
 EPITECH camera that really was moved). A fifth, in the
 same batch: two single-camera conversions (Berkeley MVP, NYU door opening; one wrist camera at 3-5 fps) where
-other takes of the same grasp agreed at 0.80-0.85. With one camera a duplicate now needs 0.9.
+other takes of the same grasp agreed at 0.80-0.85. With one camera a duplicate now needs 0.97: a third single-camera conversion (Berkeley RPT, 30 fps) had takes of the
+same grasp at 0.90-0.93, while a copy from a merge mistake is near 1.0.
 
 ## Limits
 

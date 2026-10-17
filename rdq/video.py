@@ -418,7 +418,7 @@ def judge_duplicates(dup_pairs: dict[tuple[int, int], list[dict]], n_cams: int) 
     return out
 
 
-DUP_SINGLE_CAM_CORR = 0.9  # motion agreement a duplicate needs when the dataset has only one camera
+DUP_SINGLE_CAM_CORR = 0.97  # motion agreement a duplicate needs when the dataset has only one camera
 VIEW_SAME_CORR = 0.6     # correlation of two episodes' background thumbnails above which they share a viewpoint
 VIEW_STABLE_STD = 8.0    # a thumbnail pixel is still if it varies less than this (grey levels) within an episode
 VIEW_MIN_STABLE = 0.4    # a camera with less of its picture still than this (median episode) is moving: not judged
