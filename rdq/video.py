@@ -320,6 +320,7 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
 
 SWAP_CORR = 0.6   # backgrounds this alike count as the same view
 SWAP_MAX_RUNS = 3  # a swap spans at most this many runs of consecutive episodes (recording sessions)
+SWAP_MIN_EPISODES = 3  # and at least this many episodes: one odd episode is usually a wrist camera's coincidence
 
 
 def episode_backgrounds(records: list[dict]) -> dict[int, np.ndarray]:
@@ -371,7 +372,7 @@ def camera_swaps(cam_bgs: dict[str, dict[int, np.ndarray]]) -> list[tuple[str, s
                 runs = 1 + sum(1 for x, y in zip(pos, pos[1:]) if y != x + 1) if pos else 0
                 # devices change order between sessions, so a real swap covers a few runs of consecutive episodes;
                 # scattered matches come from a moving (wrist) camera that happens to point at the other view
-                if minority and runs <= SWAP_MAX_RUNS and len(minority) > len(best):
+                if len(minority) >= SWAP_MIN_EPISODES and runs <= SWAP_MAX_RUNS and len(minority) > len(best):
                     best = minority
             if best:
                 out.append((a, b, best))

@@ -242,3 +242,15 @@ def test_scattered_matches_from_a_wrist_camera_are_not_a_swap():
     wrist = {e: noisy(table if e in odd else rng.uniform(0, 255, (18, 32))) for e in range(35)}
     right = {e: noisy(table * 0.5 + top * 0.5 if e in odd else table) for e in range(35)}
     assert camera_swaps({"left": wrist, "right": right}) == []
+
+
+def test_one_odd_episode_is_not_a_swap():
+    """allenai molmoact cup stacking, episode 34: one coincidental match is not a session of swapped cameras."""
+    from rdq.video import camera_swaps
+
+    rng = np.random.default_rng(7)
+    v1, v2 = rng.uniform(0, 255, (18, 32)), rng.uniform(0, 255, (18, 32))
+    noisy = lambda v: _bg(v + rng.normal(0, 15, v.shape))  # noqa: E731
+    a = {e: noisy(v2 if e == 34 else v1) for e in range(35)}
+    b = {e: noisy(v1 if e == 34 else v2) for e in range(35)}
+    assert camera_swaps({"a": a, "b": b}) == []
