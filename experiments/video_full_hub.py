@@ -18,13 +18,13 @@ import time
 from pathlib import Path
 
 
-def pick_auto(n: int, max_mb: float, scan: int = 600, skip: int = 0) -> list[str]:
+def pick_auto(n: int, max_mb: float, scan: int = 800, skip: int = 0, exclude: set[str] | None = None) -> list[str]:
     from huggingface_hub import HfApi
 
     api = HfApi()
     out = []
     for d in api.list_datasets(filter="LeRobot", sort="downloads", limit=scan):
-        if d.id.startswith("lerobot/"):
+        if d.id.startswith("lerobot/") or d.id in (exclude or set()):
             continue
         try:
             info = api.dataset_info(d.id, files_metadata=True)
@@ -49,21 +49,28 @@ def main() -> int:
     ap.add_argument("--out", default="vfull")
     ap.add_argument("--auto", type=int, default=0)
     ap.add_argument("--skip", type=int, default=0, help="skip the first N --auto picks (already checked)")
+    ap.add_argument("--exclude-file", help="text file of dataset ids already checked (one per line)")
     ap.add_argument("--max-mb", type=float, default=600)
     ap.add_argument("--shard", default="0/1", help="k/n: check every n-th dataset starting at k (parallel jobs)")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    ids = list(args.datasets) + (pick_auto(args.auto, args.max_mb, skip=args.skip) if args.auto else [])
+    exclude = set(Path(args.exclude_file).read_text().split()) if args.exclude_file else set()
+    ids = list(args.datasets) + (pick_auto(args.auto, args.max_mb, skip=args.skip, exclude=exclude) if args.auto else [])
     k, n = (int(x) for x in args.shard.split("/"))
     ids = ids[k::n]
+    time.sleep(45 * k)  # stagger the parallel jobs
     print("::notice title=datasets::" + " ".join(ids))
     rows = []
     for ds in ids:
         j = out / (ds.replace("/", "__") + ".json")
         t0 = time.time()
-        p = subprocess.run([sys.executable, "-m", "rdq.cli", "check", ds, "--video-full", "--json", str(j),
-                            "--max-mb", str(args.max_mb), "--no-color"], capture_output=True, text=True)
+        for attempt in range(4):  # the Hub rate-limits parallel anonymous downloads: back off and retry
+            p = subprocess.run([sys.executable, "-m", "rdq.cli", "check", ds, "--video-full", "--json", str(j),
+                                "--max-mb", str(args.max_mb), "--no-color"], capture_output=True, text=True)
+            if j.exists() or "Hub" not in (p.stderr or "") or attempt == 3:
+                break
+            time.sleep(90 * (attempt + 1))
         el = time.time() - t0
         row = {"dataset": ds, "seconds": round(el), "exit": p.returncode}
         if j.exists():

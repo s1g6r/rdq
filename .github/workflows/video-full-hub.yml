@@ -42,4 +42,4 @@ jobs:
           AUTO: ${{ github.event.inputs.auto }}
           MAXMB: ${{ github.event.inputs.max_mb }}
           SKIP: ${{ github.event.inputs.skip }}
-        run: python experiments/video_full_hub.py --out vfull --auto "${AUTO:-0}" --skip "${SKIP:-0}" --max-mb "${MAXMB:-600}" --shard "${{ matrix.shard }}/5" $DATASETS
+        run: python experiments/video_full_hub.py --out vfull --auto "${AUTO:-0}" --skip "${SKIP:-0}" --exclude-file experiments/results/vfull_checked.txt --max-mb "${MAXMB:-600}" --shard "${{ matrix.shard }}/5" $DATASETS
