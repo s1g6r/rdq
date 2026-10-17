@@ -26,6 +26,20 @@ rdq check-video deliveries/oct/ --by-folder --html video.html   # raw video: usa
 
 `keep.json` is `{"episodes": [...]}`, the episodes with no critical or warning finding. Pass the list to LeRobot with `--dataset.episodes="$(jq -c .episodes keep.json)"`.
 
+### In CI
+
+Check a dataset on every push, or before an upload, with the GitHub Action in this repository. The report goes into the job summary; the step fails if the score drops below `fail-under`.
+
+```yaml
+- uses: s1g6r/rdq@main
+  with:
+    dataset: path/to/dataset          # or owner/name on the Hub
+    video: none                       # none, sample or full
+    fail-under: "80"
+```
+
+Outputs: `score` and `usable-fraction`; `rdq-report.json` and `rdq-report.html` are written to the workspace. Without the Action: `rdq check path/to/dataset --markdown "$GITHUB_STEP_SUMMARY" --fail-under 80`.
+
 ## Licence and provenance
 
 LeRobot's `push_to_hub()` defaults to `license="apache-2.0"` and writes a template card. In a scan of the 3,000 most-downloaded LeRobot datasets on the Hub (October 2026):

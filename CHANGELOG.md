@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New: a GitHub Action (`uses: s1g6r/rdq@main`) runs `rdq check` on a folder or Hub dataset, writes the report to the job summary and fails below a score; `rdq check --markdown FILE` writes the same Markdown summary anywhere.
 - Fix: with a single camera, `video.duplicate_episode` now needs the movements to agree almost exactly (0.9) unless the files are identical; other takes of one grasp from a wrist camera at 3-5 fps scored 0.80-0.85 and are now leads (`video.possible_duplicate`). Found on two Open X-Embodiment conversions.
 - Fix: `video.viewpoint_change` no longer fires on hand-held or wrist cameras carried to another place; it compares only the pixels that stay put within each episode (found on a UMI gripper dataset).
 - New: episodes that are unusual on purpose can be listed in `meta/rdq_expected.yaml` (or passed with `rdq check --expected FILE`). Matching findings are reported as info with the owner's reason and no longer drop those episodes from the keep list. Requested by the owners of a Hub dataset whose deliberate no-object episodes rdq flagged.
