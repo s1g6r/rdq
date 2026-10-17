@@ -109,6 +109,9 @@ def test_video_span_mismatch(tmp_path, clean):
     _, findings = _audit(tmp_path, clean, video_span_error={3: 0.5})
     hit = _by_check(findings)["video.span_mismatch"]
     assert hit[0].episodes == [3]
+    d = hit[0].details
+    direction = "longer" if d["video_longer_by_s"] else "shorter"
+    assert direction in hit[0].message and d["worst_seconds"] == 0.5
 
 
 def test_meta_length_mismatch(tmp_path, clean):

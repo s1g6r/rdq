@@ -695,28 +695,33 @@ def check_video_alignment(ds: Dataset, th: Thresholds) -> list[Finding]:
         start_col, end_col = f"videos/{vkey}/from_timestamp", f"videos/{vkey}/to_timestamp"
         if start_col not in ds.episodes_meta.columns or end_col not in ds.episodes_meta.columns:
             continue
-        bad = []
-        worst = 0.0
+        longer: dict[int, float] = {}
+        shorter: dict[int, float] = {}
         for ep in ds.episodes.values():
             start, end = ep.meta.get(start_col), ep.meta.get(end_col)
             if start is None or end is None:
                 continue
-            video_seconds = float(end) - float(start)
-            data_seconds = ep.length / ds.fps
-            diff = abs(video_seconds - data_seconds)
-            if diff > 1.5 * frame:
-                bad.append(ep.index)
-                worst = max(worst, diff)
-        if bad:
+            delta = (float(end) - float(start)) - ep.length / ds.fps   # > 0: more video than data
+            if abs(delta) > 1.5 * frame:
+                (longer if delta > 0 else shorter)[ep.index] = round(abs(delta), 2)
+        if longer or shorter:
+            parts = []
+            if shorter:
+                parts.append(f"the video is shorter than the data in {_eps(len(shorter))} (by up to "
+                             f"{max(shorter.values()):.2f}s: the last frames have no image, and loaders can fail there)")
+            if longer:
+                parts.append(f"the video is longer than the data in {_eps(len(longer))} (by up to "
+                             f"{max(longer.values()):.2f}s: extra footage, often a reset left in, or data frames "
+                             "dropped, so check that frames still line up with actions)")
             out.append(
                 Finding(
                     "video.span_mismatch",
                     WARNING,
-                    f"camera '{vkey}': in {_eps(len(bad))} the video segment and the recorded "
-                    f"data differ in length (worst {worst:.2f}s); common after trimming or editing "
-                    "episodes, and frames may no longer line up with actions",
-                    episodes=bad,
-                    details={"video_key": vkey, "worst_seconds": round(worst, 3)},
+                    f"camera '{vkey}': " + "; ".join(parts),
+                    episodes=sorted(set(longer) | set(shorter)),
+                    details={"video_key": vkey, "worst_seconds": max([*longer.values(), *shorter.values()]),
+                             "video_longer_by_s": {str(k): v for k, v in sorted(longer.items())},
+                             "video_shorter_by_s": {str(k): v for k, v in sorted(shorter.items())}},
                 )
             )
     return out
