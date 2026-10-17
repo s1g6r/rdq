@@ -64,7 +64,7 @@ def _json_safe(o):
 
 def _cmd_check(args) -> int:
     from .expected import ExpectedError
-    from .report import audit, format_terminal, write_filter, write_html, write_json
+    from .report import audit, format_terminal, write_filter, write_html, write_json, write_markdown
 
     try:
         want_video = args.video or args.video_full
@@ -81,6 +81,8 @@ def _cmd_check(args) -> int:
         write_json(result, args.json)
     if args.html:
         write_html(result, args.html)
+    if args.markdown:
+        write_markdown(result, args.markdown)
     if args.filter:
         write_filter(result, args.filter)
     if args.fail_under is not None and result["score"]["dataset_score"] < args.fail_under:
@@ -330,6 +332,7 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("path", help="local dataset folder, or owner/name on the Hugging Face Hub")
     c.add_argument("--json", help="write the full report as JSON")
     c.add_argument("--html", help="write a shareable HTML report")
+    c.add_argument("--markdown", help="write a Markdown summary (e.g. $GITHUB_STEP_SUMMARY or a PR comment)")
     c.add_argument("--filter", help="write the list of usable episodes (for LeRobot's episodes=)")
     c.add_argument("--max-frames", type=int, help="only read this many frames (quick look)")
     c.add_argument("--fail-under", type=int, help="exit with code 1 if the score is below this (for CI)")

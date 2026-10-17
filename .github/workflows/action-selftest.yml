@@ -1,0 +1,42 @@
+name: action-selftest
+
+# Runs the repository's own GitHub Action (action.yml) on a small synthetic dataset with one broken
+# episode, so the Action keeps working: the step must report the problem and fail under the threshold.
+on:
+  push:
+    paths: ["action.yml", "rdq/**", ".github/workflows/action-selftest.yml"]
+  workflow_dispatch:
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Make a dataset with one idle episode
+        run: |
+          pip install -q -e .
+          python -c "
+          from rdq import synthetic as s
+          eps = s.make_episodes(n_episodes=12, seed=1); s.make_idle(eps[3])
+          s.write_dataset('demo_ds', eps)"
+      - name: Run the action (should pass)
+        id: ok
+        uses: ./
+        with:
+          dataset: demo_ds
+      - name: Run the action with a strict threshold (should fail)
+        id: strict
+        continue-on-error: true
+        uses: ./
+        with:
+          dataset: demo_ds
+          fail-under: "100"
+      - name: Check outputs
+        run: |
+          echo "score=${{ steps.ok.outputs.score }} usable=${{ steps.ok.outputs.usable-fraction }} strict=${{ steps.strict.outcome }}"
+          test -n "${{ steps.ok.outputs.score }}"
+          test "${{ steps.strict.outcome }}" = "failure"
+          test -f rdq-report.html

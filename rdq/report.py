@@ -183,6 +183,62 @@ def format_terminal(result: dict, color: bool = True) -> str:
 
 
 # --------------------------------------------------------------------------- #
+# Markdown (GitHub job summaries, pull-request comments)
+# --------------------------------------------------------------------------- #
+
+
+def _md(text) -> str:
+    """Plain text safe inside a Markdown table cell or list item."""
+    return _clean(text).replace("|", "\\|").replace("\n", " ").replace("<", "&lt;")
+
+
+def format_markdown(result: dict) -> str:
+    d, s = result["dataset"], result["score"]
+    counts = s["severity_counts"]
+    sev_icon = {CRITICAL: "🔴", WARNING: "🟡", INFO: "⚪"}
+    lines = [
+        f"### rdq: {_md(d['path'])}",
+        "",
+        f"**Score {s['dataset_score']}/100** · usable episodes {len(s['usable_episodes'])}/{d['episodes']} "
+        f"({s['usable_fraction']:.0%}) · {counts.get(CRITICAL, 0)} critical, {counts.get(WARNING, 0)} warning, "
+        f"{counts.get(INFO, 0)} info",
+        "",
+    ]
+    exp = result.get("expected")
+    if exp:
+        lines += [f"{exp['findings_marked']} finding(s) marked as expected by the dataset's owner ({_md(exp['file'])}).", ""]
+    if result["findings"]:
+        lines += ["| | Check | Finding | Episodes |", "|---|---|---|---|"]
+        for f in result["findings"]:
+            eps = f["episodes"]
+            shown = ", ".join(map(str, eps[:10])) + (f" … (+{len(eps) - 10})" if len(eps) > 10 else "")
+            lines.append(f"| {sev_icon.get(f['severity'], '')} | `{_md(f['check'])}` | {_md(f['message'])} | {shown} |")
+    else:
+        lines.append("No problems found by the checks that ran.")
+    prov = result.get("provenance")
+    if prov:
+        tag = {"go": "OK", "check": "CHECK", "stop": "STOP"}.get(prov.get("bottom_level"), "CHECK")
+        lines += ["", f"**Licence:** {_md(prov['license'] or 'none')} → {_md(prov['verdict'])} ({tag})"]
+        if prov.get("bottom_line"):
+            lines.append(f"{_md(prov['bottom_line'])}")
+        if prov.get("card_fix"):
+            lines += ["", "Suggested card fix (YAML header):", "", "```yaml", prov["card_fix"].strip(), "```"]
+    if result.get("not_checked"):
+        lines += ["", "<details><summary>Not checked</summary>", ""] + [f"- {_md(n)}" for n in result["not_checked"]] + ["", "</details>"]
+    lines += ["", f"<sub>rdq {_md(result['tool']['version'])}</sub>"]
+    return "\n".join(lines) + "\n"
+
+
+def write_markdown(result: dict, path: str | Path) -> None:
+    """Write the Markdown report; GitHub's job-summary file is appended to, not replaced."""
+    import os
+
+    append = os.environ.get("GITHUB_STEP_SUMMARY") and Path(path).resolve() == Path(os.environ["GITHUB_STEP_SUMMARY"]).resolve()
+    with open(path, "a" if append else "w") as fh:
+        fh.write(format_markdown(result))
+
+
+# --------------------------------------------------------------------------- #
 # HTML report
 # --------------------------------------------------------------------------- #
 

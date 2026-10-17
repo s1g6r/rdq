@@ -1,0 +1,91 @@
+name: rdq dataset check
+description: Check a LeRobot dataset (local folder or Hugging Face Hub id) for broken episodes, video problems and licence issues.
+branding:
+  icon: check-circle
+  color: blue
+
+inputs:
+  dataset:
+    description: Local dataset folder, or owner/name on the Hugging Face Hub.
+    required: true
+  video:
+    description: "none (tables only), sample (a few frames per episode) or full (every frame)."
+    required: false
+    default: none
+  fail-under:
+    description: Fail the step if the dataset score is below this (0-100). Empty = never fail on score.
+    required: false
+    default: ""
+  expected:
+    description: YAML file listing episodes that are unusual on purpose (default meta/rdq_expected.yaml in the dataset).
+    required: false
+    default: ""
+  max-mb:
+    description: Refuse to download a Hub dataset larger than this.
+    required: false
+    default: "2000"
+  python-version:
+    description: Python used to run rdq.
+    required: false
+    default: "3.12"
+
+outputs:
+  score:
+    description: Dataset score (0-100).
+    value: ${{ steps.check.outputs.score }}
+  usable-fraction:
+    description: Share of episodes with no critical or warning finding.
+    value: ${{ steps.check.outputs.usable }}
+  report:
+    description: Path of the JSON report.
+    value: rdq-report.json
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Install rdq
+      shell: bash
+      env:
+        VIDEO: ${{ inputs.video }}
+      run: |
+        if [ "$VIDEO" != "none" ]; then
+          sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+          pip install -q "${{ github.action_path }}[video]"
+        else
+          pip install -q "${{ github.action_path }}"
+        fi
+    - name: Run rdq
+      id: check
+      shell: bash
+      env:
+        DATASET: ${{ inputs.dataset }}
+        VIDEO: ${{ inputs.video }}
+        FAIL_UNDER: ${{ inputs.fail-under }}
+        EXPECTED: ${{ inputs.expected }}
+        MAX_MB: ${{ inputs.max-mb }}
+      run: |
+        args=(check "$DATASET" --json rdq-report.json --html rdq-report.html --markdown "$GITHUB_STEP_SUMMARY" --max-mb "$MAX_MB" --no-color)
+        case "$VIDEO" in
+          sample) args+=(--video) ;;
+          full) args+=(--video-full) ;;
+          none) ;;
+          *) echo "::error::video must be none, sample or full (got '$VIDEO')"; exit 2 ;;
+        esac
+        [ -n "$EXPECTED" ] && args+=(--expected "$EXPECTED")
+        [ -n "$FAIL_UNDER" ] && args+=(--fail-under "$FAIL_UNDER")
+        set +e
+        rdq "${args[@]}"
+        code=$?
+        set -e
+        if [ -f rdq-report.json ]; then
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+        import json
+        r = json.load(open("rdq-report.json"))
+        print(f"score={r['score']['dataset_score']}")
+        print(f"usable={r['score']['usable_fraction']}")
+        PY
+        fi
+        exit $code

@@ -84,3 +84,15 @@ def test_dataset_level_entry_needs_a_check():
     f = Finding("meta.stats_stale", WARNING, "stats differ")
     out = apply([f], parse([{"checks": ["meta.*"], "reason": "stats recomputed downstream"}]))
     assert out[0].severity == INFO and out[0].details["original_severity"] == WARNING
+
+
+def test_markdown_report_lists_findings_and_licence(tmp_path):
+    from rdq.report import format_markdown
+
+    root = _idle_dataset(tmp_path)
+    (root / "README.md").write_text("---\nlicense: apache-2.0\n---\nA | dataset with a <pipe>\n")
+    md = format_markdown(audit(root))
+    assert md.startswith("### rdq:") and "**Score" in md
+    assert "| | Check | Finding | Episodes |" in md
+    assert "**Licence:** apache-2.0" in md
+    assert "<pipe>" not in md            # no raw HTML from the card or messages
