@@ -161,6 +161,9 @@ Two rules specific to datasets:
   at least half the episode. With a single camera there is no second view, so the movements must agree almost
   exactly (0.9), unless the files are identical. Cameras record together, so a real copy shows in all of them; a match in one
   camera, or over a small part of an episode, is reported as `video.possible_duplicate` (info, not counted).
+- **Simulated footage**: when the card's tags (robosuite, mujoco, isaac, robotwin, libero, ...) or the robot type say
+  the data is rendered, frozen stretches are info: a renderer has no sensor noise, so a still scene repeats frames
+  exactly, which in real footage only a stalled camera does.
 - **`video.viewpoint_change`**: when the camera was moved between sessions, episodes fall into contiguous
   groups with different backgrounds (the median of each episode's thumbnails, counting only the pixels that
   stay put within the episode). rdq reports the groups and judges sharpness within each viewpoint, so a new

@@ -150,3 +150,17 @@ def test_single_camera_needs_a_close_match_to_call_a_duplicate():
     two = [{"camera": c, "kind": "partial_overlap", "overlap_s": 8.0, "share_of_shorter": 0.8, "motion_corr": 0.82}
            for c in ("top", "wrist")]
     assert {f.check for f in judge_duplicates({(5, 6): two}, n_cams=2)} == {"video.duplicate_episode"}
+
+
+def test_frozen_footage_in_a_simulated_dataset_is_a_still_scene(dataset, tmp_path):
+    """Rendered footage has no sensor noise, so a still scene repeats frames exactly (zima-robot, robosuite)."""
+    from rdq.video import is_simulated
+
+    sim = tmp_path / "sim"
+    shutil.copytree(dataset, sim)
+    (sim / "README.md").write_text("---\nlicense: mit\ntags:\n- LeRobot\n- robosuite\n---\n# sim data\n")
+    ds = load_dataset(sim)
+    assert is_simulated(ds) and not is_simulated(load_dataset(dataset))
+    f = {x.check: x for x in check_videos_full(ds, workers=1)}
+    assert f["video.frozen_span"].severity == "info" and "simulated" in f["video.frozen_span"].message
+    assert f["video.black_span"].severity == "warning"      # a black render is still a problem

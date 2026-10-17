@@ -171,6 +171,35 @@ FULL_CHECKS = {
     "video.unreadable": ("video.decode_error", CRITICAL, "the video can't be decoded"),
     "video.corrupt_frames": ("video.decode_error", CRITICAL, "corrupt frames"),
 }
+SIM_TAGS = {"simulation", "simulated", "sim", "mujoco", "robosuite", "isaac", "isaacsim", "isaac-lab", "isaaclab",
+            "maniskill", "robotwin", "robocasa", "libero", "pybullet", "gazebo", "metaworld", "meta-world",
+            "genesis", "sapien", "habitat", "synthetic"}
+
+
+def is_simulated(ds: Dataset) -> bool:
+    """True when the dataset card's tags, or its robot type, say the footage is rendered. Rendered footage
+    has no sensor noise, so a still scene repeats frames exactly, which in real footage means a stalled feed."""
+    import re
+
+    words: set[str] = set()
+    readme = Path(ds.root) / "README.md"
+    if readme.exists():
+        text = readme.read_text(errors="replace")
+        m = re.match(r"---\s*\n(.*?)\n---", text, re.S)
+        if m:
+            try:
+                import yaml
+
+                meta = yaml.safe_load(m.group(1)) or {}
+                tags = meta.get("tags") or []
+                words |= {str(t).strip().lower() for t in (tags if isinstance(tags, list) else [tags])}
+            except Exception:  # noqa: BLE001 - a malformed card header just means no tags
+                pass
+    robot = str((ds.info or {}).get("robot_type") or "").lower()
+    words |= set(re.split(r"[^a-z0-9]+", robot))
+    return bool(words & SIM_TAGS) or robot.endswith("_sim") or robot.startswith("sim_")
+
+
 COPY_CHECKS = ("video.near_duplicate", "video.trimmed_copy", "video.same_stream_remuxed", "video.identical_file",
                "video.partial_overlap", "video.loop_within_file")
 
@@ -192,6 +221,7 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
         eps = eps[:max_episodes]
     out: list[Finding] = []
     dup_pairs: dict[tuple[int, int], list[dict]] = {}
+    simulated = is_simulated(ds)
     for vkey in (cameras or ds.video_keys):
         segs, missing = [], {}
         for ep in eps:
@@ -252,6 +282,9 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
                 by_check.setdefault(i["check"], {})[e] = by_check.get(i["check"], {}).get(e, 0.0) + (i.get("seconds") or 0.0)
         for check, per_ep in by_check.items():
             cid, sev, what = FULL_CHECKS[check]
+            if check == "video.frozen" and simulated:
+                sev, what = INFO, ("the image stops changing for a while; the footage is simulated, so this is "
+                                   "most likely a still scene (rendered frames have no sensor noise), not a stalled feed")
             if check == "video.blur":   # warn only where blur takes a large share of the episode
                 sev = WARNING if any(v > 0.1 * max(1e-9, _dur(rep, ep_of, e)) for e, v in per_ep.items()) else INFO
             total = sum(per_ep.values())
