@@ -165,10 +165,10 @@ Two rules specific to datasets:
   the data is rendered, frozen stretches are info: a renderer has no sensor noise, so a still scene repeats frames
   exactly, which in real footage only a stalled camera does.
 - **`video.viewpoint_change`**: when the camera was moved between sessions, episodes fall into contiguous
-  groups with different backgrounds (the median of each episode's thumbnails, counting only the pixels that
-  stay put within the episode). rdq reports the groups and judges sharpness within each viewpoint, so a new
-  framing is not mistaken for blur. For a hand-held or wrist camera the only pixels that stay put are the
-  gripper and the lens edge, so carrying the camera somewhere else is not reported.
+  groups with different backgrounds (the median of each episode's thumbnails). rdq reports the groups and
+  judges sharpness within each viewpoint, so a new framing is not mistaken for blur. A hand-held or wrist
+  camera, where most of the picture changes within an episode (less than 40% of it still), is not judged:
+  its "background" is just wherever the operator pointed it.
 
 **On the Hub (October 2026).** `--video-full` on 20 datasets (2 from the lerobot org and the 18
 most-downloaded community datasets with videos under 600 MB, about 4,600 episodes). What held up after
@@ -186,8 +186,9 @@ movement must match too), and a moved camera reported as blur (now a viewpoint c
 had no warnings. Results: `experiments/video_full_hub.py` and the `video-full-hub` workflow.
 
 A fourth false alarm came from the next batch: a hand-held UMI gripper camera (brandonyang/umi-fold-shirt) was
-reported as moved between sessions because the operator held it differently. The viewpoint test now compares
-only the pixels that stay put within each episode, which for such a camera are the gripper fingers. A fifth, in the
+reported as moved between sessions because the operator held it differently. The viewpoint test now skips cameras whose
+picture mostly changes within episodes (17% still for that camera, 1% for a Unitree wrist camera, 82% for the fixed
+EPITECH camera that really was moved). A fifth, in the
 same batch: two single-camera conversions (Berkeley MVP, NYU door opening; one wrist camera at 3-5 fps) where
 other takes of the same grasp agreed at 0.80-0.85. With one camera a duplicate now needs 0.9.
 

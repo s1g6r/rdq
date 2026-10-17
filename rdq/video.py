@@ -350,62 +350,41 @@ def judge_duplicates(dup_pairs: dict[tuple[int, int], list[dict]], n_cams: int) 
 
 DUP_SINGLE_CAM_CORR = 0.9  # motion agreement a duplicate needs when the dataset has only one camera
 VIEW_SAME_CORR = 0.6     # correlation of two episodes' background thumbnails above which they share a viewpoint
-VIEW_STABLE_STD = 8.0    # a thumbnail pixel is background if it varies less than this (grey levels) within an episode
-VIEW_MIN_STABLE = 0.25   # share of pixels that must be background in both episodes to compare them
+VIEW_STABLE_STD = 8.0    # a thumbnail pixel is still if it varies less than this (grey levels) within an episode
+VIEW_MIN_STABLE = 0.4    # a camera with less of its picture still than this (median episode) is moving: not judged
 
 
 def viewpoints(records: list[dict]) -> dict | None:
     """Groups of episodes filmed from clearly different camera positions. Each episode's background is the
-    median of its 2 fps thumbnails, and only the pixels that stay put within the episode count (the room
-    for a fixed camera; just the gripper fingers and lens edge for a hand-held or wrist camera, which do
-    not change when the operator walks somewhere else). Episodes join the group whose first episode's
-    background they correlate with best on the pixels that are background in both, if that correlation is
-    at least 0.6. Reported only when the groups are few, each holds at least three episodes and a tenth
-    of the dataset, and each is a contiguous run of episode numbers (a camera moved between sessions)."""
-    bgs, masks = {}, {}
+    median of its 2 fps thumbnails (what stays put while the arm moves). Episodes join the group whose first
+    episode's background they correlate with best, if that correlation is at least 0.6. Reported only when the
+    groups are few, each holds at least three episodes and a tenth of the dataset, and each is a contiguous run
+    of episode numbers (a camera moved between sessions). A hand-held or wrist camera, where most of the
+    picture changes within an episode (less than 40% of it still in the median episode), is not judged: its
+    "background" is wherever the operator happened to point it."""
+    bgs, still = {}, []
     for r in records:
         th = ((r.get("dec") or {}).get("samples") or {}).get("thumb")
         if th is not None and len(th) >= 4:
             a = th.astype(np.float32)
-            bgs[r["episode"]] = np.median(a, axis=0).ravel()
-            masks[r["episode"]] = (a.std(axis=0) < VIEW_STABLE_STD).ravel()
-    if len(bgs) < 6:
+            b = np.median(a, axis=0).ravel()
+            bgs[r["episode"]] = (b - b.mean()) / (b.std() + 1e-6)
+            still.append(float((a.std(axis=0) < VIEW_STABLE_STD).mean()))
+    if len(bgs) < 6 or np.median(still) < VIEW_MIN_STABLE:
         return None
-    # a camera that moves during the episodes has little background: if most episodes are like that,
-    # a "different viewpoint" would just be a different place the camera was carried to
-    if np.median([m.mean() for m in masks.values()]) < VIEW_MIN_STABLE:
-        return None
-
-    def corr(e: int, h: int) -> float:
-        m = masks[e] & masks[h]
-        if m.mean() < VIEW_MIN_STABLE:
-            return float("nan")
-        a, b = bgs[e][m], bgs[h][m]
-        a = (a - a.mean()) / (a.std() + 1e-6)
-        b = (b - b.mean()) / (b.std() + 1e-6)
-        return float(np.mean(a * b))
-
     groups: list[list[int]] = []
-    heads: list[int] = []
-    unsure = 0
+    heads: list[np.ndarray] = []
     for e in sorted(bgs):
-        cs = [corr(e, h) for h in heads]
-        if cs and all(np.isnan(c) for c in cs):
-            unsure += 1
-            continue
-        cs = [(-2.0 if np.isnan(c) else c) for c in cs]
+        cs = [float(np.mean(bgs[e] * h)) for h in heads]
         if cs and max(cs) >= VIEW_SAME_CORR:
             groups[int(np.argmax(cs))].append(e)
         else:
             groups.append([e])
-            heads.append(e)
-    n = len(bgs) - unsure
-    if unsure > 0.1 * len(bgs):
+            heads.append(bgs[e])
+    big = [g for g in groups if len(g) >= max(3, 0.1 * len(bgs))]
+    if len(big) < 2 or len(groups) > 4 or sum(len(g) for g in big) < 0.9 * len(bgs):
         return None
-    big = [g for g in groups if len(g) >= max(3, 0.1 * n)]
-    if len(big) < 2 or len(groups) > 4 or sum(len(g) for g in big) < 0.9 * n:
-        return None
-    eps_sorted = sorted(e for g in groups for e in g)
+    eps_sorted = sorted(bgs)
     for g in big:   # contiguous in episode order (allowing the episodes we could not measure)
         lo, hi = eps_sorted.index(g[0]), eps_sorted.index(g[-1])
         if hi - lo + 1 != len(g):

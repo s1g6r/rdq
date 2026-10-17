@@ -164,3 +164,25 @@ def test_frozen_footage_in_a_simulated_dataset_is_a_still_scene(dataset, tmp_pat
     f = {x.check: x for x in check_videos_full(ds, workers=1)}
     assert f["video.frozen_span"].severity == "info" and "simulated" in f["video.frozen_span"].message
     assert f["video.black_span"].severity == "warning"      # a black render is still a problem
+
+
+def test_viewpoints_fixed_camera_with_a_shaky_first_session_is_still_found():
+    """EPITECH-LILLE/eval_training: the camera was moved after episode 19, and in the first session most of the
+    picture changes within each episode, so a test on still pixels alone found nothing to compare."""
+    from rdq.video import viewpoints
+
+    rng = np.random.default_rng(2)
+    room_a = rng.uniform(0, 255, size=(18, 32))
+    room_b = np.roll(room_a, 11, axis=1)[::-1]
+
+    def ep(e):
+        if e < 20:
+            th = np.repeat(room_a[None], 30, 0) + rng.normal(0, 25, size=(30, 18, 32))   # lots of change
+        else:
+            th = np.repeat(room_b[None], 30, 0) + rng.normal(0, 2, size=(30, 18, 32))
+            for k in range(30):
+                th[k, 4:9, (k % 20):(k % 20) + 6] = 255
+        return th.clip(0, 255).astype(np.uint8)
+
+    v = viewpoints(_records(ep, n=60))
+    assert v is not None and v["ranges"] == ["episodes 0-19", "episodes 20-59"]
