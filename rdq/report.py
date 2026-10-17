@@ -24,12 +24,17 @@ def audit(
     repo_id: str | None = None,
     video: bool = False,
     video_full: bool = False,
+    expected: str | Path | None = None,
 ) -> dict:
     """Run every check on a local dataset folder and return a JSON-ready dict.
 
     With video=True, a few frames per episode and camera are decoded as well (needs PyAV). With
     video_full=True, every frame is decoded and episodes that repeat another episode's footage are found.
+    Findings the owner lists as expected (``expected`` file, else ``meta/rdq_expected.yaml`` in the
+    dataset) are reported as info with the owner's reason and do not drop episodes.
     """
+    from .expected import apply as apply_expected, find_in_dataset, load as load_expected
+
     path = Path(path)
     ds = load_dataset(path, max_frames=max_frames)
     findings = run_checks(ds, Thresholds())
@@ -41,12 +46,22 @@ def audit(
         from .video import check_videos
 
         findings += check_videos(ds)
+    exp_path = Path(expected) if expected else find_in_dataset(path)
+    entries = load_expected(exp_path) if exp_path else []
+    findings = apply_expected(findings, entries)
     findings.sort(key=lambda f: (SEVERITY_ORDER[f.severity], f.check))
     sc = score(findings, sorted(ds.episodes))
     if readme is None and (path / "README.md").exists():
         readme = (path / "README.md").read_text(errors="replace")
     prov = analyse_card(readme, repo_id=repo_id) if readme is not None else None
-    return build_result(ds, findings, sc, prov)
+    result = build_result(ds, findings, sc, prov)
+    if exp_path:
+        result["expected"] = {
+            "file": str(exp_path) if expected else str(exp_path.relative_to(path)),
+            "entries": len(entries),
+            "findings_marked": sum(1 for f in findings if f.details.get("expected")),
+        }
+    return result
 
 
 def build_result(ds: Dataset, findings: list[Finding], sc: Score, prov: ProvenanceResult | None) -> dict:
@@ -131,6 +146,10 @@ def format_terminal(result: dict, color: bool = True) -> str:
         + f"   usable episodes {len(s['usable_episodes'])}/{d['episodes']} ({s['usable_fraction']:.0%})",
         "",
     ]
+    exp = result.get("expected")
+    if exp:
+        lines += [c(f"  {exp['findings_marked']} finding(s) marked as expected by the dataset's owner "
+                    f"({_clean(exp['file'])})", _DIM), ""]
     if not result["findings"]:
         lines.append("  No problems found by the checks that ran.")
     for f in result["findings"]:

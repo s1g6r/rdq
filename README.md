@@ -76,6 +76,19 @@ On synthetic deliveries with known answers it finds every planted defect class a
 | `video.span_mismatch` | warning | A video segment and its data differ in length. |
 | `video.frozen`, `video.black`, `video.decode_error`, `video.blur` | with `--video` | Six frames per episode per camera are decoded to catch stalled, covered or broken cameras. |
 
+### Episodes that are unusual on purpose
+
+Some episodes look like defects but were recorded that way deliberately: an empty scene so the policy learns not to grasp, a calibration hold, a pause that is part of the task. List them in `meta/rdq_expected.yaml` in the dataset, and anyone who checks it (including straight from the Hub) sees those findings as expected, with your reason, instead of warnings. The episodes stay in the `--filter` keep list.
+
+```yaml
+# meta/rdq_expected.yaml
+- episodes: [342, 343, 349, 350, 351]   # numbers or ranges like "10-20"
+  checks: ["video.*"]                   # optional; default: every check
+  reason: no bottle on the table, so the policy learns not to grasp
+```
+
+`rdq check --expected FILE` uses a file kept elsewhere. Only findings that match both the episodes and the checks change, every entry needs a reason, and the report says how many findings were marked and from which file. Suggested by the owners of a dataset rdq flagged.
+
 Features that are not joint signals (depth maps, point clouds, audio, tactile grids wider than 1,024 values) are listed as not checked rather than loaded. Every report ends with a "Not checked" list, for example when the sync check can't run because action and state have different sizes and share fewer than three channel names. (When the sizes differ but the names line up, for example a state that also carries velocities, the sync check compares the matching channels.)
 
 On 120 clean synthetic datasets the checks raise no warnings or critical findings, and CI repeats this on 40 datasets on every commit (`tests/false_alarms.py`). The clean data comes from the same generator the thresholds were tuned on, so this shows the checks are quiet on well-behaved data, not that they are quiet on yours. On 210 real Hub datasets, an earlier version of the checks raised a warning or critical finding on 58%; a re-audit with the current version is pending.
