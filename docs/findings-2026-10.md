@@ -20,7 +20,7 @@ I also ran the check on every dataset on LeBoard, at the exact versions it pins:
 
 rdq can now decode every frame of every episode and look for frozen or black stretches, blur, timing gaps, a camera that was moved between sessions, and episodes that repeat another episode's footage. I ran it on 20 datasets (2 official, 18 of the most-downloaded community ones; about 4,600 episodes) and checked every flag by looking at the frames. Three held up:
 
-- a second camera that freezes for about 1.5 seconds at the start of six episodes while the main camera keeps moving;
+- a second camera that freezes for about 1.5 seconds at the start of six episodes while the main camera keeps moving (the converters say it is most likely in the original Open X-Embodiment data, and most people train on the main camera only);
 - a dataset whose two camera feeds are swapped in the first 20 episodes (the gripper view is stored as the front camera and the overhead view as the back one), and whose overhead camera was moved after episode 39;
 - a few 5-second episodes that show an empty scene with no task in them, nearly identical to each other.
 
