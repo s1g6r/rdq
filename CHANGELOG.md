@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New: `video.cameras_swapped` (with `--video-full`): two cameras whose streams trade places in some episodes, as when camera devices change order between recording sessions. Found on a public dataset where the gripper and overhead feeds are swapped in the first 20 episodes.
 - Fix: in simulated datasets (card tags such as robosuite, mujoco, isaac, robotwin, libero, or a sim robot type), `video.frozen_span` is info, not a warning: rendered frames have no sensor noise, so a still scene repeats exactly. Black renders and other problems still warn.
 - New: a GitHub Action (`uses: s1g6r/rdq@main`) runs `rdq check` on a folder or Hub dataset, writes the report to the job summary and fails below a score; `rdq check --markdown FILE` writes the same Markdown summary anywhere.
 - Fix: with a single camera, `video.duplicate_episode` now needs the movements to agree almost exactly (0.9) unless the files are identical; other takes of one grasp from a wrist camera at 3-5 fps scored 0.80-0.85 and are now leads (`video.possible_duplicate`). Found on two Open X-Embodiment conversions.

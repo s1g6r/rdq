@@ -186,3 +186,32 @@ def test_viewpoints_fixed_camera_with_a_shaky_first_session_is_still_found():
 
     v = viewpoints(_records(ep, n=60))
     assert v is not None and v["ranges"] == ["episodes 0-19", "episodes 20-59"]
+
+
+def _bg(img):
+    b = img.ravel().astype(np.float32)
+    return (b - b.mean()) / (b.std() + 1e-6)
+
+
+def test_cameras_swapped_between_sessions():
+    """EPITECH-LILLE/eval_training: in episodes 0-19 'front' carries the gripper view and 'back' the overhead one."""
+    from rdq.video import camera_swaps
+
+    rng = np.random.default_rng(3)
+    overhead, gripper = rng.uniform(0, 255, (18, 32)), rng.uniform(0, 255, (18, 32))
+    noisy = lambda v: _bg(v + rng.normal(0, 15, v.shape))  # noqa: E731
+    front = {e: noisy(gripper if e < 10 else overhead) for e in range(30)}
+    back = {e: noisy(overhead if e < 10 else gripper) for e in range(30)}
+    assert camera_swaps({"front": front, "back": back}) == [("back", "front", list(range(10)))]
+
+
+def test_moved_camera_or_similar_views_are_not_a_swap():
+    from rdq.video import camera_swaps
+
+    rng = np.random.default_rng(4)
+    v1, v2, v3 = (rng.uniform(0, 255, (18, 32)) for _ in range(3))
+    noisy = lambda v: _bg(v + rng.normal(0, 15, v.shape))  # noqa: E731
+    moved = {"front": {e: noisy(v1 if e < 10 else v3) for e in range(30)}, "back": {e: noisy(v2) for e in range(30)}}
+    assert camera_swaps(moved) == []
+    twins = {"left": {e: noisy(v1) for e in range(30)}, "right": {e: noisy(v1 * 0.9 + 10) for e in range(30)}}
+    assert camera_swaps(twins) == []

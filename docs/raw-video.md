@@ -152,8 +152,9 @@ The same machinery runs on LeRobot datasets. Each video file is decoded once; ea
 (from `meta/episodes`) is checked as its own clip, and the findings go into the normal `rdq check`
 report with episode numbers, so they also drop episodes from `--filter keep.json`:
 `video.frozen_span`, `video.black_span`, `video.covered_span`, `video.overexposed_span`,
-`video.blur_span`, `video.idle_span` (info), `video.recording_gap`, `video.decode_error` and
-`video.duplicate_episode` (an episode whose footage repeats another's). Every camera is checked.
+`video.blur_span`, `video.idle_span` (info), `video.recording_gap`, `video.decode_error`,
+`video.duplicate_episode` (an episode whose footage repeats another's), `video.viewpoint_change` and
+`video.cameras_swapped`. Every camera is checked.
 
 Two rules specific to datasets:
 
@@ -161,6 +162,9 @@ Two rules specific to datasets:
   at least half the episode. With a single camera there is no second view, so the movements must agree almost
   exactly (0.9), unless the files are identical. Cameras record together, so a real copy shows in all of them; a match in one
   camera, or over a small part of an episode, is reported as `video.possible_duplicate` (info, not counted).
+- **`video.cameras_swapped`**: two cameras whose streams trade places in some episodes (camera devices that
+  changed order between sessions, a common LeRobot recording problem): in those episodes each camera's view looks
+  like the other camera's view elsewhere, and neither looks like its own.
 - **Simulated footage**: when the card's tags (robosuite, mujoco, isaac, robotwin, libero, ...) or the robot type say
   the data is rendered, frozen stretches are info: a renderer has no sensor noise, so a still scene repeats frames
   exactly, which in real footage only a stalled camera does.

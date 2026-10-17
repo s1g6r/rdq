@@ -222,6 +222,7 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
     out: list[Finding] = []
     dup_pairs: dict[tuple[int, int], list[dict]] = {}
     simulated = is_simulated(ds)
+    cam_bgs: dict[str, dict[int, np.ndarray]] = {}
     for vkey in (cameras or ds.video_keys):
         segs, missing = [], {}
         for ep in eps:
@@ -256,6 +257,7 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
                 out.append(Finding("video.decode_error", CRITICAL, f"camera '{vkey}': video missing for {_eps(len(missing))}",
                                    episodes=sorted(missing), details={"video_key": vkey}))
             continue
+        cam_bgs[vkey] = episode_backgrounds(records)
         views = viewpoints(records)
         if views:
             for r in records:
@@ -307,6 +309,59 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
                                                      "share_of_shorter": d.get("share_of_shorter"),
                                                      "motion_corr": ev.get("motion_corr")})
     out += judge_duplicates(dup_pairs, len(cameras or ds.video_keys))
+    for a, b, eps_sw in camera_swaps(cam_bgs):
+        out.append(Finding("video.cameras_swapped", WARNING,
+                           f"cameras '{a}' and '{b}' look swapped in {_eps(len(eps_sw))}: each shows what the other "
+                           "shows in the rest of the dataset (camera devices that changed places between sessions). "
+                           "A policy would get the wrong view in that slot.",
+                           episodes=eps_sw, details={"cameras": [a, b]}))
+    return out
+
+
+SWAP_CORR = 0.6   # backgrounds this alike count as the same view
+
+
+def episode_backgrounds(records: list[dict]) -> dict[int, np.ndarray]:
+    """Each episode's background: the median of its 2 fps thumbnails, normalised (mean 0, sd 1)."""
+    out = {}
+    for r in records:
+        th = ((r.get("dec") or {}).get("samples") or {}).get("thumb")
+        if th is not None and len(th) >= 4:
+            b = np.median(th.astype(np.float32), axis=0).ravel()
+            out[r["episode"]] = (b - b.mean()) / (b.std() + 1e-6)
+    return out
+
+
+def camera_swaps(cam_bgs: dict[str, dict[int, np.ndarray]]) -> list[tuple[str, str, list[int]]]:
+    """Pairs of cameras whose streams trade places in some episodes. An episode is swapped against a reference
+    episode r when camera A's view looks like B's view at r and B's looks like A's, while neither looks like its
+    own view at r. References are tried among episodes typical of each camera; the swapped set must be a
+    minority and the rest must agree with the reference."""
+    out = []
+    cams = sorted(cam_bgs)
+    for i, a in enumerate(cams):
+        for b in cams[i + 1:]:
+            A, B = cam_bgs[a], cam_bgs[b]
+            eps = sorted(set(A) & set(B))
+            if len(eps) < 6:
+                continue
+            c = lambda x, y: float(np.mean(x * y))  # noqa: E731
+            refs: list[int] = []
+            for X in (A, B):                       # first episode of each view group, per camera
+                heads: list[int] = []
+                for e in eps:
+                    if not any(c(X[e], X[h]) >= SWAP_CORR for h in heads):
+                        heads.append(e)
+                refs += heads[:6]
+            best: list[int] = []
+            for r in dict.fromkeys(refs):
+                sw = [e for e in eps if c(A[e], B[r]) >= SWAP_CORR and c(B[e], A[r]) >= SWAP_CORR
+                      and c(A[e], A[r]) < SWAP_CORR and c(B[e], B[r]) < SWAP_CORR]
+                same = [e for e in eps if c(A[e], A[r]) >= SWAP_CORR and c(B[e], B[r]) >= SWAP_CORR]
+                if sw and len(sw) < len(same) + 1 and len(same) >= 3 and len(sw) > len(best):
+                    best = sw
+            if best:
+                out.append((a, b, best))
     return out
 
 
