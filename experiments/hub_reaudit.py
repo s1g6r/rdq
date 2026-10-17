@@ -28,13 +28,26 @@ def main() -> int:
     k, n = (int(x) for x in a.shard.split("/"))
     ids = Path(a.ids).read_text().split()[k::n]
     index = audit_repos(ids, a.out, max_mb=a.max_mb, log=lambda *x: print(*x, flush=True))
-    for i, line in enumerate(Path(index).read_text().splitlines(), 1):
+    rows = []
+    for line in Path(index).read_text().splitlines():
         r = json.loads(line)
-        row = {"id": r["id"], "sev": r.get("severity_counts"), "checks": r.get("checks"),
-               "eps": r.get("episodes"), "usable": r.get("usable_fraction"),
-               "skip": r.get("skipped"), "err": (r.get("error") or "")[:200] or None}
-        if os.environ.get("GITHUB_ACTIONS"):
-            print(f"::notice title=reaudit-{k}-{i}::" + json.dumps(row, separators=(",", ":"))[:3800].replace("%", "%25"))
+        sev = r.get("severity_counts") or {}
+        status = "ok" if "score" in r else ("skip" if r.get("skipped") else "err")
+        rows.append("|".join([r["id"], status, str(sev.get("critical", "")), str(sev.get("warning", "")),
+                              str(r.get("episodes", "")), str(r.get("usable_fraction", "")),
+                              ",".join(r.get("checks") or [])]))
+    if os.environ.get("GITHUB_ACTIONS"):   # GitHub keeps 10 annotations per job: pack the rows
+        chunk, n = [], 0
+        for row in rows + [None]:
+            if row is None or sum(len(x) + 1 for x in chunk) + len(row) > 3700:
+                if chunk:
+                    n += 1
+                    print(f"::notice title=reaudit-{k}-{n}::" + "~".join(chunk).replace("%", "%25"))
+                chunk = []
+            if row is not None:
+                chunk.append(row)
+    else:
+        print("\n".join(rows))
     return 0
 
 
