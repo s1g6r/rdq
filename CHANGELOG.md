@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: `--video-full` crashed (KeyError) on a dataset whose camera was moved and which had an episode too short to measure (found on a Hub dataset).
 - New: `video.cameras_swapped` (with `--video-full`): two cameras whose streams trade places in some episodes, as when camera devices change order between recording sessions. Found on a public dataset where the gripper and overhead feeds are swapped in the first 20 episodes.
 - Fix: in simulated datasets (card tags such as robosuite, mujoco, isaac, robotwin, libero, or a sim robot type), `video.frozen_span` is info, not a warning: rendered frames have no sensor noise, so a still scene repeats exactly. Black renders and other problems still warn.
 - New: a GitHub Action (`uses: s1g6r/rdq@main`) runs `rdq check` on a folder or Hub dataset, writes the report to the job summary and fails below a score; `rdq check --markdown FILE` writes the same Markdown summary anywhere.

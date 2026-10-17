@@ -260,8 +260,10 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
         cam_bgs[vkey] = episode_backgrounds(records)
         views = viewpoints(records)
         if views:
-            for r in records:
-                r["contributor"] = f"{vkey}#view{views['of'][r['episode']]}"   # sharpness is judged per viewpoint
+            for r in records:   # sharpness is judged per viewpoint; episodes too short to place keep the camera's norm
+                g = views["of"].get(r["episode"])
+                if g is not None:
+                    r["contributor"] = f"{vkey}#view{g}"
             out.append(Finding("video.viewpoint_change", WARNING,
                                f"camera '{vkey}': the camera was moved between episodes, so the dataset mixes "
                                f"{len(views['groups'])} viewpoints ({'; '.join(views['ranges'])}). A policy trained on one "

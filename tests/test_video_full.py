@@ -254,3 +254,19 @@ def test_one_odd_episode_is_not_a_swap():
     a = {e: noisy(v2 if e == 34 else v1) for e in range(35)}
     b = {e: noisy(v1 if e == 34 else v2) for e in range(35)}
     assert camera_swaps({"a": a, "b": b}) == []
+
+
+def test_viewpoint_groups_skip_episodes_too_short_to_measure():
+    """ukachyuthan/imitation_learning_v2 crashed (KeyError) when a moved camera met an episode with < 4 samples."""
+    from rdq.video import viewpoints
+
+    rng = np.random.default_rng(8)
+    room_a = rng.uniform(0, 255, size=(18, 32))
+    room_b = np.roll(room_a, 9, axis=1)[::-1]
+    recs = [{"episode": e, "dec": {"samples": {"thumb": (np.repeat((room_a if e < 10 else room_b)[None], 30, 0)
+                                                        + rng.normal(0, 2, (30, 18, 32))).clip(0, 255).astype(np.uint8)}}}
+            for e in range(24)]
+    recs.append({"episode": 57, "dec": {"samples": {"thumb": np.zeros((2, 18, 32), np.uint8)}}})
+    v = viewpoints(recs)
+    assert v is not None and 57 not in v["of"]
+    assert v["of"].get(57) is None          # the caller must not index it directly
