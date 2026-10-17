@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 
 
-def pick_auto(n: int, max_mb: float, scan: int = 400) -> list[str]:
+def pick_auto(n: int, max_mb: float, scan: int = 600, skip: int = 0) -> list[str]:
     from huggingface_hub import HfApi
 
     api = HfApi()
@@ -38,9 +38,9 @@ def pick_auto(n: int, max_mb: float, scan: int = 400) -> list[str]:
         size = sum((f.size or 0) for f in files) / 1e6
         if 5 < size <= max_mb:
             out.append(d.id)
-        if len(out) >= n:
+        if len(out) >= n + skip:
             break
-    return out
+    return out[skip:]
 
 
 def main() -> int:
@@ -48,12 +48,13 @@ def main() -> int:
     ap.add_argument("datasets", nargs="*")
     ap.add_argument("--out", default="vfull")
     ap.add_argument("--auto", type=int, default=0)
+    ap.add_argument("--skip", type=int, default=0, help="skip the first N --auto picks (already checked)")
     ap.add_argument("--max-mb", type=float, default=600)
     ap.add_argument("--shard", default="0/1", help="k/n: check every n-th dataset starting at k (parallel jobs)")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    ids = list(args.datasets) + (pick_auto(args.auto, args.max_mb) if args.auto else [])
+    ids = list(args.datasets) + (pick_auto(args.auto, args.max_mb, skip=args.skip) if args.auto else [])
     k, n = (int(x) for x in args.shard.split("/"))
     ids = ids[k::n]
     print("::notice title=datasets::" + " ".join(ids))
