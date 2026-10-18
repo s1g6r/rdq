@@ -248,6 +248,11 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
                 measured[f] = rv.measure_file(f)
         records = []
         for idx, path, start, end in segs:
+            fdur = ((measured[str(path)].get("dec") or {}).get("decoded_duration_s") or 0.0)
+            if fdur and start >= fdur - 1e-3:   # the file ends before this episode begins (lerobot/berkeley_rpt 409, 829)
+                missing[idx] = (f"no footage: {path.name} ends at {fdur:.1f} s, where this episode should start "
+                                f"({start:.1f}-{end:.1f} s)")
+                continue
             r = rv.segment_record(measured[str(path)], start, end, f"episode {idx}")
             r["contributor"] = vkey
             r["episode"] = idx

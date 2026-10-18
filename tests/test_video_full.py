@@ -339,3 +339,26 @@ def test_a_few_frames_of_a_slow_camera_are_not_a_copy(tmp_path):
              "share_of_shorter": 0.5, "motion_corr": 0.908} for k in (1, 3)]
     found = {f.check for f in judge_duplicates({(1, 2): hits}, 4, ds)}
     assert found == {"video.possible_duplicate"}
+
+
+def test_episode_past_the_end_of_its_video_file(tmp_path):
+    """lerobot/berkeley_rpt: each video file ends exactly where its last episode (409, 829) should start."""
+    eps = syn.make_episodes(3, length=FPS * 6)
+    root = syn.write_dataset(tmp_path / "ds", eps, fps=FPS)
+    clips = tmp_path / "clips"
+    clips.mkdir()
+    paths = []
+    for k in range(2):                       # footage for episodes 0 and 1 only
+        spec = sv.ClipSpec(seconds=len(eps[k]["action"]) / FPS, fps=FPS, width=320, height=180, seed=300 + k,
+                           scene_seed=4, static_camera=True)
+        sv.render_clip(clips / f"ep{k}.mp4", spec)
+        paths.append(clips / f"ep{k}.mp4")
+    (clips / "list.txt").write_text("".join(f"file '{p}'\n" for p in paths))
+    out = root / "videos/observation.images.front/chunk-000/file-000.mp4"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(clips / "list.txt"),
+                    "-c", "copy", str(out)], check=True)
+    found = {f.check: f for f in check_videos_full(load_dataset(root), workers=1)}
+    err = found["video.decode_error"]
+    assert err.episodes == [2]
+    assert "no footage" in err.details["errors"]["2"]

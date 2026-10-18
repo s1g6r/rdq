@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `video.decode_error` now says when an episode has no footage because its video file ends before the episode starts (found on lerobot/berkeley_rpt, episodes 409 and 829).
 - Fix: a duplicate must match over at least 15 frames at the dataset's own rate. On a 1 fps camera, scripted takes with different objects matched over 8 frames of an empty table (lerobot/uiuc_d3field); they are now leads.
 - Fix: a one-frame episode from a slow camera (1 fps) was reported as `video.decode_error` ("ends early"), because its single frame was counted as 1/30 s of video. It now uses the file's own frame step; the episode is still reported as too short by `episodes.too_short`. Found on lerobot/uiuc_d3field while comparing rdq with LeBoard.
 - Fix: `video.duplicate_episode` now checks the robot data too. A copy from a merge or upload mistake duplicates the data with the footage; a precise robot replaying one motion films near-identical takes whose joint data still differs as much as any two recordings. Those are now leads (`video.possible_duplicate`, with `data_agreement` in the details). Found on lerobot/dlr_sara_grid_clamp while comparing rdq with LeBoard; checked by eye and in the data.
