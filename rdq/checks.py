@@ -339,8 +339,10 @@ def check_counts(ds: Dataset, th: Thresholds) -> list[Finding]:
                 WARNING,
                 f"for {_eps(len(offsets))} the metadata's row ranges (dataset_from_index / dataset_to_index) don't match "
                 f"the data's index column (off by {', '.join(f'{v:+d}' for v in shifts[:5])} rows). All the frames are "
-                "there, but a loader that picks an episode's rows by those ranges reads the wrong rows; often one "
-                "episode was re-written or stored out of order. Re-computing the ranges from the data fixes it",
+                "there, but LeRobot bounds each episode by those ranges when it builds action chunks and history, so "
+                "chunks at one end run into the neighbouring episode's frames (not marked as padding) and frames at "
+                "the other end are treated as padding. Often one episode was re-written or stored out of order; "
+                "re-computing the ranges from the data's index column fixes it",
                 episodes=sorted(offsets),
                 details={"offsets": {str(k): v for k, v in list(offsets.items())[:50]}},
             )
