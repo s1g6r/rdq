@@ -26,7 +26,7 @@ rdq check-mcap delivery/*.mcap --state-topic /joint_states --action-topic /leade
 rdq check-video deliveries/oct/ --by-folder --html video.html   # raw video: usable hours, defects, copies, per contributor
 ```
 
-`keep.json` is `{"episodes": [...]}`, the episodes with no critical or warning finding. Pass the list to LeRobot with `--dataset.episodes="$(jq -c .episodes keep.json)"`.
+`keep.json` is `{"episodes": [...]}`, the episodes with no critical or warning finding. Pass the list to LeRobot with `--dataset.episodes="$(jq -c .episodes keep.json)"`. Building on the JSON report (a dashboard, a leaderboard, a pipeline)? Its fields are documented in [docs/json-report.md](docs/json-report.md).
 
 ### In CI
 

@@ -15,6 +15,7 @@ from .provenance import ProvenanceResult, analyse_card
 from .scoring import Score, score
 
 SEVERITY_ORDER = {CRITICAL: 0, WARNING: 1, INFO: 2}
+REPORT_VERSION = 1  # bump only when a documented field (docs/json-report.md) changes name or meaning
 
 
 def audit(
@@ -67,6 +68,7 @@ def audit(
 def build_result(ds: Dataset, findings: list[Finding], sc: Score, prov: ProvenanceResult | None) -> dict:
     lengths = [ep.length for ep in ds.episodes.values()]
     return {
+        "report_version": REPORT_VERSION,
         "tool": {"name": "rdq", "version": __version__},
         "audited_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "dataset": {

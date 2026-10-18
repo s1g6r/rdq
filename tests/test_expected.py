@@ -96,3 +96,14 @@ def test_markdown_report_lists_findings_and_licence(tmp_path):
     assert "| | Check | Finding | Episodes |" in md
     assert "**Licence:** apache-2.0" in md
     assert "<pipe>" not in md            # no raw HTML from the card or messages
+
+
+def test_json_report_has_documented_top_level_keys(tmp_path):
+    root = _idle_dataset(tmp_path)
+    r = audit(root)
+    assert r["report_version"] == 1
+    for k in ("tool", "audited_at", "dataset", "not_checked", "score", "findings", "provenance", "thresholds"):
+        assert k in r
+    for k in ("dataset_score", "usable_episodes", "usable_fraction", "flagged_episodes", "severity_counts"):
+        assert k in r["score"]
+    assert set(r["findings"][0]) == {"check", "severity", "message", "episodes", "details"}
