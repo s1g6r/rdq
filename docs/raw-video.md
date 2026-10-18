@@ -200,14 +200,20 @@ same batch: two single-camera conversions (Berkeley MVP, NYU door opening; one w
 other takes of the same grasp agreed at 0.80-0.85. With one camera a duplicate now needs 0.97: a third single-camera conversion (Berkeley RPT, 30 fps) had takes of the
 same grasp at 0.90-0.93, while a copy from a merge mistake is near 1.0.
 
-Three more came from running rdq on LeBoard's datasets at the same pinned versions and comparing results (Oct 18),
+Four more came from running rdq on LeBoard's datasets at the same pinned versions and comparing results (Oct 18),
 each checked by eye and fixed with a test:
 - a humanoid's stereo head cameras (lerobot/unitreeh1_rearrange_objects) reported as swapped: two cameras that
   see nearly the same picture can't be told apart, so they are no longer judged for swaps;
 - a precise robot's repeat takes (lerobot/dlr_sara_grid_clamp) reported as copies: pixel differences of about 3
   grey levels, but joint data as different as any two recordings. A copy now has to repeat the robot data too;
 - one-frame episodes of a 1 fps camera (lerobot/uiuc_d3field) reported as video that ends early: a single frame
-  now counts for the file's own frame step. Those episodes are still reported as too short.
+  now counts for the file's own frame step. Those episodes are still reported as too short;
+- scripted takes on the same 1 fps cameras (lerobot/uiuc_d3field) reported as copies: different objects, but the
+  first 8 frames show the same empty table before the arm comes in. A copy now has to match over at least 15 frames.
+
+The same comparison confirmed one duplicate that only rdq reports: in lerobot/berkeley_rpt, episode 364 is a re-cut
+of episode 326's recording (same bin layout, same grasp at the same moments, robot data matching after a 7-frame
+offset), most likely inherited from the original release.
 
 ## Limits
 
