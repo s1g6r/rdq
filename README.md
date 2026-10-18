@@ -86,6 +86,7 @@ On synthetic deliveries with known answers it finds every planted defect class a
 | `values.non_finite`, `values.empty_channel`, `values.empty_feature`, `values.dead_dimension` | critical / warning / critical / info | NaNs in some frames, a channel that is never finite (reported once, not per episode, and dropped from both action and state so the sync check still runs), an action or state with no finite value at all, or a channel that never changes. |
 | `episodes.no_motion` | critical | Most episodes' state (or absolute-position action) moves no further than its frame-to-frame noise: a frozen stream or a disconnected arm. |
 | `counts.episodes_not_in_metadata`, `counts.metadata_episodes_missing` | critical | Episodes in the data files that LeRobot's metadata doesn't list, or the reverse. |
+| `meta.index_ranges` | warning | The metadata's row ranges for some episodes don't match the data's index column (often one episode re-written or stored out of order). The frames are there, but a loader that picks rows by those ranges reads the wrong ones. |
 | `stats.stale` | warning | `stats.json` doesn't match the data, so normalisation is silently wrong. |
 | `schema.*`, `counts.*`, `time.*`, `files.*` | various | Metadata that disagrees with the data, broken timing, orphaned files. |
 | `tasks.placeholder` | warning | Language-conditioned policies get a useless instruction. |

@@ -267,3 +267,29 @@ def test_delta_actions_are_not_glitches(tmp_path, clean):
         ep["action"] = d + rng.normal(0, 2.0, d.shape) * (rng.random(d.shape) < 0.05)
     _, findings = _audit(tmp_path, eps)
     assert not any(f.check == "episodes.spikes" and "action" in f.message for f in findings)
+
+
+def test_metadata_row_ranges_that_disagree_with_the_index_column(tmp_path):
+    """deepreach/bi_so101_8inch_4cam: episode 188 stored out of order, so the data's index column for 189-221 sits
+    241 rows below the metadata's ranges. All frames are there: report the ranges, not 33 short episodes."""
+    import pandas as pd
+
+    from rdq import synthetic as syn
+    from rdq.dataset import load_dataset
+    from rdq.report import audit
+
+    eps = syn.make_episodes(n_episodes=10, seed=2)
+    root = syn.write_dataset(tmp_path / "ds", eps, with_video=False)
+    meta_path = root / "meta" / "episodes" / "chunk-000" / "file-000.parquet"
+    meta = pd.read_parquet(meta_path)
+    later = meta["episode_index"] >= 4
+    meta.loc[later, "dataset_from_index"] += 7
+    meta.loc[later, "dataset_to_index"] += 7
+    meta.to_parquet(meta_path)
+
+    ds = load_dataset(root)
+    assert all(ds.episodes[i].length == len(eps[i]["action"]) for i in range(10))
+    assert ds.index_offsets == {i: -7 for i in range(4, 10)}
+    found = {f["check"]: f for f in audit(root)["findings"]}
+    assert found["meta.index_ranges"]["episodes"] == list(range(4, 10))
+    assert "counts.length_mismatch" not in found

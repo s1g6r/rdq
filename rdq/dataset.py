@@ -94,7 +94,8 @@ class Dataset:
     skipped_features: dict[str, str] = field(default_factory=dict)  # feature -> why it was not loaded
     not_checked: list[str] = field(default_factory=list)  # checks that could not run, with the reason
     channel_index: dict[str, list[int]] = field(default_factory=dict)
-    truncated: str | None = None  # set when only part of the data was read (--max-frames)  # kept columns -> declared positions (after dropping dead channels)
+    truncated: str | None = None  # set when only part of the data was read (--max-frames)
+    index_offsets: dict[int, int] = field(default_factory=dict)  # episode -> data index minus metadata start, when they disagree
 
     @property
     def action_key(self) -> str | None:
@@ -326,6 +327,7 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
         return out
 
     episodes: dict[int, Episode] = {}
+    index_offsets: dict[int, int] = {}
     sort_cols = [c for c in ("episode_index", "frame_index") if c in data.columns]
     for ep_idx, group in data.sort_values(sort_cols, kind="stable").groupby("episode_index", sort=True):
         ep_idx = int(ep_idx)
@@ -334,7 +336,12 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
         if start is not None and end is not None and "index" in group.columns:
             # Read exactly the rows LeRobot would use for this episode.
             sliced = group[(group["index"] >= int(start)) & (group["index"] < int(end))]
-            if len(sliced):
+            meta_len = meta.get("length")
+            if meta_len is not None and len(sliced) != int(meta_len) and len(group) == int(meta_len):
+                # all of the episode's frames are there, but the data's index column doesn't sit in the metadata's
+                # range (deepreach/bi_so101_8inch_4cam: one episode stored out of order shifted 33 later ones by 241)
+                index_offsets[ep_idx] = int(group["index"].min()) - int(start)
+            elif len(sliced):
                 group = sliced
         episodes[ep_idx] = Episode(
             index=ep_idx,
@@ -370,4 +377,5 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
         has_episode_stats=has_episode_stats,
         skipped_features=skipped,
         truncated=truncated,
+        index_offsets=index_offsets,
     )

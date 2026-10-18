@@ -330,6 +330,21 @@ def check_counts(ds: Dataset, th: Thresholds) -> list[Finding]:
                     details={"missing": not_in_data[:50]},
                 )
             )
+    offsets = getattr(ds, "index_offsets", {}) or {}
+    if offsets:
+        shifts = sorted(set(offsets.values()))
+        out.append(
+            Finding(
+                "meta.index_ranges",
+                WARNING,
+                f"for {_eps(len(offsets))} the metadata's row ranges (dataset_from_index / dataset_to_index) don't match "
+                f"the data's index column (off by {', '.join(f'{v:+d}' for v in shifts[:5])} rows). All the frames are "
+                "there, but a loader that picks an episode's rows by those ranges reads the wrong rows; often one "
+                "episode was re-written or stored out of order. Re-computing the ranges from the data fixes it",
+                episodes=sorted(offsets),
+                details={"offsets": {str(k): v for k, v in list(offsets.items())[:50]}},
+            )
+        )
     if ds.episodes_meta is not None and "length" in ds.episodes_meta.columns:
         bad = []
         for ep in ds.episodes.values():
