@@ -19,7 +19,8 @@ from pathlib import Path
 from .dataset import DatasetLoadError
 
 
-def _resolve_path(path: str, repo_id: str | None, video: bool, max_mb: float | None = None) -> tuple[str, str | None]:
+def _resolve_path(path: str, repo_id: str | None, video: bool, max_mb: float | None = None,
+                  revision: str | None = None) -> tuple[str, str | None]:
     """A local folder is used as is. Anything shaped like owner/name that isn't a folder is
     fetched from the Hugging Face Hub (tables and card only, plus videos with --video)."""
     if Path(path).exists() or path.count("/") != 1 or path.startswith((".", "/")):
@@ -32,13 +33,13 @@ def _resolve_path(path: str, repo_id: str | None, video: bool, max_mb: float | N
           f"({'with' if video else 'without'} videos)…", file=sys.stderr)
     try:
         if max_mb:
-            info = hf.HfApi().dataset_info(path, files_metadata=True)
+            info = hf.HfApi().dataset_info(path, revision=revision, files_metadata=True)
             prefixes = ("data/", "meta/", "videos/") if video else ("data/", "meta/")
             size = sum((f.size or 0) for f in info.siblings if f.rfilename.startswith(prefixes)) / 1e6
             if size > max_mb:
                 raise DatasetLoadError(f"'{path}' is {size:,.0f} MB to download, over --max-mb {max_mb:g}; "
                                        "raise the limit or download a subset yourself")
-        local = hf.snapshot_download(path, repo_type="dataset", allow_patterns=patterns)
+        local = hf.snapshot_download(path, repo_type="dataset", allow_patterns=patterns, revision=revision)
     except DatasetLoadError:
         raise
     except Exception as exc:  # noqa: BLE001 - hub errors come in many types
@@ -68,11 +69,13 @@ def _cmd_check(args) -> int:
 
     try:
         want_video = args.video or args.video_full
-        path, repo_id = _resolve_path(args.path, args.repo_id, want_video, args.max_mb)
+        path, repo_id = _resolve_path(args.path, args.repo_id, want_video, args.max_mb, getattr(args, "revision", None))
         result = audit(path, max_frames=args.max_frames, repo_id=repo_id, video=args.video,
                        video_full=args.video_full, expected=args.expected)
         if repo_id:
             result["dataset"]["path"] = repo_id
+        if getattr(args, "revision", None):
+            result["dataset"]["revision"] = args.revision
     except (DatasetLoadError, ExpectedError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -339,6 +342,7 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--no-color", action="store_true")
     c.add_argument("--repo-id", help="hub id of the dataset (enables upstream-licence matching by name)")
     c.add_argument("--max-mb", type=float, default=2000, help="refuse to fetch a Hub dataset larger than this (default 2000 MB)")
+    c.add_argument("--revision", help="Hub commit, branch or tag to check (default: the latest)")
     c.add_argument("--video", action="store_true", help="also decode a few frames per episode (frozen/black/blur/decode checks; needs PyAV)")
     c.add_argument("--video-full", action="store_true",
                    help="decode every frame: frozen/black/blurry stretches, timing gaps and duplicated episodes (needs rdq[video])")

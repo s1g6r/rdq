@@ -63,11 +63,13 @@ def main() -> int:
     print("::notice title=datasets::" + " ".join(ids))
     rows = []
     for ds in ids:
-        j = out / (ds.replace("/", "__") + ".json")
+        j = out / (ds.replace("/", "__").replace("@", "__") + ".json")
         t0 = time.time()
         for attempt in range(4):  # the Hub rate-limits parallel anonymous downloads: back off and retry
-            p = subprocess.run([sys.executable, "-m", "rdq.cli", "check", ds, "--video-full", "--json", str(j),
-                                "--max-mb", str(args.max_mb), "--no-color"], capture_output=True, text=True)
+            name, _, rev = ds.partition("@")       # owner/name@commit pins a revision (LeBoard's pinned SHAs)
+            p = subprocess.run([sys.executable, "-m", "rdq.cli", "check", name, "--video-full", "--json", str(j),
+                                "--max-mb", str(args.max_mb), "--no-color"] + (["--revision", rev] if rev else []),
+                               capture_output=True, text=True)
             if j.exists() or "Hub" not in (p.stderr or "") or attempt == 3:
                 break
             time.sleep(90 * (attempt + 1))
