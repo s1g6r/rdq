@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: `video.duplicate_episode` now checks the robot data too. A copy from a merge or upload mistake duplicates the data with the footage; a precise robot replaying one motion films near-identical takes whose joint data still differs as much as any two recordings. Those are now leads (`video.possible_duplicate`, with `data_agreement` in the details). Found on lerobot/dlr_sara_grid_clamp while comparing rdq with LeBoard; checked by eye and in the data.
 - Fix: `video.cameras_swapped` no longer fires on a stereo pair (two cameras that see nearly the same picture, such as a humanoid's head cameras): a swap between them can't be seen. Found on lerobot/unitreeh1_rearrange_objects while comparing rdq with LeBoard; checked by eye.
 
 ## 0.3.0 (2026-10-18)

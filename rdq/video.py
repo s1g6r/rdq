@@ -310,7 +310,7 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
             dup_pairs.setdefault((a, b), []).append({"camera": vkey, "kind": d["kind"], "overlap_s": d.get("overlap_s"),
                                                      "share_of_shorter": d.get("share_of_shorter"),
                                                      "motion_corr": ev.get("motion_corr")})
-    out += judge_duplicates(dup_pairs, len(cameras or ds.video_keys))
+    out += judge_duplicates(dup_pairs, len(cameras or ds.video_keys), ds)
     for a, b, eps_sw in camera_swaps(cam_bgs):
         out.append(Finding("video.cameras_swapped", WARNING,
                            f"cameras '{a}' and '{b}' look swapped in {_eps(len(eps_sw))}: each shows what the other "
@@ -385,7 +385,49 @@ def camera_swaps(cam_bgs: dict[str, dict[int, np.ndarray]]) -> list[tuple[str, s
                 out.append((a, b, best))
     return out
 
-def judge_duplicates(dup_pairs: dict[tuple[int, int], list[dict]], n_cams: int) -> list[Finding]:
+def _traj_distance(x: np.ndarray, y: np.ndarray, step: int) -> float:
+    """Smallest mean absolute difference between two (T, D) trajectories over any alignment that overlaps at least
+    half of the shorter one (sampled every `step` frames). A copy, even a trimmed one, scores about zero."""
+    x, y = x[::step], y[::step]
+    n = min(len(x), len(y))
+    if n < 3:
+        return float("nan")
+    minov = max(3, n // 2)
+    best = float("inf")
+    for sh in range(-(len(y) - minov), len(x) - minov + 1):
+        i0, j0 = max(0, sh), max(0, -sh)
+        m = min(len(x) - i0, len(y) - j0)
+        if m < minov:
+            continue
+        d = float(np.mean(np.abs(x[i0:i0 + m] - y[j0:j0 + m])))
+        best = min(best, d)
+    return best
+
+
+def data_agreement(ds: Dataset, a: int, b: int) -> float | None:
+    """How alike the robot data (state, else action) of episodes a and b is, relative to unrelated episode
+    pairs: about 0 for a copy, about 1 for two separate recordings. None when there is no data to compare."""
+    key = ds.state_key or ds.action_key
+    feats = {e: ep.features.get(key) for e, ep in ds.episodes.items() if key and ep.features.get(key) is not None}
+    if a not in feats or b not in feats or len(feats) < 4:
+        return None
+    sample = np.concatenate([feats[e] for e in list(feats)[:: max(1, len(feats) // 50)]])
+    sd = sample.std(axis=0)
+    sd[sd < 1e-9] = 1.0
+    z = lambda e: np.asarray(feats[e], dtype=np.float64) / sd  # noqa: E731
+    step = max(1, max(len(feats[a]), len(feats[b])) // 150)
+    pair = _traj_distance(z(a), z(b), step)
+    others = [e for e in sorted(feats) if e not in (a, b)]
+    others = others[:: max(1, len(others) // 8)][:8]
+    typical = [d for e in others for d in (_traj_distance(z(a), z(e), step), _traj_distance(z(b), z(e), step))
+               if np.isfinite(d)]
+    if not typical or not np.isfinite(pair) or np.median(typical) <= 1e-9:
+        return None
+    return float(pair / np.median(typical))
+
+
+def judge_duplicates(dup_pairs: dict[tuple[int, int], list[dict]], n_cams: int,
+                     ds: Dataset | None = None) -> list[Finding]:
     """Turn per-camera matches between episode pairs into findings. A duplicated episode is duplicated in
     every camera (they record together). A match in one camera of a multi-camera dataset, one covering a
     small part of the episode, or (with a single camera) one whose movements agree less than a copy's
@@ -404,7 +446,13 @@ def judge_duplicates(dup_pairs: dict[tuple[int, int], list[dict]], n_cams: int) 
         # with a single camera there is no second view to confirm a copy, and takes of one task from a wrist
         # camera move alike; a copy from a merge or upload mistake matches almost exactly
         single_ok = n_cams >= 2 or strong or entry["motion_corr"] >= DUP_SINGLE_CAM_CORR
-        if (len(cams) >= min(2, n_cams)) and share >= 0.5 and single_ok:
+        # a copy duplicates the robot data too; a precise robot replaying one motion films near-identical takes
+        # whose joint data still differs as much as any two recordings do
+        agree = data_agreement(ds, a, b) if ds is not None and not strong else None
+        if agree is not None:
+            entry["data_agreement"] = round(agree, 2)
+        data_ok = agree is None or agree <= DUP_DATA_RATIO
+        if (len(cams) >= min(2, n_cams)) and share >= 0.5 and single_ok and data_ok:
             confirmed.append(entry)
         else:
             leads.append(entry)
@@ -419,11 +467,12 @@ def judge_duplicates(dup_pairs: dict[tuple[int, int], list[dict]], n_cams: int) 
         out.append(Finding("video.possible_duplicate", INFO,
                            f"{len(leads)} pair(s) of episodes share a stretch of matching footage in one camera only, "
                            "or over less than half an episode, or (with a single camera) with movements that agree less than a "
-                           "copy's would; worth a look, not counted", details={"pairs": leads[:50]}))
+                           "copy's would, or whose robot data differs as much as two separate recordings; worth a look, not counted", details={"pairs": leads[:50]}))
     return out
 
 
 DUP_SINGLE_CAM_CORR = 0.97  # motion agreement a duplicate needs when the dataset has only one camera
+DUP_DATA_RATIO = 0.3  # a duplicate's robot data must be at least this much closer than unrelated episodes' (0 = copy)
 VIEW_SAME_CORR = 0.6     # correlation of two episodes' background thumbnails above which they share a viewpoint
 VIEW_STABLE_STD = 8.0    # a thumbnail pixel is still if it varies less than this (grey levels) within an episode
 VIEW_MIN_STABLE = 0.4    # a camera with less of its picture still than this (median episode) is moving: not judged

@@ -23,6 +23,7 @@ FPS, SECONDS, N = 30, 10, 8
 def dataset(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("lerobot")
     eps = syn.make_episodes(N, length=FPS * SECONDS)
+    eps[5] = {k: (v.copy() if hasattr(v, "copy") else v) for k, v in eps[1].items()}  # a copy duplicates the data too
     root = syn.write_dataset(tmp / "ds", eps, fps=FPS)
     clips = tmp / "clips"
     clips.mkdir()
@@ -287,3 +288,20 @@ def test_stereo_pair_is_not_a_swap():
         left = {e: noisy(scene[e]) for e in range(30)}
         right = {e: noisy(0.8 * scene[e] + 0.2 * q) for e in range(30)}
         assert camera_swaps({"cam_left": left, "cam_right": right}) == [], seed
+
+
+def test_near_identical_takes_with_different_robot_data_are_only_a_lead(tmp_path):
+    """lerobot/dlr_sara_grid_clamp: a precise robot replays one motion, so two takes film almost the same (one camera,
+    motion agreement 0.98-0.99), but the joint data differs as much as any two recordings: not a copy."""
+    from rdq.video import data_agreement, judge_duplicates
+
+    eps = syn.make_episodes(12, length=FPS * 6, seed=11)
+    eps[9] = {k: (v.copy() if hasattr(v, "copy") else v) for k, v in eps[2].items()}   # a real copy, data and all
+    ds = load_dataset(syn.write_dataset(tmp_path / "ds", eps, fps=FPS))
+    assert data_agreement(ds, 2, 9) < 0.05
+    assert data_agreement(ds, 3, 7) > 0.3
+    hit = lambda: [{"camera": "observation.images.image", "kind": "near_duplicate", "overlap_s": 5.5,  # noqa: E731
+                    "share_of_shorter": 1.0, "motion_corr": 0.985}]
+    found = {f.check: f for f in judge_duplicates({(2, 9): hit(), (3, 7): hit()}, 1, ds)}
+    assert found["video.duplicate_episode"].episodes == [9]
+    assert [(p["original"], p["copy"]) for p in found["video.possible_duplicate"].details["pairs"]] == [(3, 7)]
