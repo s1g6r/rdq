@@ -33,13 +33,15 @@ def _resolve_path(path: str, repo_id: str | None, video: bool, max_mb: float | N
           f"({'with' if video else 'without'} videos)…", file=sys.stderr)
     try:
         if max_mb:
-            info = hf.HfApi().dataset_info(path, revision=revision, files_metadata=True)
+            rev = {"revision": revision} if revision else {}
+            info = hf.HfApi().dataset_info(path, files_metadata=True, **rev)
             prefixes = ("data/", "meta/", "videos/") if video else ("data/", "meta/")
             size = sum((f.size or 0) for f in info.siblings if f.rfilename.startswith(prefixes)) / 1e6
             if size > max_mb:
                 raise DatasetLoadError(f"'{path}' is {size:,.0f} MB to download, over --max-mb {max_mb:g}; "
                                        "raise the limit or download a subset yourself")
-        local = hf.snapshot_download(path, repo_type="dataset", allow_patterns=patterns, revision=revision)
+        local = hf.snapshot_download(path, repo_type="dataset", allow_patterns=patterns,
+                                     **({"revision": revision} if revision else {}))
     except DatasetLoadError:
         raise
     except Exception as exc:  # noqa: BLE001 - hub errors come in many types
