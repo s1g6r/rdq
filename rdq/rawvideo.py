@@ -508,7 +508,9 @@ def segment_record(rec: dict, start: float, end: float, name: str) -> dict:
         seg["samples"] = {}
     if seg["frames"]:
         last = float(seg["t"][-1])
-        step = float(np.median(np.diff(seg["t"]))) if seg["frames"] > 1 else 1 / 30
+        # one frame has no interval of its own: use the file's frame step (a 1 fps camera, a one-frame episode)
+        file_step = float(np.median(np.diff(t))) if len(t) > 1 else 1 / 30
+        step = float(np.median(np.diff(seg["t"]))) if seg["frames"] > 1 else file_step
         seg["decoded_duration_s"] = last + step
     else:
         seg["decoded_duration_s"] = 0.0

@@ -305,3 +305,20 @@ def test_near_identical_takes_with_different_robot_data_are_only_a_lead(tmp_path
     found = {f.check: f for f in judge_duplicates({(2, 9): hit(), (3, 7): hit()}, 1, ds)}
     assert found["video.duplicate_episode"].episodes == [9]
     assert [(p["original"], p["copy"]) for p in found["video.possible_duplicate"].details["pairs"]] == [(3, 7)]
+
+
+def test_one_frame_episode_of_a_1fps_camera_is_not_a_decode_error():
+    """lerobot/uiuc_d3field records at 1 fps and has five one-frame episodes; their single frame was measured as
+    1/30 s of video against a 1 s span, so the episodes were reported as video that ends early."""
+    from rdq import rawvideo as rv
+
+    n = 20
+    t = np.arange(n, dtype=float)
+    dec = {"frames": n, "t": t, "mean": np.full(n, 120.0), "std": np.full(n, 40.0), "dark": np.zeros(n),
+           "mad": np.full(n, 3.0), "ident": np.zeros(n, bool), "exact": np.zeros(n, bool),
+           "lap_t": t, "lap": np.full(n, 500.0), "decoded_duration_s": float(n)}
+    rec = {"path": "file-000.mp4", "meta": {"duration_s": float(n)}, "dec": dec}
+    seg = rv.segment_record(rec, 7.0, 8.0, "episode 47")
+    assert seg["dec"]["frames"] == 1 and seg["dec"]["decoded_duration_s"] == 1.0
+    issues, _ = rv.file_issues(seg, rv.Spec(), None)
+    assert not [i for i in issues if i.check in ("video.truncated", "video.unreadable")]
