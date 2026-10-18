@@ -271,3 +271,19 @@ def test_viewpoint_groups_skip_episodes_too_short_to_measure():
     v = viewpoints(recs)
     assert v is not None and 57 not in v["of"]
     assert v["of"].get(57) is None          # the caller must not index it directly
+
+
+def test_stereo_pair_is_not_a_swap():
+    """lerobot/unitreeh1_rearrange_objects: cam_left and cam_right are the humanoid's stereo head cameras, so they
+    see nearly the same picture; when the head turns in a few episodes, each view sits as close to the other
+    camera's reference view as to its own, which looked like a swap (episodes 8, 11, 12). Checked by eye: no swap."""
+    from rdq.video import camera_swaps
+
+    for seed in range(40):
+        rng = np.random.default_rng(seed)
+        a, q = rng.uniform(0, 255, (18, 32)), rng.uniform(0, 255, (18, 32))
+        noisy = lambda v: _bg(v + rng.normal(0, 15, v.shape))  # noqa: E731
+        scene = {e: (0.4 * a + 0.6 * q if e in (8, 11, 12) else a) for e in range(30)}
+        left = {e: noisy(scene[e]) for e in range(30)}
+        right = {e: noisy(0.8 * scene[e] + 0.2 * q) for e in range(30)}
+        assert camera_swaps({"cam_left": left, "cam_right": right}) == [], seed

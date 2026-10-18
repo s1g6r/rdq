@@ -341,7 +341,8 @@ def camera_swaps(cam_bgs: dict[str, dict[int, np.ndarray]]) -> list[tuple[str, s
     "crosses" when one camera shows what the other camera showed at r while neither shows its own view from r
     (the other view may have changed too, e.g. a camera that was also moved). The episodes split into those that
     cross and those that keep r's assignment; the smaller side is reported as swapped. References are tried among
-    episodes typical of each camera, and the split must cover most episodes."""
+    episodes typical of each camera, and the split must cover most episodes. Cameras whose views look alike in
+    the reference episode (a stereo pair) are not judged against it."""
     out = []
     cams = sorted(cam_bgs)
     c = lambda x, y: float(np.mean(x * y))  # noqa: E731
@@ -360,6 +361,10 @@ def camera_swaps(cam_bgs: dict[str, dict[int, np.ndarray]]) -> list[tuple[str, s
                 refs += heads[:6]
             best: list[int] = []
             for r in dict.fromkeys(refs):
+                # two cameras that see nearly the same picture (a stereo pair, a duplicated feed) cannot be told
+                # apart, so a swap between them is invisible and any "crossing" is noise around the threshold
+                if c(A[r], B[r]) >= SWAP_CORR:
+                    continue
                 cross, keep = [], []
                 for e in eps:
                     own_a, own_b = c(A[e], A[r]) >= SWAP_CORR, c(B[e], B[r]) >= SWAP_CORR

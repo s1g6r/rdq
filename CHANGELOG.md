@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix: `video.cameras_swapped` no longer fires on a stereo pair (two cameras that see nearly the same picture, such as a humanoid's head cameras): a swap between them can't be seen. Found on lerobot/unitreeh1_rearrange_objects while comparing rdq with LeBoard; checked by eye.
+
 ## 0.3.0 (2026-10-18)
 
 - Docs: [docs/json-report.md](docs/json-report.md) documents the JSON report for tools that build on it; reports now carry `report_version: 1`.
