@@ -456,7 +456,11 @@ def judge_duplicates(dup_pairs: dict[tuple[int, int], list[dict]], n_cams: int,
         if agree is not None:
             entry["data_agreement"] = round(agree, 2)
         data_ok = agree is None or agree <= DUP_DATA_RATIO
-        if (len(cams) >= min(2, n_cams)) and share >= 0.5 and single_ok and data_ok:
+        # a few frames of a slow camera are not enough to tell a copy from scripted takes that start alike
+        # (lerobot/uiuc_d3field, 1 fps: 8 frames of an empty table before the arm comes in, different objects)
+        fps = (ds.fps if ds is not None else None) or 0
+        frames_ok = strong or not fps or entry["overlap_s"] * fps >= DUP_MIN_FRAMES
+        if (len(cams) >= min(2, n_cams)) and share >= 0.5 and single_ok and data_ok and frames_ok:
             confirmed.append(entry)
         else:
             leads.append(entry)
@@ -476,6 +480,7 @@ def judge_duplicates(dup_pairs: dict[tuple[int, int], list[dict]], n_cams: int,
 
 
 DUP_SINGLE_CAM_CORR = 0.97  # motion agreement a duplicate needs when the dataset has only one camera
+DUP_MIN_FRAMES = 15  # a copy must match over at least this many frames of the dataset's own rate
 DUP_DATA_RATIO = 0.3  # a duplicate's robot data must be at least this much closer than unrelated episodes' (0 = copy)
 VIEW_SAME_CORR = 0.6     # correlation of two episodes' background thumbnails above which they share a viewpoint
 VIEW_STABLE_STD = 8.0    # a thumbnail pixel is still if it varies less than this (grey levels) within an episode

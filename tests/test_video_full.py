@@ -325,3 +325,17 @@ def test_one_frame_episode_of_a_1fps_camera_is_not_a_decode_error():
     assert seg["dec"]["frames"] == 1 and seg["dec"]["decoded_duration_s"] == 1.0
     issues, _ = rv.file_issues(seg, rv.Spec(), None)
     assert not [i for i in issues if i.check in ("video.truncated", "video.unreadable")]
+
+
+def test_a_few_frames_of_a_slow_camera_are_not_a_copy(tmp_path):
+    """lerobot/uiuc_d3field (1 fps): scripted takes with different objects matched over 8 frames of an empty table
+    in 2-3 cameras; the robot data is all zeros, so it can't help."""
+    from rdq.video import judge_duplicates
+
+    eps = syn.make_episodes(10, length=18, seed=3)
+    eps[2] = {k: (v.copy() if hasattr(v, "copy") else v) for k, v in eps[1].items()}  # data gives no evidence against
+    ds = load_dataset(syn.write_dataset(tmp_path / "ds", eps, fps=1))
+    hits = [{"camera": f"observation.images.image_{k}", "kind": "partial_overlap", "overlap_s": 8.0,
+             "share_of_shorter": 0.5, "motion_corr": 0.908} for k in (1, 3)]
+    found = {f.check for f in judge_duplicates({(1, 2): hits}, 4, ds)}
+    assert found == {"video.possible_duplicate"}
