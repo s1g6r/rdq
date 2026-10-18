@@ -211,6 +211,10 @@ each checked by eye and fixed with a test:
 - scripted takes on the same 1 fps cameras (lerobot/uiuc_d3field) reported as copies: different objects, but the
   first 8 frames show the same empty table before the arm comes in. A copy now has to match over at least 15 frames.
 
+A fourteenth came from a data company's public dataset (deepreach/bi_so101_8inch_4cam): a low camera facing a plain
+white table was reported as covered once the towel left the view. A covered lens blocks light, so featureless frames
+now have to be darker than the camera's usual picture to count.
+
 The same comparison confirmed two problems in lerobot/berkeley_rpt that only rdq reports: episode 364 is a re-cut
 of episode 326's recording (same bin layout, same grasp at the same moments, robot data matching after a 7-frame
 offset), and episodes 409 and 829 have no footage, because each of the two video files ends exactly where that
