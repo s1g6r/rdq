@@ -8,6 +8,8 @@
 
 **What it found on the Hub (October 2026):** [docs/findings-2026-10.md](docs/findings-2026-10.md)
 
+**Used by [LeBoard](https://www.leboard.xyz/)**, the public quality board for 91 LeRobot v3 datasets: its License column is rdq's licence check ([method](https://www.leboard.xyz/methodology.html#license)).
+
 **Try the licence check in your browser, no install:** [huggingface.co/spaces/rs1g6r/rdq](https://huggingface.co/spaces/rs1g6r/rdq)
 
 It reads tables, not videos (unless you ask), and runs on a laptop for typical datasets: about 1.4 GB of memory for 600,000 frames. For DROID-scale corpora, audit a sample of episodes.

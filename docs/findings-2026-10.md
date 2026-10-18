@@ -14,7 +14,7 @@ LeRobot's `push_to_hub()` sets `license: apache-2.0` unless you change it, and w
 
 A tag on a copy can't grant rights the uploader doesn't hold, but people read the card as if it does. I opened [an issue on LeRobot](https://github.com/huggingface/lerobot/issues/4944) about the default, and a community fix that warns when the default is used is under review.
 
-I also ran the check on every dataset on LeBoard, at the exact versions it pins: only 9 of 91 carry a licence that matches their source, and 4 have no dataset card at all.
+I also ran the check on every dataset on LeBoard, at the exact versions it pins: only 9 of 91 carry a licence that matches their source, and 4 have no dataset card at all. LeBoard has since added these results as its License column ([leboard.xyz](https://www.leboard.xyz/)).
 
 ## Video: problems you only see by watching every frame
 
