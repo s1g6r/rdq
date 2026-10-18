@@ -15,7 +15,7 @@
 It reads tables, not videos (unless you ask), and runs on a laptop for typical datasets: about 1.4 GB of memory for 600,000 frames. For DROID-scale corpora, audit a sample of episodes.
 
 ```bash
-pip install git+https://github.com/s1g6r/rdq    # Python 3.10+
+pip install "rdq[video]"    # Python 3.10+; plain `pip install rdq` without video decoding
 rdq check owner/name --html report.html --filter keep.json      # a Hub dataset id (fetches tables + card only)
 rdq check path/to/dataset --repo-id owner/name --video          # or a local folder, with camera checks
 rdq check owner/name --video-full                               # decode every frame: frozen/black/blurry stretches, duplicated episodes

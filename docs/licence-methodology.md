@@ -127,7 +127,7 @@ Every result ends in **OK to use**, **Check first** or **Stop**, plus one senten
 ## 8. Reproducing a result
 
 ```bash
-pip install git+https://github.com/s1g6r/rdq
+pip install rdq
 rdq check <dataset-id-or-path> --json report.json   # see "provenance" in the JSON
 ```
 

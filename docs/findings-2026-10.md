@@ -31,7 +31,7 @@ I also want to be upfront about false alarms. Three came up on the way and were 
 ## Try it
 
 ```bash
-pip install "rdq[video] @ git+https://github.com/s1g6r/rdq"
+pip install "rdq[video]"
 rdq check owner/dataset                 # licence, provenance and data checks
 rdq check owner/dataset --video-full    # plus every frame of every episode
 ```
