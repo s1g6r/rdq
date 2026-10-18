@@ -323,6 +323,8 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
 SWAP_CORR = 0.6   # backgrounds this alike count as the same view
 SWAP_MAX_RUNS = 3  # a swap spans at most this many runs of consecutive episodes (recording sessions)
 SWAP_MIN_EPISODES = 3  # and at least this many episodes: one odd episode is usually a wrist camera's coincidence
+SWAP_ALIKE = 0.45  # cameras whose views correlate this much in a typical episode (a stereo pair) are not judged
+SWAP_MARGIN = 0.15  # a crossing episode matches the other camera's view clearly better than its own
 
 
 def episode_backgrounds(records: list[dict]) -> dict[int, np.ndarray]:
@@ -341,8 +343,8 @@ def camera_swaps(cam_bgs: dict[str, dict[int, np.ndarray]]) -> list[tuple[str, s
     "crosses" when one camera shows what the other camera showed at r while neither shows its own view from r
     (the other view may have changed too, e.g. a camera that was also moved). The episodes split into those that
     cross and those that keep r's assignment; the smaller side is reported as swapped. References are tried among
-    episodes typical of each camera, and the split must cover most episodes. Cameras whose views look alike in
-    the reference episode (a stereo pair) are not judged against it."""
+    episodes typical of each camera, and the split must cover most episodes. Cameras whose views look alike in a
+    typical episode (a stereo pair) are not judged, and a crossing must match the other view clearly better."""
     out = []
     cams = sorted(cam_bgs)
     c = lambda x, y: float(np.mean(x * y))  # noqa: E731
@@ -351,6 +353,10 @@ def camera_swaps(cam_bgs: dict[str, dict[int, np.ndarray]]) -> list[tuple[str, s
             A, B = cam_bgs[a], cam_bgs[b]
             eps = sorted(set(A) & set(B))
             if len(eps) < 6:
+                continue
+            # two cameras that see much the same picture (a stereo pair: 0.46-0.76 in lerobot/unitreeh1_*) can't
+            # be told apart, so a swap between them is invisible and any "crossing" is noise around the threshold
+            if float(np.median([c(A[e], B[e]) for e in eps])) >= SWAP_ALIKE:
                 continue
             refs: list[int] = []
             for X in (A, B):                       # first episode of each view group, per camera
@@ -361,14 +367,12 @@ def camera_swaps(cam_bgs: dict[str, dict[int, np.ndarray]]) -> list[tuple[str, s
                 refs += heads[:6]
             best: list[int] = []
             for r in dict.fromkeys(refs):
-                # two cameras that see nearly the same picture (a stereo pair, a duplicated feed) cannot be told
-                # apart, so a swap between them is invisible and any "crossing" is noise around the threshold
-                if c(A[r], B[r]) >= SWAP_CORR:
-                    continue
                 cross, keep = [], []
                 for e in eps:
-                    own_a, own_b = c(A[e], A[r]) >= SWAP_CORR, c(B[e], B[r]) >= SWAP_CORR
-                    if not own_a and not own_b and (c(A[e], B[r]) >= SWAP_CORR or c(B[e], A[r]) >= SWAP_CORR):
+                    oa, ob = c(A[e], A[r]), c(B[e], B[r])
+                    own_a, own_b = oa >= SWAP_CORR, ob >= SWAP_CORR
+                    xc = max(c(A[e], B[r]), c(B[e], A[r]))
+                    if not own_a and not own_b and xc >= SWAP_CORR and xc >= max(oa, ob) + SWAP_MARGIN:
                         cross.append(e)
                     elif own_a or own_b:
                         keep.append(e)

@@ -4,7 +4,7 @@
 
 - Fix: a one-frame episode from a slow camera (1 fps) was reported as `video.decode_error` ("ends early"), because its single frame was counted as 1/30 s of video. It now uses the file's own frame step; the episode is still reported as too short by `episodes.too_short`. Found on lerobot/uiuc_d3field while comparing rdq with LeBoard.
 - Fix: `video.duplicate_episode` now checks the robot data too. A copy from a merge or upload mistake duplicates the data with the footage; a precise robot replaying one motion films near-identical takes whose joint data still differs as much as any two recordings. Those are now leads (`video.possible_duplicate`, with `data_agreement` in the details). Found on lerobot/dlr_sara_grid_clamp while comparing rdq with LeBoard; checked by eye and in the data.
-- Fix: `video.cameras_swapped` no longer fires on a stereo pair (two cameras that see nearly the same picture, such as a humanoid's head cameras): a swap between them can't be seen. Found on lerobot/unitreeh1_rearrange_objects while comparing rdq with LeBoard; checked by eye.
+- Fix: `video.cameras_swapped` no longer fires on a stereo pair (two cameras that see much the same picture, such as a humanoid's head cameras): pairs whose views correlate 0.45 or more in a typical episode are not judged, and a crossing episode must match the other camera's view clearly better (by 0.15) than its own. Found on lerobot/unitreeh1_rearrange_objects while comparing rdq with LeBoard; checked by eye.
 
 ## 0.3.0 (2026-10-18)
 

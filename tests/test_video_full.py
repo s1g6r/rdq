@@ -288,6 +288,9 @@ def test_stereo_pair_is_not_a_swap():
         left = {e: noisy(scene[e]) for e in range(30)}
         right = {e: noisy(0.8 * scene[e] + 0.2 * q) for e in range(30)}
         assert camera_swaps({"cam_left": left, "cam_right": right}) == [], seed
+        # as measured on the real pair: the two views correlate only ~0.6 (the stereo offset), all values in one band
+        right = {e: noisy(0.6 * scene[e] + 0.6 * q) for e in range(30)}
+        assert camera_swaps({"cam_left": left, "cam_right": right}) == [], seed
 
 
 def test_near_identical_takes_with_different_robot_data_are_only_a_lead(tmp_path):
