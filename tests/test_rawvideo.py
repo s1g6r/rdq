@@ -148,3 +148,23 @@ def test_takes_in_one_fixed_scene_are_not_copies_but_an_off_grid_cut_is(tmp_path
     r = check_video_batch([str(tmp_path)], workers=1)
     pairs = {tuple(sorted((d["a"].split("/")[-1], d["b"].split("/")[-1]))) for d in r["duplicates"]}
     assert pairs == {("cut.mp4", "take1.mp4")}, pairs
+
+
+def test_plain_bright_scene_is_not_a_covered_lens():
+    """deepreach/bi_so101_8inch_4cam: a low camera facing a white table; once the towel leaves the view the frame is
+    featureless (sd 6.7) but as bright as usual. A covered lens blocks light and darkens the frame."""
+    import numpy as np
+
+    from rdq import rawvideo as rv
+
+    n = 300
+    t = np.arange(n) / 30
+    def dec(flat_mean):
+        mean = np.full(n, 195.0)
+        std = np.full(n, 35.0)
+        lap = np.full(n, 300.0)
+        mean[200:], std[200:], lap[200:] = flat_mean, 6.0, 4.0     # the last 3.3 s are featureless
+        return {"t": t, "mean": mean, "std": std, "dark": np.zeros(n), "mad": np.full(n, 2.0),
+                "ident": np.zeros(n, bool), "lap_t": t, "lap": lap}
+    assert rv.content_spans(dec(200.0))["covered"] == []        # plain white table, same brightness
+    assert rv.content_spans(dec(60.0))["covered"]               # a hand over the lens: dim

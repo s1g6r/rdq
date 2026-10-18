@@ -109,7 +109,7 @@ def render_clip(path: str | Path, spec: ClipSpec) -> Path:
         if active("black", t):
             frame = np.full((H, W), 6.0, np.float32) + rng.normal(0, 1.0, (H, W)).astype(np.float32)
         if active("covered", t):
-            frame = np.full((H, W), 150.0, np.float32) + np.linspace(-3, 3, W, dtype=np.float32)[None, :]
+            frame = np.full((H, W), 55.0, np.float32) + np.linspace(-3, 3, W, dtype=np.float32)[None, :]   # a hand: dim
         img = np.clip(frame, 0, 255).astype(np.uint8)
         if active("freeze", t):
             if frozen is None:

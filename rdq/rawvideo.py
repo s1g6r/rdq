@@ -50,6 +50,8 @@ DARK_LEVEL = 26               # grey level counted as black (about 10% of range,
 BLACK_FRAC = 0.98             # share of dark pixels that makes a frame black
 COVERED_STD = 8.0             # low detail: flat image ...
 COVERED_LAP = 20.0            # ... with almost no edges
+COVERED_DARK = 0.7            # ... and darker than this share of the camera's usual brightness in the stretch
+COVERED_DARK_ABS = 100.0      # ... or, when nothing else is in view, darker than this (grey level)
 OVER_MEAN, OVER_STD = 235.0, 10.0
 LOW_LIGHT_MEAN = 45.0
 BLUR_REL = 0.25               # soft: Laplacian variance below this share of the camera's typical value ...
@@ -549,7 +551,13 @@ def content_spans(dec: dict) -> dict:
     dt = float(np.median(np.diff(t))) if len(t) > 1 else 1 / 30
     lap_i = np.interp(t, dec["lap_t"], dec["lap"]) if len(dec.get("lap", [])) else np.full(len(t), 1e9)
     black_f = dec["dark"] >= BLACK_FRAC
-    covered_f = (dec["std"] < COVERED_STD) & (lap_i < COVERED_LAP) & ~black_f
+    flat_f = (dec["std"] < COVERED_STD) & (lap_i < COVERED_LAP) & ~black_f
+    # a lens covered by a hand, sleeve or surface blocks light; a featureless frame as bright as the camera's usual
+    # picture is a plain scene (deepreach/bi_so101_8inch_4cam: a low camera facing a white table once the towel
+    # has left the view), not a covered lens
+    lit = dec["mean"][~flat_f & ~black_f]
+    norm = float(np.median(lit)) if len(lit) else None
+    covered_f = flat_f & ((dec["mean"] < COVERED_DARK * norm) if norm else (dec["mean"] < COVERED_DARK_ABS))
     over_f = (dec["mean"] > OVER_MEAN) & (dec["std"] < OVER_STD)
     flat = black_f | covered_f | over_f
     ident = dec["ident"] & ~flat

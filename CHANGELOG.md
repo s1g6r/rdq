@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: `video.covered` needs the featureless frames to be darker than the camera's usual picture (a covered lens blocks light). A low camera facing a plain white table once the object left the view was reported as covered in about 30 episodes (deepreach/bi_so101_8inch_4cam); checked by eye.
 - `video.decode_error` now says when an episode has no footage because its video file ends before the episode starts (found on lerobot/berkeley_rpt, episodes 409 and 829).
 - Fix: a duplicate must match over at least 15 frames at the dataset's own rate. On a 1 fps camera, scripted takes with different objects matched over 8 frames of an empty table (lerobot/uiuc_d3field); they are now leads.
 - Fix: a one-frame episode from a slow camera (1 fps) was reported as `video.decode_error` ("ends early"), because its single frame was counted as 1/30 s of video. It now uses the file's own frame step; the episode is still reported as too short by `episodes.too_short`. Found on lerobot/uiuc_d3field while comparing rdq with LeBoard.
