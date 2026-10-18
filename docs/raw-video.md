@@ -211,9 +211,10 @@ each checked by eye and fixed with a test:
 - scripted takes on the same 1 fps cameras (lerobot/uiuc_d3field) reported as copies: different objects, but the
   first 8 frames show the same empty table before the arm comes in. A copy now has to match over at least 15 frames.
 
-The same comparison confirmed one duplicate that only rdq reports: in lerobot/berkeley_rpt, episode 364 is a re-cut
+The same comparison confirmed two problems in lerobot/berkeley_rpt that only rdq reports: episode 364 is a re-cut
 of episode 326's recording (same bin layout, same grasp at the same moments, robot data matching after a 7-frame
-offset), most likely inherited from the original release.
+offset), and episodes 409 and 829 have no footage, because each of the two video files ends exactly where that
+episode should start (6063.1 s and 5876.4 s by the files' own durations).
 
 ## Limits
 
