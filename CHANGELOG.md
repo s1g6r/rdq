@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2026-10-18)
 
 - Docs: [docs/json-report.md](docs/json-report.md) documents the JSON report for tools that build on it; reports now carry `report_version: 1`.
 - `video.span_mismatch` now says whether the video is shorter than the data (frames without an image; loaders can fail) or longer (extra footage, often a reset left in), by how much, per episode.

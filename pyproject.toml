@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rdq"
-version = "0.2.1"
+version = "0.3.0"
 description = "Quality and provenance checks for robot-learning datasets (LeRobot format)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,6 +17,12 @@ dependencies = [
   "scipy>=1.10",
   "huggingface_hub>=0.30",
 ]
+
+[project.urls]
+Homepage = "https://github.com/s1g6r/rdq"
+Documentation = "https://github.com/s1g6r/rdq#readme"
+Changelog = "https://github.com/s1g6r/rdq/blob/main/CHANGELOG.md"
+"Browser version" = "https://huggingface.co/spaces/rs1g6r/rdq"
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]

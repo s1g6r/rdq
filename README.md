@@ -6,7 +6,7 @@
 2. **Is anything broken?** It finds desynced streams, frozen logs, glitches, idle padding, duplicates, stale normalisation stats, schema errors and (optionally) bad camera footage.
 3. **Which episodes are worth training on?** It ranks episodes with training-free quality scores from the curation literature, and it says honestly where those scores help and where they don't.
 
-**What it found on the Hub (October 2026):** [docs/findings-2026-10.md](docs/findings-2026-10.md)
+**What it found on the Hub (October 2026):** [docs/findings-2026-10.md](https://github.com/s1g6r/rdq/blob/main/docs/findings-2026-10.md)
 
 **Used by [LeBoard](https://www.leboard.xyz/)**, the public quality board for 91 LeRobot v3 datasets: its License column is rdq's licence check ([method](https://www.leboard.xyz/methodology.html#license)).
 
@@ -26,7 +26,7 @@ rdq check-mcap delivery/*.mcap --state-topic /joint_states --action-topic /leade
 rdq check-video deliveries/oct/ --by-folder --html video.html   # raw video: usable hours, defects, copies, per contributor
 ```
 
-`keep.json` is `{"episodes": [...]}`, the episodes with no critical or warning finding. Pass the list to LeRobot with `--dataset.episodes="$(jq -c .episodes keep.json)"`. Building on the JSON report (a dashboard, a leaderboard, a pipeline)? Its fields are documented in [docs/json-report.md](docs/json-report.md).
+`keep.json` is `{"episodes": [...]}`, the episodes with no critical or warning finding. Pass the list to LeRobot with `--dataset.episodes="$(jq -c .episodes keep.json)"`. Building on the JSON report (a dashboard, a leaderboard, a pipeline)? Its fields are documented in [docs/json-report.md](https://github.com/s1g6r/rdq/blob/main/docs/json-report.md).
 
 ### In CI
 
@@ -52,7 +52,7 @@ LeRobot's `push_to_hub()` defaults to `license="apache-2.0"` and writes a templa
 - How strong the matches are: 189 of the 200 are matched by repository name alone (such as `droid_lerobot` or `bridge_v2_lerobot`), 10 by a link to the original in a derivation context and 1 by a mention. For the 17 most-downloaded name matches we compared robot type and episode count with the original release: the robot matches in all 17, 13 have the original's episode count, 3 are subsets and 1 is a 6-episode sample. In a random sample of 30 of the other name matches, 26 are copies or subsets of the original (same episode counts or splits, same robot); the other 4 are simulation data that may have been newly generated in the same simulator, which the original's licence would not cover. Because no single signal is treated as proof, none of these is reported as critical.
 - **45 more** (8.4% of downloads) declare a licence on data whose original release states no data licence at all, only a code licence. ALOHA sim, Push-T and xArm are examples.
 
-`rdq` reports a verdict for every dataset and marks how strong each upstream match is, from strongest to weakest: the card's `source_datasets` names the source, the card links to it in a derivation context (a "Homepage" field, "converted from"), the repo name matches, or the card only mentions or cites it. Each source is judged on its own evidence and confidence, and the most restrictive term wins. A finding is critical only when the card declares the source, or when two independent signals agree (for example a derivation link and the repo name). A single signal, such as a repo name alone, is at most a warning. A mention in a citation context (a pretrained encoder, a benchmark, a format) is not a match, and uploads by the original publisher are informational. The upstream table lives in [`rdq/data/upstream_licences.json`](rdq/data/upstream_licences.json). Every entry keeps the statement, its URL, the date it was checked and a confidence level. For example, an Open X-Embodiment component that only has the umbrella CC BY 4.0 line counts as medium confidence and never produces a critical finding. A tag on a mirror cannot grant rights the uploader doesn't hold. This is a diligence aid, not legal advice. The full rules, with how each verdict is reached and how it was validated, are in [docs/licence-methodology.md](docs/licence-methodology.md).
+`rdq` reports a verdict for every dataset and marks how strong each upstream match is, from strongest to weakest: the card's `source_datasets` names the source, the card links to it in a derivation context (a "Homepage" field, "converted from"), the repo name matches, or the card only mentions or cites it. Each source is judged on its own evidence and confidence, and the most restrictive term wins. A finding is critical only when the card declares the source, or when two independent signals agree (for example a derivation link and the repo name). A single signal, such as a repo name alone, is at most a warning. A mention in a citation context (a pretrained encoder, a benchmark, a format) is not a match, and uploads by the original publisher are informational. The upstream table lives in [`rdq/data/upstream_licences.json`](https://github.com/s1g6r/rdq/blob/main/rdq/data/upstream_licences.json). Every entry keeps the statement, its URL, the date it was checked and a confidence level. For example, an Open X-Embodiment component that only has the umbrella CC BY 4.0 line counts as medium confidence and never produces a critical finding. A tag on a mirror cannot grant rights the uploader doesn't hold. This is a diligence aid, not legal advice. The full rules, with how each verdict is reached and how it was validated, are in [docs/licence-methodology.md](https://github.com/s1g6r/rdq/blob/main/docs/licence-methodology.md).
 
 ### Data passport
 
@@ -62,7 +62,7 @@ LeRobot's `push_to_hub()` defaults to `license="apache-2.0"` and writes a templa
 - An SPDX 3.0 dataset package, which records the declared and concluded licences separately.
 - A Markdown datasheet.
 
-Facts computed from the data are kept separate from statements by the owner. rdq never makes up how data was collected. See [docs/passport.md](docs/passport.md).
+Facts computed from the data are kept separate from statements by the owner. rdq never makes up how data was collected. See [docs/passport.md](https://github.com/s1g6r/rdq/blob/main/docs/passport.md).
 
 ## Raw video deliveries (`rdq check-video`)
 
@@ -73,7 +73,7 @@ Egocentric and teleop footage is bought by the hour, and not every hour is usabl
 - **copies**: re-uploads, re-encodes, mirrored or cut copies, the same stream in another container, footage looped within a file, and (with `--store`) copies of earlier deliveries. Takes of the same task from a fixed camera look alike frame by frame; a copy also repeats the same movements at the same moments, and that is what rdq checks before calling anything a copy;
 - a **per-contributor scorecard** and an optional delivery spec (resolution, fps, codec, duration, maximum idle and blur share).
 
-On synthetic deliveries with known answers it finds every planted defect class and every copy (re-encoded, cut, mirrored, 25 fps) with no false copies, and estimates usable hours within a few percent. On 60 real episodes from ten public LeRobot datasets (many takes of one task from one fixed camera), and on 72 held-out episodes from twelve more, it reported nothing false and found every planted copy. Details, thresholds and limits: [docs/raw-video.md](docs/raw-video.md). Needs `pip install "rdq[video]"`.
+On synthetic deliveries with known answers it finds every planted defect class and every copy (re-encoded, cut, mirrored, 25 fps) with no false copies, and estimates usable hours within a few percent. On 60 real episodes from ten public LeRobot datasets (many takes of one task from one fixed camera), and on 72 held-out episodes from twelve more, it reported nothing false and found every planted copy. Details, thresholds and limits: [docs/raw-video.md](https://github.com/s1g6r/rdq/blob/main/docs/raw-video.md). Needs `pip install "rdq[video]"`.
 
 ## Integrity checks
 
@@ -133,7 +133,7 @@ The composite score is the mean rank of DemInf-lite and consistency. If it corre
 | 40% imperfect operators (shaky, hesitant, detours, failed) | 0.88 | 0.74 | 0.89 | 0.88 | 0.73 | 0.83 | 0.88 | 0.99 |
 | Both (15% faults + 20% imperfect operators) | 0.34 | 0.37 | 0.24 | 0.27 | 0.87 | 0.93 | 0.92 | 1.00 |
 
-*Success rates, mean of 5 seeds. Full tables, 95% confidence intervals over seeds and detection AUROCs are in [`experiments/results/curation_benchmark.md`](experiments/results/curation_benchmark.md). Seed-to-seed variation is large for the soft scores: on "Both", the composite's interval is 0.87–0.99 and the rules' is 0.90–0.94, so the two are not distinguishable.*
+*Success rates, mean of 5 seeds. Full tables, 95% confidence intervals over seeds and detection AUROCs are in [`experiments/results/curation_benchmark.md`](https://github.com/s1g6r/rdq/blob/main/experiments/results/curation_benchmark.md). Seed-to-seed variation is large for the soft scores: on "Both", the composite's interval is 0.87–0.99 and the rules' is 0.90–0.94, so the two are not distinguishable.*
 
 What this shows:
 
@@ -143,7 +143,7 @@ What this shows:
 
 ### Real data
 
-**RoboMimic multi-operator demos** (`experiments/robomimic_mh.py`, results in [`experiments/results/robomimic/`](experiments/results/robomimic/robomimic_mh.md)). Each method keeps 50% of 300 demonstrations, scored by the operators' published skill tier (3 = better, 1 = worse). Published numbers on Can are from Sojib et al. 2026.
+**RoboMimic multi-operator demos** (`experiments/robomimic_mh.py`, results in [`experiments/results/robomimic/`](https://github.com/s1g6r/rdq/blob/main/experiments/results/robomimic/robomimic_mh.md)). Each method keeps 50% of 300 demonstrations, scored by the operators' published skill tier (3 = better, 1 = worse). Published numbers on Can are from Sojib et al. 2026.
 
 | Method | Can | Square |
 |---|---|---|
@@ -158,7 +158,7 @@ What this shows:
 
 Our replication of the spectral metric matches its published number exactly, so the setup is sound. On this data, demonstration length is the strongest training-free skill signal, and the spectral metric is length in disguise (Spearman 1.00 with length). rdq's lightweight DemInf and composite beat random but not the published methods or length. So `rdq rank` reports length next to every score, and rdq does not claim its skill scores beat the state of the art. The rules dropped 1 of 600 demos, as they should on clean data.
 
-**Push-T with a diffusion policy** (`experiments/kaggle/`, results in [`experiments/results/pusht_kaggle_v1.json`](experiments/results/pusht_kaggle_v1.json)). rdq caught all 62 faults injected into real Push-T demos (21 desync, 20 glitch, 21 idle) and dropped none of the 144 clean ones. The policies were undertrained (30k steps on a free GPU), so success rates are at the floor (2.0% filtered, 0.5% all data, 0.0% random) and do not separate the methods. Average best coverage orders them filtered 0.44, all data 0.34, random 0.26, from one seed.
+**Push-T with a diffusion policy** (`experiments/kaggle/`, results in [`experiments/results/pusht_kaggle_v1.json`](https://github.com/s1g6r/rdq/blob/main/experiments/results/pusht_kaggle_v1.json)). rdq caught all 62 faults injected into real Push-T demos (21 desync, 20 glitch, 21 idle) and dropped none of the 144 clean ones. The policies were undertrained (30k steps on a free GPU), so success rates are at the floor (2.0% filtered, 0.5% all data, 0.0% random) and do not separate the methods. Average best coverage orders them filtered 0.44, all data 0.34, random 0.26, from one seed.
 
 ## Hub audit
 
