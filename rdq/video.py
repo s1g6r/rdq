@@ -477,7 +477,7 @@ def judge_duplicates(dup_pairs: dict[tuple[int, int], list[dict]], n_cams: int,
     if confirmed:
         eps_c = sorted({e["copy"] for e in confirmed})
         out.append(Finding("video.duplicate_episode", WARNING,
-                           f"{_eps(len(eps_c))} repeat another episode's footage in every camera checked: the same "
+                           f"{_eps(len(eps_c))} {'repeats' if len(eps_c) == 1 else 'repeat'} another episode's footage in every camera checked: the same "
                            "movements at the same moments (a copy from a merge or upload mistake, or a near-identical "
                            "recording that adds little)",
                            episodes=eps_c, details={"pairs": confirmed[:50]}))

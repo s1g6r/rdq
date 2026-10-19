@@ -20,6 +20,31 @@
 - A second camera that repeats frames at the start of six episodes; the converters traced it to the original release ([IPEC-COMMUNITY/nyu_franka_play_dataset_lerobot](https://huggingface.co/datasets/IPEC-COMMUNITY/nyu_franka_play_dataset_lerobot/discussions/1)).
 - A mirror tagged MIT whose original data is CC BY 4.0 ([ember-lab-berkeley/robocasa365-pretrain-mg](https://huggingface.co/datasets/ember-lab-berkeley/robocasa365-pretrain-mg/discussions/2)).
 
+What a report looks like (`rdq check lerobot/berkeley_rpt --video-full`, trimmed):
+
+```text
+lerobot/berkeley_rpt
+  908 episodes · 392,578 frames · 30 fps · LeRobot v3.0
+
+  Score 93/100   usable episodes 680/908 (75%)
+
+  CRITICAL camera 'observation.images.hand_image': 2 episodes have no footage: the video file
+           ends before the episode starts, so every frame requested for them is missing
+            episodes 409, 829
+  WARNING  camera 'observation.images.hand_image': blurry stretches without camera motion in 225 episodes
+  WARNING  1 episode repeats another episode's footage in every camera checked: the same movements
+           at the same moments
+            episodes 364
+
+  Licence & provenance
+  OK  Usable, including commercially, as long as you credit Berkeley RPT and say you changed it
+      (CC-BY-4.0). The mit tag on this copy does not remove that duty.
+  fix for the uploader (card YAML header):
+    license: cc-by-4.0
+    source_datasets:
+    - berkeley_rpt
+```
+
 It also gets things wrong sometimes: 14 false alarms on real data so far, each one fixed with a test and listed in the [video methodology](https://github.com/s1g6r/rdq/blob/main/docs/raw-video.md).
 
 It reads tables, not videos (unless you ask), and runs on a laptop for typical datasets: about 1.4 GB of memory for 600,000 frames. For DROID-scale corpora, audit a sample of episodes.
