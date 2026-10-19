@@ -301,8 +301,13 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
                                episodes=sorted(per_ep), details={"video_key": vkey,
                                                                  "seconds_by_episode": {str(k): round(v, 1) for k, v in per_ep.items()}}))
         if decode_err:
-            out.append(Finding("video.decode_error", CRITICAL,
-                               f"camera '{vkey}': video for {_eps(len(decode_err))} is missing, can't be decoded or ends early",
+            no_footage = [e for e, m in decode_err.items() if str(m).startswith("no footage")]
+            if len(no_footage) == len(decode_err):
+                what = (f"camera '{vkey}': {_eps(len(decode_err))} {'has' if len(decode_err) == 1 else 'have'} no footage: the video file ends before the "
+                        "episode starts, so every frame requested for them is missing")
+            else:
+                what = f"camera '{vkey}': video for {_eps(len(decode_err))} is missing, can't be decoded or ends early"
+            out.append(Finding("video.decode_error", CRITICAL, what,
                                episodes=sorted(decode_err), details={"video_key": vkey,
                                                                      "errors": {str(k): v for k, v in list(decode_err.items())[:20]}}))
         for d in rep["duplicates"]:

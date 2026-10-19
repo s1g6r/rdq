@@ -362,3 +362,4 @@ def test_episode_past_the_end_of_its_video_file(tmp_path):
     err = found["video.decode_error"]
     assert err.episodes == [2]
     assert "no footage" in err.details["errors"]["2"]
+    assert "have no footage" in err.message or "has no footage" in err.message
