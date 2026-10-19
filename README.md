@@ -12,6 +12,16 @@
 
 **Try the licence check in your browser, no install:** [huggingface.co/spaces/rs1g6r/rdq](https://huggingface.co/spaces/rs1g6r/rdq)
 
+**Problems it has found in public datasets** (each checked by hand and reported to the owners):
+
+- Two camera feeds swapped in the first 20 episodes, and the overhead camera moved after episode 39 ([EPITECH-LILLE/eval_training](https://huggingface.co/datasets/EPITECH-LILLE/eval_training/discussions/2)).
+- Two episodes with no video at all, and one episode that repeats another, in an official LeRobot dataset ([lerobot/berkeley_rpt](https://huggingface.co/datasets/lerobot/berkeley_rpt/discussions/4)).
+- An episode that renders black in both cameras, and episodes whose video runs past the data ([zima-robot/liftplace-ee-xyz-500-v2](https://huggingface.co/datasets/zima-robot/liftplace-ee-xyz-500-v2/discussions/1)).
+- A second camera that repeats frames at the start of six episodes; the converters traced it to the original release ([IPEC-COMMUNITY/nyu_franka_play_dataset_lerobot](https://huggingface.co/datasets/IPEC-COMMUNITY/nyu_franka_play_dataset_lerobot/discussions/1)).
+- A mirror tagged MIT whose original data is CC BY 4.0 ([ember-lab-berkeley/robocasa365-pretrain-mg](https://huggingface.co/datasets/ember-lab-berkeley/robocasa365-pretrain-mg/discussions/2)).
+
+It also gets things wrong sometimes: 14 false alarms on real data so far, each one fixed with a test and listed in the [video methodology](https://github.com/s1g6r/rdq/blob/main/docs/raw-video.md).
+
 It reads tables, not videos (unless you ask), and runs on a laptop for typical datasets: about 1.4 GB of memory for 600,000 frames. For DROID-scale corpora, audit a sample of episodes.
 
 ```bash
