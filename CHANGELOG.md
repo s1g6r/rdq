@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 (2026-10-19)
 
 - New: `meta.index_ranges` (warning) when episodes' metadata row ranges don't match the data's index column. Before, rdq read the episode by those ranges and reported it as short (`counts.length_mismatch`, critical) although all its frames were there. Found on deepreach/bi_so101_8inch_4cam: one episode stored out of order shifted 33 later episodes by 241 rows.
 - Fix: `video.covered` needs the featureless frames to be darker than the camera's usual picture (a covered lens blocks light). A low camera facing a plain white table once the object left the view was reported as covered in about 30 episodes (deepreach/bi_so101_8inch_4cam); checked by eye.
