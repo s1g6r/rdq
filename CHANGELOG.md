@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.3 (2026-10-21)
+
+- `video.frozen_span` now says what else was happening while the picture froze (an idea from the Hugging Face forum). If the robot kept moving or another camera kept changing, it's a stalled feed (warning). If the robot and every other camera were still too, it's a pause, idle padding or a deliberate no-task clip (info, not counted against the episode). `details.robot_or_other_camera` is `moving`, `still` or `unknown`. In simulated footage it stays a note either way, because the arm can move out of a camera's view (zima-robot/liftplace-ee-xyz-500-v2, checked by eye). On LeBoard's calibration sets: 37 of 38 injected freezes come out as stalled feeds and all 38 injected idle starts as pauses; IPEC nyu_franka's stalled second camera is still a warning.
+
 ## 0.3.2 (2026-10-21)
 
 - Idle check: episodes whose action never changes at all are caught even when they make up half of a task or of the dataset (they used to set the reference themselves). Found by scoring rdq on LeBoard's calibration datasets.
