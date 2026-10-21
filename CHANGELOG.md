@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Idle check: episodes whose action never changes at all are caught even when they make up half of a task or of the dataset (they used to set the reference themselves). Found by scoring rdq on LeBoard's calibration datasets.
+
 ## 0.3.1 (2026-10-19)
 
 - New: `meta.index_ranges` (warning) when episodes' metadata row ranges don't match the data's index column. Before, rdq read the episode by those ranges and reported it as short (`counts.length_mismatch`, critical) although all its frames were there. Found on deepreach/bi_so101_8inch_4cam: one episode stored out of order shifted 33 later episodes by 241 rows.
