@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.2 (2026-10-21)
 
 - Idle check: episodes whose action never changes at all are caught even when they make up half of a task or of the dataset (they used to set the reference themselves). Found by scoring rdq on LeBoard's calibration datasets.
 
