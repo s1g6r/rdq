@@ -277,7 +277,9 @@ def _frozen_findings(ds: Dataset, pending: dict, decoded: dict, simulated: bool)
             robot = robot_moving_during(ds, e, spans)
             verdict[e] = "moving" if (robot is True or other_live) else ("still" if robot is False else "unknown")
         text = {
-            "moving": ("the image stops changing while the robot or another camera keeps moving (the renderer or recording stalled)"
+            "moving": ("the image stops changing while the robot or another camera keeps moving; in simulated footage "
+                       "this is usually the arm moving outside this camera's view (zima-robot/liftplace-ee-xyz-500-v2), "
+                       "less often a stalled renderer"
                        if simulated else
                        "the image stops changing while the robot or another camera keeps moving (a stalled or dropped camera feed)"),
             "unknown": ("the image stops changing for a while; the footage is simulated, so this is most likely a still "
@@ -288,7 +290,10 @@ def _frozen_findings(ds: Dataset, pending: dict, decoded: dict, simulated: bool)
             ("the image repeats exactly while the robot and the other cameras are still too: little is lost for "
              "training, though identical frames from a real camera mean the feed repeated its last frame"),
         }
-        sev = {"moving": WARNING, "unknown": INFO if simulated else WARNING, "still": INFO}
+        # Rendered frames repeat exactly whenever this camera's view is still, and the robot can move out of
+        # its view, so in simulated footage robot motion doesn't prove a stall. Real cameras never repeat a
+        # frame exactly (sensor noise), so there a frozen picture next to a moving robot is a fault.
+        sev = {"moving": INFO if simulated else WARNING, "unknown": INFO if simulated else WARNING, "still": INFO}
         for v in ("moving", "unknown", "still"):
             eps_g = sorted(e for e in per_ep if verdict[e] == v)
             if not eps_g:

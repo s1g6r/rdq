@@ -164,8 +164,9 @@ def test_frozen_footage_in_a_simulated_dataset_is_a_still_scene(dataset, tmp_pat
     ds = load_dataset(sim)
     assert is_simulated(ds) and not is_simulated(load_dataset(dataset))
     f = {x.check: x for x in check_videos_full(ds, workers=1)}
-    # the robot keeps moving through episode 3's frozen stretch, so even rendered footage has stalled
-    assert f["video.frozen_span"].severity == "warning" and "keeps moving" in f["video.frozen_span"].message
+    # the robot keeps moving through episode 3's frozen stretch, but in rendered footage it may just be out
+    # of this camera's view (zima-robot: the arm leaves the overhead view), so it stays a note
+    assert f["video.frozen_span"].severity == "info" and "outside this camera's view" in f["video.frozen_span"].message
     assert f["video.black_span"].severity == "warning"      # a black render is still a problem
     for ep in ds.episodes.values():                          # no robot data to judge with: a still scene
         ep.features.pop(ds.state_key, None)
