@@ -909,10 +909,15 @@ def check_idle(ds: Dataset, th: Thresholds) -> list[Finding]:
         return []
     # Spatial extent, not path length: sensor jitter adds path length without moving anywhere.
     motions = np.array([_extent(ep.features[key]) for ep in eps])
-    median = float(np.median(motions))
     out = []
-    if median <= 1e-9:
+    # Episodes whose signal never changes at all (a stuck command, an unplugged arm) are left out of the
+    # reference, so they are still caught when they make up half of the dataset or of a task.
+    frozen = motions <= 1e-6 * float(motions.max()) if motions.max() > 0 else np.ones(len(motions), bool)
+    if frozen.all():
         return out  # nothing moves at all: check_no_motion reports it
+    median = float(np.median(motions[~frozen]))
+    if median <= 1e-9:
+        return out
     # Compare each episode with others of the same task: some tasks legitimately move less.
     def task_of(ep):
         if ep.task_index is None or not len(ep.task_index):
@@ -922,8 +927,9 @@ def check_idle(ds: Dataset, th: Thresholds) -> list[Finding]:
 
     tasks = [task_of(ep) for ep in eps]
     by_task: dict = {}
-    for t, m in zip(tasks, motions):
-        by_task.setdefault(t, []).append(m)
+    for t, m, f in zip(tasks, motions, frozen):
+        if not f:
+            by_task.setdefault(t, []).append(m)
     task_med = {t: float(np.median(v)) for t, v in by_task.items() if len(v) >= 3}
     ref_of = {}
     for t, med in task_med.items():

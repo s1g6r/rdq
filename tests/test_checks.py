@@ -293,3 +293,15 @@ def test_metadata_row_ranges_that_disagree_with_the_index_column(tmp_path):
     found = {f["check"]: f for f in audit(root)["findings"]}
     assert found["meta.index_ranges"]["episodes"] == list(range(4, 10))
     assert "counts.length_mismatch" not in found
+
+
+def test_stuck_command_in_most_episodes(tmp_path, clean):
+    # LeBoard's stuck-actions calibration set: the action is one constant vector for the whole episode in
+    # half of the episodes. Those must not become the "typical" episode the others are compared with.
+    eps = copy.deepcopy(clean)
+    stuck = list(range(0, 30, 2)) + [1]
+    for i in stuck:
+        eps[i]["action"] = np.repeat(eps[i]["action"][:1], len(eps[i]["action"]), axis=0)
+    _, findings = _audit(tmp_path, eps)
+    idle = {e for f in _by_check(findings).get("episodes.idle", []) for e in f.episodes}
+    assert idle == set(stuck)
