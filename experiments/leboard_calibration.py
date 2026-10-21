@@ -65,6 +65,8 @@ def main() -> int:
                 d = f.get("details") or {}
                 cam = d.get("video_key") or d.get("camera") or d.get("feature") or ""
                 key = f["check"] + (":" + str(cam).split(".")[-1] if cam else "")
+                if d.get("robot_or_other_camera"):
+                    key += "/" + d["robot_or_other_camera"]
                 hit = len(eps & g)
                 checks[key] = [f["severity"][0], len(eps), hit, len(eps) - hit]
             row["checks"] = checks          # check: [severity, flagged, hit, extra]

@@ -200,9 +200,104 @@ def is_simulated(ds: Dataset) -> bool:
     return bool(words & SIM_TAGS) or robot.endswith("_sim") or robot.startswith("sim_")
 
 
+ROBOT_STILL = 0.05   # the robot "is still" during a stretch when it ranges less than 5% of its whole-episode range
+
+
+def robot_moving_during(ds: Dataset, episode: int, spans: list) -> bool | None:
+    """Whether the robot moved while a frozen stretch of video was recorded, from its own state log (or its
+    actions when there is no state): True, False, or None when there's nothing to judge with.
+
+    A picture that stops while the robot moves is a capture problem (a stalled feed or renderer). A picture
+    that stops while the robot is still too is a pause, idle padding or a deliberate no-task clip."""
+    from .checks import _extent
+
+    ep = ds.episodes.get(episode)
+    key = ds.state_key or ds.action_key
+    if ep is None or not key or key not in ep.features or not spans:
+        return None
+    x = np.asarray(ep.features[key], dtype=float)
+    if ep.timestamps is not None and len(ep.timestamps) == len(x):
+        t = np.asarray(ep.timestamps, dtype=float) - float(ep.timestamps[0])
+    elif ds.fps:
+        t = np.arange(len(x)) / float(ds.fps)
+    else:
+        return None
+    whole = _extent(x)
+    if whole <= 1e-9:
+        return False
+    seen = False
+    for a, b in spans:
+        m = (t >= float(a) - 1e-6) & (t < float(b) + 1e-6)
+        if m.sum() < 3:
+            continue
+        seen = True
+        if _extent(x[m]) >= ROBOT_STILL * whole:
+            return True
+    return False if seen else None
+
+
 COPY_CHECKS = ("video.near_duplicate", "video.trimmed_copy", "video.same_stream_remuxed", "video.identical_file",
                "video.partial_overlap", "video.loop_within_file")
 
+
+
+def _covered(span, spans, tol: float = 0.5) -> bool:
+    """Whether [a, b) lies inside the union of spans, give or take tol seconds at each end."""
+    a, b = float(span[0]) + tol, float(span[1]) - tol
+    if b <= a:
+        return any(float(c) <= float(span[0]) + tol and float(d) >= float(span[1]) - tol for c, d in spans)
+    pos = a
+    for c, d in sorted((float(c), float(d)) for c, d in spans):
+        if c > pos:
+            break
+        pos = max(pos, d)
+        if pos >= b:
+            return True
+    return pos >= b
+
+
+def _frozen_findings(ds: Dataset, pending: dict, decoded: dict, simulated: bool) -> list[Finding]:
+    """Frozen stretches, split by what else was happening at the time (an idea from the HF forum: tell a
+    camera fault from a deliberate idle clip by comparing the picture with the robot's own log).
+
+    A camera fault: the robot kept moving, or another camera of the same episode kept changing.
+    A pause: the robot was still and every other camera froze too (idle padding, a no-task clip)."""
+    out = []
+    for vkey, (per_ep, spans_of, _eps_decoded) in pending.items():
+        verdict = {}
+        for e in per_ep:
+            spans = spans_of.get(e, [])
+            other_live = False
+            for c, eps_c in decoded.items():   # another camera that recorded this episode and didn't freeze then
+                if c == vkey or e not in eps_c or not spans:
+                    continue
+                c_spans = pending[c][1].get(e, []) if c in pending else []
+                if not all(_covered(sp, c_spans) for sp in spans):
+                    other_live = True
+            robot = robot_moving_during(ds, e, spans)
+            verdict[e] = "moving" if (robot is True or other_live) else ("still" if robot is False else "unknown")
+        text = {
+            "moving": ("the image stops changing while the robot or another camera keeps moving (the renderer or recording stalled)"
+                       if simulated else
+                       "the image stops changing while the robot or another camera keeps moving (a stalled or dropped camera feed)"),
+            "unknown": ("the image stops changing for a while; the footage is simulated, so this is most likely a still "
+                        "scene (rendered frames have no sensor noise), not a stalled feed") if simulated
+            else FULL_CHECKS["video.frozen"][2],
+            "still": ("the image stops changing while the robot and the other cameras are still too (a pause, idle "
+                      "padding or a deliberate no-task clip rather than a camera fault)") if simulated else
+            ("the image repeats exactly while the robot and the other cameras are still too: little is lost for "
+             "training, though identical frames from a real camera mean the feed repeated its last frame"),
+        }
+        sev = {"moving": WARNING, "unknown": INFO if simulated else WARNING, "still": INFO}
+        for v in ("moving", "unknown", "still"):
+            eps_g = sorted(e for e in per_ep if verdict[e] == v)
+            if not eps_g:
+                continue
+            total = sum(per_ep[e] for e in eps_g)
+            out.append(Finding("video.frozen_span", sev[v], f"camera '{vkey}': {text[v]} in {_eps(len(eps_g))} ({total:.0f} s in all)",
+                               episodes=eps_g, details={"video_key": vkey, "robot_or_other_camera": v,
+                                                        "seconds_by_episode": {str(k): round(per_ep[k], 1) for k in eps_g}}))
+    return out
 
 def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episodes: int | None = None,
                       workers: int | None = None) -> list[Finding]:
@@ -223,6 +318,8 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
     dup_pairs: dict[tuple[int, int], list[dict]] = {}
     simulated = is_simulated(ds)
     cam_bgs: dict[str, dict[int, np.ndarray]] = {}
+    frozen_pending: dict[str, tuple] = {}
+    decoded_eps: dict[str, set] = {}
     for vkey in (cameras or ds.video_keys):
         segs, missing = [], {}
         for ep in eps:
@@ -262,6 +359,7 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
                 out.append(Finding("video.decode_error", CRITICAL, f"camera '{vkey}': video missing for {_eps(len(missing))}",
                                    episodes=sorted(missing), details={"video_key": vkey}))
             continue
+        decoded_eps[vkey] = {r["episode"] for r in records}
         cam_bgs[vkey] = episode_backgrounds(records)
         views = viewpoints(records)
         if views:
@@ -278,6 +376,7 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
         rep = rv.check_video_batch([], records=records, workers=1)
         ep_of = {r["path"]: r["episode"] for r in records}
         by_check: dict[str, dict[int, float]] = {}
+        frozen_spans: dict[int, list] = {}
         decode_err = dict(missing)
         for f in rep["files"]:
             e = ep_of[f["path"]]
@@ -289,11 +388,12 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
                     decode_err[e] = i["message"]
                     continue
                 by_check.setdefault(i["check"], {})[e] = by_check.get(i["check"], {}).get(e, 0.0) + (i.get("seconds") or 0.0)
+                if i["check"] == "video.frozen":
+                    frozen_spans.setdefault(e, []).extend(i.get("spans") or [])
+        if "video.frozen" in by_check:   # judged after all cameras are decoded (see _frozen_findings)
+            frozen_pending[vkey] = (by_check.pop("video.frozen"), frozen_spans, {r["episode"] for r in records})
         for check, per_ep in by_check.items():
             cid, sev, what = FULL_CHECKS[check]
-            if check == "video.frozen" and simulated:
-                sev, what = INFO, ("the image stops changing for a while; the footage is simulated, so this is "
-                                   "most likely a still scene (rendered frames have no sensor noise), not a stalled feed")
             if check == "video.blur":   # warn only where blur takes a large share of the episode
                 sev = WARNING if any(v > 0.1 * max(1e-9, _dur(rep, ep_of, e)) for e, v in per_ep.items()) else INFO
             total = sum(per_ep.values())
@@ -320,6 +420,7 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
             dup_pairs.setdefault((a, b), []).append({"camera": vkey, "kind": d["kind"], "overlap_s": d.get("overlap_s"),
                                                      "share_of_shorter": d.get("share_of_shorter"),
                                                      "motion_corr": ev.get("motion_corr")})
+    out += _frozen_findings(ds, frozen_pending, decoded_eps, simulated)
     out += judge_duplicates(dup_pairs, len(cameras or ds.video_keys), ds)
     for a, b, eps_sw in camera_swaps(cam_bgs):
         out.append(Finding("video.cameras_swapped", WARNING,

@@ -164,8 +164,30 @@ def test_frozen_footage_in_a_simulated_dataset_is_a_still_scene(dataset, tmp_pat
     ds = load_dataset(sim)
     assert is_simulated(ds) and not is_simulated(load_dataset(dataset))
     f = {x.check: x for x in check_videos_full(ds, workers=1)}
-    assert f["video.frozen_span"].severity == "info" and "simulated" in f["video.frozen_span"].message
+    # the robot keeps moving through episode 3's frozen stretch, so even rendered footage has stalled
+    assert f["video.frozen_span"].severity == "warning" and "keeps moving" in f["video.frozen_span"].message
     assert f["video.black_span"].severity == "warning"      # a black render is still a problem
+    for ep in ds.episodes.values():                          # no robot data to judge with: a still scene
+        ep.features.pop(ds.state_key, None)
+        ep.features.pop(ds.action_key, None)
+    f = {x.check: x for x in check_videos_full(ds, workers=1)}
+    assert f["video.frozen_span"].severity == "info" and "simulated" in f["video.frozen_span"].message
+
+
+def test_frozen_picture_while_the_robot_is_still_is_a_pause(dataset):
+    """A frozen picture is a camera fault only if the robot moved meanwhile (idea from the HF forum).
+    Hold the robot still through episode 3's frozen stretch (3-5.5 s) and it becomes a pause, not a fault."""
+    from rdq.video import robot_moving_during
+
+    ds = load_dataset(dataset)
+    assert robot_moving_during(ds, 3, [(3.0, 5.5)]) is True
+    for key in (ds.state_key, ds.action_key):
+        x = ds.episodes[3].features[key]
+        x[int(2.8 * FPS):int(5.8 * FPS)] = x[int(2.8 * FPS)]
+    assert robot_moving_during(ds, 3, [(3.0, 5.5)]) is False
+    frozen = [x for x in check_videos_full(ds, workers=1) if x.check == "video.frozen_span"]
+    assert len(frozen) == 1 and frozen[0].episodes == [3]
+    assert frozen[0].severity == "info" and frozen[0].details["robot_or_other_camera"] == "still"
 
 
 def test_viewpoints_fixed_camera_with_a_shaky_first_session_is_still_found():
@@ -363,3 +385,21 @@ def test_episode_past_the_end_of_its_video_file(tmp_path):
     assert err.episodes == [2]
     assert "no footage" in err.details["errors"]["2"]
     assert "have no footage" in err.message or "has no footage" in err.message
+
+
+def test_frozen_camera_while_another_camera_moves_is_a_fault(dataset):
+    """IPEC nyu_franka: the second camera stalls at the start of episodes while the main camera keeps
+    changing. Even with the robot still, that is a camera fault, not a pause."""
+    from rdq.video import _covered, _frozen_findings
+
+    assert _covered((2.0, 4.0), [(1.9, 4.2)]) and not _covered((2.0, 4.0), [(2.0, 2.5)])
+    ds = load_dataset(dataset)
+    for key in (ds.state_key, ds.action_key):        # robot still through episode 3
+        x = ds.episodes[3].features[key]
+        x[:] = x[0]
+    wrist_only = {"wrist": ({3: 1.5}, {3: [(0.0, 1.5)]}, {3})}
+    both = {"wrist": ({3: 1.5}, {3: [(0.0, 1.5)]}, {3}), "front": ({3: 1.5}, {3: [(0.0, 1.5)]}, {3})}
+    live = _frozen_findings(ds, wrist_only, {"wrist": {3}, "front": {3}}, simulated=False)
+    assert [(f.severity, f.details["robot_or_other_camera"]) for f in live] == [("warning", "moving")]
+    still = _frozen_findings(ds, both, {"wrist": {3}, "front": {3}}, simulated=False)
+    assert {(f.severity, f.details["robot_or_other_camera"]) for f in still} == {("info", "still")}
