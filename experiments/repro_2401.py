@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 
-subprocess.run([sys.executable, "-m", "pip", "install", "-q", "lerobot==0.6.1"], check=True)
+subprocess.run([sys.executable, "-m", "pip", "install", "-q", "lerobot[dataset]==0.6.1"], check=True)
 repo, eps = sys.argv[1], [int(x) for x in sys.argv[2:]]
 code = r'''
 import json, sys, traceback
