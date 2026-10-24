@@ -14,6 +14,7 @@
 
 **Problems it has found in public datasets** (each checked by hand and reported to the owners):
 
+- Episodes whose metadata points to the wrong data file, so LeRobot can't load them on their own (the converter bug lerobot#2401, still in 8 of the 173 popular multi-file v3.0 datasets), including Ai2's MolmoAct2 datasets ([allenai/MolmoAct2-RT-1-Dataset](https://huggingface.co/datasets/allenai/MolmoAct2-RT-1-Dataset/discussions/1), [LightwheelAI/Lightwheel-Tasks-X7S](https://huggingface.co/datasets/LightwheelAI/Lightwheel-Tasks-X7S/discussions), [unitreerobotics/G1_Dex3_ToastedBread_Dataset](https://huggingface.co/datasets/unitreerobotics/G1_Dex3_ToastedBread_Dataset/discussions)).
 - Two camera feeds swapped in the first 20 episodes, and the overhead camera moved after episode 39 ([EPITECH-LILLE/eval_training](https://huggingface.co/datasets/EPITECH-LILLE/eval_training/discussions/2)).
 - Two episodes with no video at all, and one episode that repeats another, in an official LeRobot dataset ([lerobot/berkeley_rpt](https://huggingface.co/datasets/lerobot/berkeley_rpt/discussions/4)).
 - An episode that renders black in both cameras, and episodes whose video runs past the data ([zima-robot/liftplace-ee-xyz-500-v2](https://huggingface.co/datasets/zima-robot/liftplace-ee-xyz-500-v2/discussions/1)).

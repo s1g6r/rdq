@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.4 (2026-10-24)
+
+- New: `meta.data_file` (warning) when an episode's metadata (`data/chunk_index`, `data/file_index`) names a data file it isn't in. This is the file-boundary bug in LeRobot's v2.1 -> v3.0 converter (huggingface/lerobot#2401, fixed since): loading the whole dataset works, but `LeRobotDataset(repo, episodes=[...])` downloads only the named files, so the episode comes back empty (LeRobot 0.6.1 fails with `Instruction "train" corresponds to no data!`). In the 600 most-downloaded LeRobot datasets, 8 of the 173 v3.0 datasets with more than one data file still have it.
+
 ## 0.3.3 (2026-10-21)
 
 - `video.frozen_span` now says what else was happening while the picture froze (an idea from the Hugging Face forum). If the robot kept moving or another camera kept changing, it's a stalled feed (warning). If the robot and every other camera were still too, it's a pause, idle padding or a deliberate no-task clip (info, not counted against the episode). `details.robot_or_other_camera` is `moving`, `still` or `unknown`. In simulated footage it stays a note either way, because the arm can move out of a camera's view (zima-robot/liftplace-ee-xyz-500-v2, checked by eye). On a public set of deliberately corrupted LeRobot datasets with known answers: 37 of 38 injected freezes come out as stalled feeds and all 38 injected idle starts as pauses; IPEC nyu_franka's stalled second camera is still a warning.
