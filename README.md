@@ -122,6 +122,7 @@ On synthetic deliveries with known answers it finds every planted defect class a
 | `episodes.no_motion` | critical | Most episodes' state (or absolute-position action) moves no further than its frame-to-frame noise: a frozen stream or a disconnected arm. |
 | `counts.episodes_not_in_metadata`, `counts.metadata_episodes_missing` | critical | Episodes in the data files that LeRobot's metadata doesn't list, or the reverse. |
 | `meta.index_ranges` | warning | The metadata's row ranges for some episodes don't match the data's index column (often one episode re-written or stored out of order). The frames are there, but LeRobot bounds episodes by those ranges when it builds action chunks, so chunks run into the neighbouring episode (checked with LeRobot 0.6.1). |
+| `meta.data_file` | warning | Some episodes' metadata names a data file they aren't in: the file-boundary bug in LeRobot's v2.1 → v3.0 converter ([lerobot#2401](https://github.com/huggingface/lerobot/issues/2401), fixed since). Loading a subset of episodes from the Hub downloads only the named files, so those episodes can go missing. |
 | `stats.stale` | warning | `stats.json` doesn't match the data, so normalisation is silently wrong. |
 | `schema.*`, `counts.*`, `time.*`, `files.*` | various | Metadata that disagrees with the data, broken timing, orphaned files. |
 | `tasks.placeholder` | warning | Language-conditioned policies get a useless instruction. |

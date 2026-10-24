@@ -305,3 +305,25 @@ def test_stuck_command_in_most_episodes(tmp_path, clean):
     _, findings = _audit(tmp_path, eps)
     idle = {e for f in _by_check(findings).get("episodes.idle", []) for e in f.episodes}
     assert idle == set(stuck)
+
+
+def test_episode_metadata_naming_the_wrong_data_file(tmp_path, clean):
+    """lerobot#2401: the v2.1 -> v3.0 converter gave the episode at each file boundary the previous file's
+    chunk/file index. Split the data into two files and reproduce that for episode 15."""
+    import pandas as pd
+
+    root = syn.write_dataset(tmp_path / "ds", clean)
+    data = pd.read_parquet(root / "data/chunk-000/file-000.parquet")
+    data[data.episode_index < 15].to_parquet(root / "data/chunk-000/file-000.parquet")
+    data[data.episode_index >= 15].to_parquet(root / "data/chunk-000/file-001.parquet")
+    mp = root / "meta/episodes/chunk-000/file-000.parquet"
+    meta = pd.read_parquet(mp)
+    meta["data/file_index"] = (meta.episode_index > 15).astype(int)    # episode 15 still names file 0
+    meta.to_parquet(mp)
+    found = {f.check: f for f in run_checks(load_dataset(root))}
+    assert found["meta.data_file"].episodes == [15]
+    assert found["meta.data_file"].details["files"]["15"] == {"named": "data/chunk-000/file-000.parquet",
+                                                             "actual": "data/chunk-000/file-001.parquet"}
+    meta["data/file_index"] = (meta.episode_index >= 15).astype(int)    # fixed: no finding
+    meta.to_parquet(mp)
+    assert "meta.data_file" not in {f.check for f in run_checks(load_dataset(root))}

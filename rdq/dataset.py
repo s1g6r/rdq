@@ -96,6 +96,7 @@ class Dataset:
     channel_index: dict[str, list[int]] = field(default_factory=dict)
     truncated: str | None = None  # set when only part of the data was read (--max-frames)
     index_offsets: dict[int, int] = field(default_factory=dict)  # episode -> data index minus metadata start, when they disagree
+    wrong_data_file: dict[int, tuple[str, str]] = field(default_factory=dict)  # episode -> (file its metadata names, file it is in)
 
     @property
     def action_key(self) -> str | None:
@@ -277,11 +278,14 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
     frames = []
     data_columns: set[str] = set()
     total = 0
+    eps_in_file: dict[Path, set[int]] = {}
     for path in data_files:
         available = pq.read_schema(path).names
         data_columns.update(available)
         wanted = [c for c in (*INDEX_COLUMNS, *numeric_keys) if c in available]
         frames.append(_read_parquet(path, columns=wanted))
+        if "episode_index" in frames[-1].columns:
+            eps_in_file[path] = {int(e) for e in pd.unique(frames[-1]["episode_index"])}
         total += len(frames[-1])
         if max_frames and total >= max_frames:
             break
@@ -353,6 +357,25 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
             meta=meta,
         )
 
+    # Each episode's metadata names the data file holding it (v3.0); LeRobot reads that file when a subset of
+    # episodes is requested. lerobot#2401: the v2.1 -> v3.0 converter gave the episode at each file boundary
+    # the previous file's chunk/file index, so it points at a file it isn't in.
+    wrong_data_file: dict[int, tuple[str, str]] = {}
+    template = info.get("data_path")
+    if template and eps_in_file and not truncated:
+        for ep_idx, meta in meta_by_ep.items():
+            c, f = meta.get("data/chunk_index"), meta.get("data/file_index")
+            if c is None or f is None or ep_idx not in episodes:
+                continue
+            try:
+                named = root / template.format(chunk_index=int(c), file_index=int(f))
+            except (KeyError, ValueError, IndexError):
+                break
+            if named in eps_in_file and ep_idx not in eps_in_file[named]:
+                actual = next((p for p, s_ in eps_in_file.items() if ep_idx in s_), None)
+                if actual is not None:
+                    wrong_data_file[ep_idx] = (str(named.relative_to(root)), str(actual.relative_to(root)))
+
     if bad:
         numeric_keys = [k for k in numeric_keys if k not in bad]
         for ep in episodes.values():
@@ -378,4 +401,5 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
         skipped_features=skipped,
         truncated=truncated,
         index_offsets=index_offsets,
+        wrong_data_file=wrong_data_file,
     )

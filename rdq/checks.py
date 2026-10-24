@@ -347,6 +347,22 @@ def check_counts(ds: Dataset, th: Thresholds) -> list[Finding]:
                 details={"offsets": {str(k): v for k, v in list(offsets.items())[:50]}},
             )
         )
+    wrong = getattr(ds, "wrong_data_file", {}) or {}
+    if wrong:
+        out.append(
+            Finding(
+                "meta.data_file",
+                WARNING,
+                f"the metadata of {_eps(len(wrong))} names the wrong data file (data/chunk_index, data/file_index): "
+                "each episode is in the file after the one named. This is the file-boundary bug in LeRobot's v2.1 -> "
+                "v3.0 converter (huggingface/lerobot#2401, fixed since). Loading the whole dataset works, but loading "
+                "a subset of episodes from the Hub (episodes=[...]) downloads only the files the metadata names, so "
+                "these episodes can be missing. Re-converting with a current LeRobot, or pointing each episode at the "
+                "file it is in, fixes it",
+                episodes=sorted(wrong),
+                details={"files": {str(k): {"named": a, "actual": b} for k, (a, b) in list(wrong.items())[:50]}},
+            )
+        )
     if ds.episodes_meta is not None and "length" in ds.episodes_meta.columns:
         bad = []
         for ep in ds.episodes.values():
