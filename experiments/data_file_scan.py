@@ -21,6 +21,8 @@ def scan(repo: str, fs: HfFileSystem) -> dict:
     data_files = sorted(p for p in fs.glob(f"{base}/data/**/*.parquet"))
     if len(data_files) < 2:
         return {"skip": "one data file", "files": len(data_files)}
+    if len(data_files) > 40:
+        return {"skip": "too many files", "files": len(data_files)}
     tmpl = info.get("data_path")
     metas = []
     for p in sorted(fs.glob(f"{base}/meta/episodes/**/*.parquet")):
@@ -63,6 +65,8 @@ def main():
         rows.append(r)
         if r.get("wrong") or (i % 25 == 0):
             print(json.dumps(r), flush=True)
+        if r.get("wrong") and os.environ.get("GITHUB_ACTIONS"):   # report as found, so a timeout keeps the hits
+            print(f"::notice title=dfs-live-{k}-{i}::" + json.dumps(r)[:3500], flush=True)
     hit = [r for r in rows if r.get("wrong")]
     checked = [r for r in rows if "wrong" in r]
     summary = {"shard": a.shard, "listed": len(ids), "multi_file_v3_checked": len(checked), "with_bug": len(hit),
