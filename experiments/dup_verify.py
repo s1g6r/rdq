@@ -32,10 +32,10 @@ def frames(e):
             ts = float(fr.pts * st.time_base)
             for w in want:
                 if w not in got and ts >= w - 1e-3:
-                    got[w] = cv2.resize(fr.to_ndarray(format="bgr24"), (160, 120))
+                    got[w] = cv2.resize(fr.to_ndarray(format="bgr24"), (120, 90))
             if ts > want[-1] + 1:
                 break
-    return np.hstack([got.get(w, np.zeros((120, 160, 3), np.uint8)) for w in want])
+    return np.hstack([got.get(w, np.zeros((90, 120, 3), np.uint8)) for w in want])
 
 
 rows = []
@@ -54,7 +54,7 @@ for a, b in pairs:
     cv2.putText(row, f"ep{a} (top) vs ep{b} (bottom) {cam.split('.')[-1]}", (3, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 255), 1)
     rows.append(row)
 img = np.vstack(rows)
-ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 70])
+ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 55])
 b64 = base64.b64encode(buf.tobytes()).decode()
 print("::notice title=sheet-meta::" + f"{img.shape} {len(b64)}")
 for i in range(0, len(b64), 3800):
