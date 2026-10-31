@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix: on Windows, `rdq check` crashed with `UnicodeEncodeError` when its output went to a pipe or a file (`rdq check ds > report.txt`, CI logs), because redirected output used the ANSI code page, which has no "→". Redirected output is now written as UTF-8 (#1).
+
 ## 0.3.4 (2026-10-24)
 
 - New: `meta.data_file` (warning) when an episode's metadata (`data/chunk_index`, `data/file_index`) names a data file it isn't in. This is the file-boundary bug in LeRobot's v2.1 -> v3.0 converter (huggingface/lerobot#2401, fixed since): loading the whole dataset works, but `LeRobotDataset(repo, episodes=[...])` downloads only the named files, so the episode comes back empty (LeRobot 0.6.1 fails with `Instruction "train" corresponds to no data!`). In the 600 most-downloaded LeRobot datasets, 8 of the 173 v3.0 datasets with more than one data file still have it.

@@ -329,7 +329,19 @@ def _cmd_check_video(args) -> int:
     return 1 if report["summary"]["files_critical"] else 0
 
 
+def _utf8_when_redirected() -> None:
+    """On Windows, output that goes to a pipe or a file is encoded with the ANSI code page (cp1252), which has no
+    "→" or "·", so printing the report crashed. Write UTF-8 whenever the output isn't a console."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure") and not stream.isatty():
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except (ValueError, OSError):  # already written to, or not a real text stream: leave it as it is
+                pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _utf8_when_redirected()
     p = argparse.ArgumentParser(prog="rdq", description="Quality and provenance checks for robot-learning datasets")
     sub = p.add_subparsers(dest="cmd", required=True)
 
