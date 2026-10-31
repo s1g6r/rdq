@@ -148,7 +148,7 @@ def load_contributors(csv_path: str | Path) -> dict[str, str]:
 
 def contributor_of(path: Path, root: Path | None, mapping: dict[str, str] | None, by_folder: bool) -> str:
     if mapping:
-        rel = str(path.relative_to(root)) if root and path.is_relative_to(root) else path.name
+        rel = path.relative_to(root).as_posix() if root and path.is_relative_to(root) else path.name
         for key in (rel, path.name, str(path)):
             if key in mapping:
                 return mapping[key]

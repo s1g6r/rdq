@@ -260,9 +260,9 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
         existing = [p for p in referenced if p.exists()]
         missing_files = [p for p in referenced if not p.exists()]
         for p in missing_files[:20]:
-            warnings.append(f"metadata points to {p.relative_to(root)}, which does not exist")
+            warnings.append(f"metadata points to {p.relative_to(root).as_posix()}, which does not exist")
         ref_set = set(existing)
-        orphan_files = [str(p.relative_to(root)) for p in all_files if p not in ref_set]
+        orphan_files = [p.relative_to(root).as_posix() for p in all_files if p not in ref_set]
         data_files = existing or all_files
     else:
         data_files = all_files
@@ -374,7 +374,7 @@ def load_dataset(root: str | Path, max_frames: int | None = None) -> Dataset:
             if named in eps_in_file and ep_idx not in eps_in_file[named]:
                 actual = next((p for p, s_ in eps_in_file.items() if ep_idx in s_), None)
                 if actual is not None:
-                    wrong_data_file[ep_idx] = (str(named.relative_to(root)), str(actual.relative_to(root)))
+                    wrong_data_file[ep_idx] = (named.relative_to(root).as_posix(), actual.relative_to(root).as_posix())
 
     if bad:
         numeric_keys = [k for k in numeric_keys if k not in bad]

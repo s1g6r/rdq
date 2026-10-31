@@ -58,7 +58,7 @@ def audit(
     result = build_result(ds, findings, sc, prov)
     if exp_path:
         result["expected"] = {
-            "file": str(exp_path) if expected else str(exp_path.relative_to(path)),
+            "file": str(exp_path) if expected else exp_path.relative_to(path).as_posix(),
             "entries": len(entries),
             "findings_marked": sum(1 for f in findings if f.details.get("expected")),
         }

@@ -110,7 +110,7 @@ def check_videos(ds: Dataset, samples: int = SAMPLES, max_episodes: int | None =
             if path is None:
                 continue
             if not path.exists():
-                errors[ep.index] = f"missing file {path.relative_to(ds.root)}"
+                errors[ep.index] = f"missing file {path.relative_to(ds.root).as_posix()}"
                 continue
             span = max(end - start, 1e-3)
             times = [start + span * (k + 0.5) / samples for k in range(samples)]
@@ -332,7 +332,7 @@ def check_videos_full(ds: Dataset, cameras: list[str] | None = None, max_episode
             if path is None:
                 continue
             if not path.exists():
-                missing[ep.index] = f"missing file {path.relative_to(ds.root)}"
+                missing[ep.index] = f"missing file {path.relative_to(ds.root).as_posix()}"
                 continue
             segs.append((ep.index, path, start, end))
         files = sorted({str(p) for _, p, _, _ in segs})
