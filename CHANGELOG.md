@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.3.5 (2026-10-31)
 
-- Fix: on Windows, `rdq check` crashed with `UnicodeEncodeError` when its output went to a pipe or a file (`rdq check ds > report.txt`, CI logs), because redirected output used the ANSI code page, which has no "→". Redirected output is now written as UTF-8 (#1).
+- Fix (thanks @ebeirne): on Windows, `rdq check` crashed with `UnicodeEncodeError` when its output went to a pipe or a file (`rdq check ds > report.txt`, CI logs), because redirected output used the ANSI code page, which has no "→". Redirected output is now written as UTF-8 (#1).
+- Fix: file paths in findings and the JSON report (`meta.data_file`, orphaned files, the expected-findings file) use forward slashes on every OS; on Windows they came out as `data\chunk-000\...` (reported in #2).
 
 ## 0.3.4 (2026-10-24)
 
